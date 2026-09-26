@@ -85,12 +85,18 @@ export const addresses = pgTable(
     phone: text("phone").notNull(),
     line1: text("line1").notNull(),
     line2: text("line2"),
+    landmark: text("landmark"),
     city: text("city").notNull(),
     state: text("state").notNull(),
     pincode: text("pincode").notNull(),
+    isDefault: boolean("is_default").notNull().default(false),
     createdAt: createdAt(),
   },
-  (t) => [index("addresses_user_idx").on(t.userId)],
+  (t) => [
+    index("addresses_user_idx").on(t.userId),
+    // At most one default address per user.
+    uniqueIndex("addresses_one_default_per_user").on(t.userId).where(sql`${t.isDefault}`),
+  ],
 );
 
 // ---------------------------------------------------------------------------
@@ -118,6 +124,8 @@ export const sellers = pgTable("sellers", {
   gstin: text("gstin"),
   /** Pickup state; used if unregistered sellers must be limited to intra-state sales (legal check L2). */
   pickupState: text("pickup_state"),
+  /** Where couriers collect parcels; used for delivery estimates. */
+  pickupPincode: text("pickup_pincode"),
   shippingFeePaise: integer("shipping_fee_paise").notNull().default(0),
   freeShippingAbovePaise: integer("free_shipping_above_paise"),
   dispatchDays: smallint("dispatch_days").notNull().default(2),
@@ -284,6 +292,7 @@ export type AddressSnapshot = {
   phone: string;
   line1: string;
   line2?: string | null;
+  landmark?: string | null;
   city: string;
   state: string;
   pincode: string;
