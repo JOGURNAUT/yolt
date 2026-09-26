@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { listings } from "@yolt/db";
+import { UnconfiguredShippingProvider } from "../src";
 import { makeApp, sessionCookie } from "./helpers";
 import { createListing, createSeller, createUser, testDb, truncateAll } from "../../core/test/fixtures";
 
@@ -27,6 +28,20 @@ describe("buy flow over HTTP", () => {
     const checkout = await post("/api/checkout", buyer.id, { listingIds: [l.id], expectedSubtotalPaise: l.pricePaise });
     expect(checkout.status).toBe(201);
     const { orderId } = (await checkout.json()) as { orderId: string };
+
+    // Paying before choosing an address is refused.
+    expect((await post(`/api/orders/${orderId}/pay`, buyer.id)).status).toBe(409);
+    const address = await post("/api/addresses", buyer.id, {
+      name: "Ananya Sharma",
+      phone: "9876543210",
+      line1: "Flat 12, Sunrise Apartments",
+      city: "Pune",
+      state: "Maharashtra",
+      pincode: "411001",
+    });
+    const { id: addressId } = (await address.json()) as { id: string };
+    const chosen = await post(`/api/orders/${orderId}/address`, buyer.id, { addressId });
+    expect(await chosen.json()).toEqual({ etaDaysMin: 2, etaDaysMax: 3 });
 
     const pay = await post(`/api/orders/${orderId}/pay`, buyer.id);
     expect(pay.status).toBe(200);
@@ -94,5 +109,82 @@ describe("buy flow over HTTP", () => {
     const l = await createListing(db, seller.id);
     expect((await post(`/api/seller/listings/${l.id}/sold-elsewhere`, otherOwner.id)).status).toBe(404);
     expect((await post(`/api/seller/listings/${l.id}/sold-elsewhere`, owner.id)).status).toBe(200);
+  });
+});
+
+describe("addresses and delivery checks", () => {
+  const addr = { name: "Ananya Sharma", phone: "9876543210", line1: "Flat 12, Sunrise Apartments", city: "Pune", state: "Maharashtra" };
+
+  it("public delivery check by pincode", async () => {
+    const { seller } = await createSeller(db);
+    const l = await createListing(db, seller.id);
+    const near = await app.request(`/api/shipping/check?listingId=${l.id}&pincode=411014`);
+    expect(await near.json()).toMatchObject({ serviceable: true, etaDaysMin: 2, etaDaysMax: 3 });
+    const far = await app.request(`/api/shipping/check?listingId=${l.id}&pincode=110001`);
+    expect(await far.json()).toMatchObject({ serviceable: true, etaDaysMin: 5 });
+    const none = await app.request(`/api/shipping/check?listingId=${l.id}&pincode=990001`);
+    expect(await none.json()).toMatchObject({ serviceable: false, reason: "PINCODE_NOT_SERVICEABLE" });
+    expect((await app.request(`/api/shipping/check?listingId=${l.id}&pincode=12`)).status).toBe(400);
+  });
+
+  it("refuses an address couriers can't reach, and leaves the order without one", async () => {
+    const { seller } = await createSeller(db);
+    const l = await createListing(db, seller.id);
+    const buyer = await createUser(db);
+    const { orderId } = (await (await post("/api/checkout", buyer.id, { listingIds: [l.id] })).json()) as { orderId: string };
+    const { id } = (await (await post("/api/addresses", buyer.id, { ...addr, pincode: "990001" })).json()) as { id: string };
+    const r = await post(`/api/orders/${orderId}/address`, buyer.id, { addressId: id });
+    expect(r.status).toBe(409);
+    expect(await r.json()).toMatchObject({ error: "NOT_SERVICEABLE" });
+    expect((await post(`/api/orders/${orderId}/pay`, buyer.id)).status).toBe(409);
+  });
+
+  it("a buyer can't use someone else's address or see their book", async () => {
+    const { seller } = await createSeller(db);
+    const l = await createListing(db, seller.id);
+    const [a, b] = [await createUser(db), await createUser(db)];
+    const { id } = (await (await post("/api/addresses", a.id, { ...addr, pincode: "411001" })).json()) as { id: string };
+    const { orderId } = (await (await post("/api/checkout", b.id, { listingIds: [l.id] })).json()) as { orderId: string };
+    expect((await post(`/api/orders/${orderId}/address`, b.id, { addressId: id })).status).toBe(404);
+    const book = await app.request("/api/addresses", { headers: await as(b.id) });
+    expect(await book.json()).toEqual([]);
+  });
+
+  it("address validation errors come back per field", async () => {
+    const buyer = await createUser(db);
+    const r = await post("/api/addresses", buyer.id, { ...addr, pincode: "12345", state: "Atlantis" });
+    expect(r.status).toBe(400);
+    const body = (await r.json()) as { details: { errors: { field: string }[] } };
+    expect(body.details.errors.map((e) => e.field).sort()).toEqual(["pincode", "state"]);
+  });
+
+  it("address endpoints need sign-in", async () => {
+    expect((await app.request("/api/addresses")).status).toBe(401);
+  });
+});
+
+describe("without a shipping provider", () => {
+  it("answers 503 instead of guessing", async () => {
+    const { app: prodLike } = makeApp(db, { shipping: new UnconfiguredShippingProvider() });
+    const { seller } = await createSeller(db);
+    const l = await createListing(db, seller.id);
+    expect((await prodLike.request(`/api/shipping/check?listingId=${l.id}&pincode=411001`)).status).toBe(503);
+  });
+});
+
+describe("address changes during payment", () => {
+  it("are refused with PAYMENT_IN_PROGRESS, even for a deliverable address", async () => {
+    const { seller } = await createSeller(db);
+    const l = await createListing(db, seller.id);
+    const buyer = await createUser(db);
+    const addr = { name: "Ananya Sharma", phone: "9876543210", line1: "Flat 12, Sunrise Apartments", city: "Pune", state: "Maharashtra" };
+    const { orderId } = (await (await post("/api/checkout", buyer.id, { listingIds: [l.id] })).json()) as { orderId: string };
+    const a = (await (await post("/api/addresses", buyer.id, { ...addr, pincode: "411001" })).json()) as { id: string };
+    const b = (await (await post("/api/addresses", buyer.id, { ...addr, pincode: "411014" })).json()) as { id: string };
+    await post(`/api/orders/${orderId}/address`, buyer.id, { addressId: a.id });
+    await post(`/api/orders/${orderId}/pay`, buyer.id);
+    const r = await post(`/api/orders/${orderId}/address`, buyer.id, { addressId: b.id });
+    expect(r.status).toBe(409);
+    expect(await r.json()).toEqual({ error: "PAYMENT_IN_PROGRESS" });
   });
 });

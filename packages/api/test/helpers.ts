@@ -1,6 +1,6 @@
 import { createSession } from "@yolt/core";
 import type { Db } from "@yolt/db";
-import { createApp, DevOtpSender, MemoryMediaStorage, SandboxPaymentProvider, SESSION_COOKIE, type AppDeps } from "../src";
+import { createApp, DevOtpSender, DevShippingProvider, MemoryMediaStorage, SandboxPaymentProvider, SESSION_COOKIE, type AppDeps } from "../src";
 
 export function makeApp(db: Db, overrides: Partial<AppDeps> = {}) {
   const sandbox = new SandboxPaymentProvider("test-secret");
@@ -11,6 +11,7 @@ export function makeApp(db: Db, overrides: Partial<AppDeps> = {}) {
     media: new MemoryMediaStorage(),
     otp: new DevOtpSender(),
     authSecrets: { pepper: "test-pepper" },
+    shipping: new DevShippingProvider(),
     allowDevAuth: true,
     cronSecret: "cron",
     ...overrides,
