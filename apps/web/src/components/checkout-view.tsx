@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatINR } from "@/lib/format";
+import { AddressStep } from "./address-step";
 
 type Order = {
   id: string;
@@ -14,6 +15,7 @@ type Order = {
   dispatchBy: string | null;
   holdExpiresAt: string | null;
   payment: string | null;
+  shippingAddress: { name: string; line1: string; city: string; pincode: string } | null;
   items: { listingId: string; title: string; tagSize: string | null; pricePaise: number }[];
 };
 
@@ -62,7 +64,13 @@ export function CheckoutView({ orderId, sandbox }: { orderId: string; sandbox: b
       await load();
     } else {
       const body = (await res.json().catch(() => ({}))) as { error?: string };
-      setError(body.error === "HOLD_EXPIRED" ? "Your reservation ran out before payment started." : "Couldn't start payment.");
+      setError(
+        body.error === "HOLD_EXPIRED"
+          ? "Your reservation ran out before payment started."
+          : body.error === "ADDRESS_REQUIRED"
+            ? "Choose a delivery address first."
+            : "Couldn't start payment.",
+      );
     }
   }
 
@@ -138,13 +146,14 @@ export function CheckoutView({ orderId, sandbox }: { orderId: string; sandbox: b
                 {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, "0")}
               </span>
             </p>
+            <AddressStep orderId={orderId} current={order.shippingAddress} locked={paying} onChosen={load} />
             {paying ? (
               <p className="text-sm text-muted">Checking your payment — don&apos;t pay again.</p>
             ) : (
               <button
                 type="button"
                 onClick={pay}
-                disabled={busy}
+                disabled={busy || !order.shippingAddress}
                 className="w-full rounded-full bg-foreground py-3 font-semibold text-background disabled:opacity-60"
               >
                 Pay {formatINR(order.totalPaise)}

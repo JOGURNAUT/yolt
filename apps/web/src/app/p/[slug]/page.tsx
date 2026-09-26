@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Measurements } from "@yolt/db";
 import { BuyButton } from "@/components/buy-button";
 import { GarmentImage } from "@/components/garment-image";
+import { PincodeCheck } from "@/components/pincode-check";
 import { ProductGrid } from "@/components/product-card";
 import { CONDITION, formatIST, formatINR } from "@/lib/format";
 import { getListing, getMoreFromStore } from "@/lib/server/queries";
@@ -142,6 +143,11 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
               {seller.displayName}
             </Link>
             <p className="text-muted">Usually ships in {seller.dispatchDays} days.</p>
+            {!sold && !withdrawn && (
+              <div className="mt-3">
+                <PincodeCheck listingId={l.id} />
+              </div>
+            )}
             <p className="mt-2">
               Shipping {formatINR(seller.shippingFeePaise)}
               {seller.freeShippingAbovePaise !== null && `, free above ${formatINR(seller.freeShippingAbovePaise)}`}.

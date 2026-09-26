@@ -3,10 +3,12 @@ import { randomBytes } from "node:crypto";
 import {
   createApp,
   DevOtpSender,
+  DevShippingProvider,
   mediaStorageFromEnv,
   SandboxPaymentProvider,
   UnconfiguredOtpSender,
   UnconfiguredPaymentProvider,
+  UnconfiguredShippingProvider,
 } from "@yolt/api";
 import { db } from "./db";
 
@@ -25,6 +27,7 @@ export const api = createApp({
   payments: sandbox ?? new UnconfiguredPaymentProvider(),
   media: mediaStorageFromEnv(process.env),
   otp: isProduction ? new UnconfiguredOtpSender() : new DevOtpSender(),
+  shipping: isProduction ? new UnconfiguredShippingProvider() : new DevShippingProvider(),
   authSecrets: { pepper },
   sandbox,
   allowDevAuth: !isProduction,
