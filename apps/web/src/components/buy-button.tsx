@@ -26,7 +26,7 @@ export function BuyButton({ listingId, pricePaise }: { listingId: string; priceP
       }
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (res.status === 401) {
-        router.push(`/dev?next=${encodeURIComponent(pathname)}`);
+        router.push(`/login?next=${encodeURIComponent(pathname)}`);
         return;
       }
       setMessage(

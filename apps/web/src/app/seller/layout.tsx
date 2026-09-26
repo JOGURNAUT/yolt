@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { getCurrentSeller } from "@/lib/server/session";
+import { requireSeller } from "@/lib/server/session";
 
 export default async function SellerLayout({ children }: LayoutProps<"/seller">) {
-  const current = await getCurrentSeller();
-  if (!current) redirect("/dev?next=/seller/listings");
+  const current = await requireSeller("/seller/listings");
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between border-b border-line pb-3">
