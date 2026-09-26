@@ -122,7 +122,11 @@ export function CheckoutView({ orderId, sandbox }: { orderId: string; sandbox: b
       <div role="status" aria-live="polite" className="space-y-3">
         {order.status === "CONFIRMED" && (
           <p className="rounded-md bg-surface p-4 text-sm">
-            Paid. The seller has been told to pack it
+            Paid.{" "}
+            <Link href={`/orders/${order.id}`} className="underline">
+              Track your order
+            </Link>
+            . The seller has been told to pack it
             {order.dispatchBy && <> — ships by {new Date(order.dispatchBy).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</>}
             .
           </p>

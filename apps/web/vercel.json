@@ -1,3 +1,12 @@
 {
-  "crons": [{ "path": "/api/cron/expire-holds", "schedule": "* * * * *" }]
+  "crons": [
+    {
+      "path": "/api/cron/expire-holds",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/close-delivered",
+      "schedule": "0 * * * *"
+    }
+  ]
 }
