@@ -188,3 +188,16 @@ describe("address changes during payment", () => {
     expect(await r.json()).toEqual({ error: "PAYMENT_IN_PROGRESS" });
   });
 });
+
+describe("search API", () => {
+  it("returns hits and pill counts, and tolerates junk params", async () => {
+    const { seller } = await createSeller(db);
+    await createListing(db, seller.id, { title: "Vintage Levi's 501", category: "jeans" });
+    const r = await app.request("/api/search?q=levis&cat=spaceships&page=-3&sort=hack");
+    expect(r.status).toBe(200);
+    const body = (await r.json()) as { hits: { title: string }[]; stockCounts: Record<string, number>; mode: string };
+    expect(body.hits.map((h) => h.title)).toEqual(["Vintage Levi's 501"]);
+    expect(body.stockCounts["in-stock"]).toBe(1);
+    expect(body.mode).toBe("exact");
+  });
+});

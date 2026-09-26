@@ -23,6 +23,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/" className="text-lg font-bold tracking-tight">
               YOLT
             </Link>
+            {/* Plain GET form: search works before JavaScript loads. */}
+            <form action="/search" method="get" role="search" className="mx-3 flex-1 sm:max-w-md">
+              <input
+                type="search"
+                name="q"
+                placeholder="Search jeans, Levi's, jackets…"
+                aria-label="Search"
+                className="w-full rounded-full border border-line bg-surface px-4 py-1.5 text-sm"
+              />
+            </form>
             <div className="flex items-center gap-3">
               {process.env.NODE_ENV !== "production" && (
                 <Link href="/dev" className="rounded-full border border-dashed border-line px-3 py-1 text-xs text-muted">

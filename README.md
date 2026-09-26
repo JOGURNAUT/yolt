@@ -40,5 +40,5 @@ Covers: 100 concurrent buyers for one garment → one hold; stale releases can't
 
 - MSG91 delivery for login codes. Production refuses to send codes until it's configured (set `AUTH_PEPPER` too).
 - Cashfree payments. Production refuses payments until the adapter exists.
-- Shiprocket (a dev shipping fake handles delivery checks, pickup booking, labels and tracking scans locally; production refuses to guess), seller onboarding and KYC (the seed seller is pre-verified), drops builder, search (Typesense), drops opening job, returns, admin.
+- Shiprocket (a dev shipping fake handles delivery checks, pickup booking, labels and tracking scans locally; production refuses to guess), seller onboarding and KYC (the seed seller is pre-verified), drops builder, Typesense (search runs on Postgres for now), drops opening job, returns, admin.
 - Hold expiry: Vercel Cron calls `/api/cron/expire-holds` every minute (needs `CRON_SECRET`). Checkout also frees expired holds on the items it touches, so nothing gets stuck locally without cron.
