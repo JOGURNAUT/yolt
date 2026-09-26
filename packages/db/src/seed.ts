@@ -18,7 +18,7 @@ const { db, close } = createDb(url, { max: 1 });
 const day = 86_400_000;
 const now = Date.now();
 
-type Item = Omit<typeof s.listings.$inferInsert, "sellerId" | "slug"> & { slug?: string };
+type Item = Omit<typeof s.listings.$inferInsert, "sellerId" | "slug" | "title"> & { title: string };
 
 const inStock: Item[] = [
   { title: "Vintage Levi's 501 jeans", category: "jeans", brandDeclared: "Levi's", tagSize: "W32 L32", measurements: { basis: "FLAT", waistCm: 41, lengthCm: 104, inseamCm: 80 }, condition: "GOOD", flaws: "Small bleach spot near left back pocket (photo 5).", pricePaise: 129900, sizeReturnsAllowed: true },
@@ -107,7 +107,7 @@ const insert = (items: Item[], extra: Partial<typeof s.listings.$inferInsert>, o
     .returning();
 
 await insert(inStock, { status: "AVAILABLE" }, 0);
-const sold = await insert(soldOut, { status: "SOLD" }, 10);
+const sold = (await insert(soldOut, { status: "SOLD" }, 10)).map(s.asComplete);
 await insert(comingSoon, { status: "SCHEDULED", dropId: drop!.id, publishedAt: null }, 0);
 await db.execute(sql`UPDATE listings SET sold_at = published_at + interval '1 day' WHERE status = 'SOLD'`);
 
