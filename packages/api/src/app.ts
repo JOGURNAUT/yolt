@@ -1,9 +1,11 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { getCookie } from "hono/cookie";
 import {
   createCheckout,
   createSession,
+  getAddress,
+  setOrderShippingAddress,
   expireHolds,
   handlePaymentEvent,
   parseFirstTouch,
@@ -12,7 +14,7 @@ import {
   startPayment,
   type AuthSecrets,
 } from "@yolt/core";
-import { holds, orderItems, orders, paymentAttempts, users, type Db } from "@yolt/db";
+import { asComplete, holds, listings, orderItems, orders, paymentAttempts, sellers, users, type Db } from "@yolt/db";
 import { FIRST_TOUCH_COOKIE } from "@yolt/shared";
 import { SESSION_COOKIE, sameOriginMiddleware, sessionMiddleware, type AuthVariables } from "./auth";
 import type { OtpSender } from "./otp/sender";
@@ -20,7 +22,9 @@ import { authRoutes, setSessionCookie } from "./routes/auth";
 import { WebhookVerificationError, type PaymentProvider } from "./payments/provider";
 import type { MediaStorage } from "./media/storage";
 import type { SandboxPaymentProvider } from "./payments/sandbox";
+import { addressRoutes } from "./routes/addresses";
 import { sellerRoutes } from "./routes/seller";
+import { estimatedWeightGrams, ShippingUnavailableError, type ShippingProvider } from "./shipping/provider";
 
 export type AppDeps = {
   db: Db;
@@ -37,6 +41,7 @@ export type AppDeps = {
   /** Extra origins allowed to make state-changing requests (e.g. a future app domain). */
   allowedOrigins?: string[];
   cronSecret?: string;
+  shipping: ShippingProvider;
 };
 
 const ErrorSchema = z.object({ error: z.string(), details: z.unknown().optional() }).openapi("Error");
@@ -158,6 +163,7 @@ export function createApp(deps: AppDeps) {
           dispatchBy: order.dispatchBy?.toISOString() ?? null,
           holdExpiresAt: activeExpiry.length ? new Date(Math.min(...activeExpiry)).toISOString() : null,
           payment: attempts.at(-1)?.status ?? null,
+          shippingAddress: order.shippingAddress ?? null,
           items: items.map((i) => ({ listingId: i.listingId, pricePaise: i.pricePaise, ...i.snapshot })),
         },
         200,
@@ -252,6 +258,105 @@ export function createApp(deps: AppDeps) {
     },
   );
 
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/orders/{id}/address",
+      summary: "Choose the delivery address (checked for serviceability; frozen once payment starts)",
+      request: {
+        params: OrderParams,
+        body: { content: { "application/json": { schema: z.object({ addressId: Uuid }) } } },
+      },
+      responses: {
+        200: json(z.object({ etaDaysMin: z.number(), etaDaysMax: z.number() }), "Address set"),
+        401: json(ErrorSchema, "Sign in required"),
+        404: json(ErrorSchema, "Order or address not found"),
+        409: json(ErrorSchema, "Not deliverable, or payment already started"),
+      },
+    }),
+    async (c) => {
+      const session = requireUser(c);
+      if (!session) return c.json({ error: "SIGN_IN_REQUIRED" }, 401);
+      const { id } = c.req.valid("param");
+      const address = await getAddress(db, { userId: session.userId, addressId: c.req.valid("json").addressId });
+      if (!address) return c.json({ error: "ADDRESS_NOT_FOUND" }, 404);
+
+      const [order] = await db
+        .select({ pickupPincode: sellers.pickupPincode, status: orders.status })
+        .from(orders)
+        .innerJoin(sellers, eq(sellers.id, orders.sellerId))
+        .where(and(eq(orders.id, id), eq(orders.buyerId, session.userId)));
+      if (!order) return c.json({ error: "NOT_FOUND" }, 404);
+      // Cheap state checks before calling the courier API; setOrderShippingAddress re-checks atomically.
+      if (order.status !== "AWAITING_PAYMENT") return c.json({ error: "NOT_AWAITING_PAYMENT" }, 409);
+      const [paying] = await db
+        .select({ id: paymentAttempts.id })
+        .from(paymentAttempts)
+        .where(and(eq(paymentAttempts.orderId, id), inArray(paymentAttempts.status, ["PENDING", "UNKNOWN"])));
+      if (paying) return c.json({ error: "PAYMENT_IN_PROGRESS" }, 409);
+      if (!order.pickupPincode) return c.json({ error: "SELLER_PICKUP_UNKNOWN" }, 409);
+
+      const items = await db.select({ snapshot: orderItems.snapshot }).from(orderItems).where(eq(orderItems.orderId, id));
+      const weightGrams = items.reduce((g, i) => g + estimatedWeightGrams(i.snapshot.category), 0);
+      const check = await deps.shipping.checkServiceability({
+        pickupPincode: order.pickupPincode,
+        deliveryPincode: address.pincode,
+        weightGrams,
+      });
+      if (!check.serviceable) return c.json({ error: "NOT_SERVICEABLE", details: { reason: check.reason } }, 409);
+
+      const r = await setOrderShippingAddress(db, {
+        orderId: id,
+        buyerId: session.userId,
+        address: {
+          name: address.name,
+          phone: address.phone,
+          line1: address.line1,
+          line2: address.line2,
+          landmark: address.landmark,
+          city: address.city,
+          state: address.state,
+          pincode: address.pincode,
+        },
+      });
+      if (!r.ok) return c.json({ error: r.reason }, r.reason === "NOT_FOUND" ? 404 : 409);
+      return c.json({ etaDaysMin: check.etaDaysMin, etaDaysMax: check.etaDaysMax }, 200);
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // Shipping (public): "Delivers to 411001 in 3–5 days"
+  // -------------------------------------------------------------------------
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/shipping/check",
+      summary: "Can this listing be delivered to a pincode, and roughly when?",
+      request: {
+        query: z.object({ listingId: Uuid, pincode: z.string().regex(/^[1-9]\d{5}$/, "6-digit pincode") }),
+      },
+      responses: { 200: json(z.any(), "Serviceability"), 400: json(ErrorSchema, "Invalid"), 404: json(ErrorSchema, "Not found") },
+    }),
+    async (c) => {
+      const { listingId, pincode } = c.req.valid("query");
+      const [row] = await db
+        .select({ listing: listings, pickupPincode: sellers.pickupPincode })
+        .from(listings)
+        .innerJoin(sellers, eq(sellers.id, listings.sellerId))
+        .where(eq(listings.id, listingId));
+      if (!row || row.listing.status === "DRAFT") return c.json({ error: "NOT_FOUND" }, 404);
+      if (!row.pickupPincode) return c.json({ serviceable: false, reason: "SELLER_PICKUP_UNKNOWN" }, 200);
+      const check = await deps.shipping.checkServiceability({
+        pickupPincode: row.pickupPincode,
+        deliveryPincode: pincode,
+        weightGrams: estimatedWeightGrams(asComplete(row.listing).category),
+      });
+      c.header("Cache-Control", "public, max-age=3600");
+      return c.json({ pincode, ...check }, 200);
+    },
+  );
+
   // -------------------------------------------------------------------------
   // Webhooks — the only thing that confirms a payment
   // -------------------------------------------------------------------------
@@ -281,6 +386,7 @@ export function createApp(deps: AppDeps) {
   // -------------------------------------------------------------------------
 
   app.route("/seller", sellerRoutes({ db, media: deps.media }));
+  app.route("/addresses", addressRoutes({ db }));
 
   // -------------------------------------------------------------------------
   // Jobs
@@ -330,6 +436,13 @@ export function createApp(deps: AppDeps) {
       return c.json(r.body, r.status);
     });
   }
+
+  app.onError((err, c) => {
+    if (err instanceof ShippingUnavailableError) return c.json({ error: "SHIPPING_UNAVAILABLE" }, 503);
+    // Log the details server-side; never send stack traces to clients.
+    console.error(err);
+    return c.json({ error: "INTERNAL_ERROR" }, 500);
+  });
 
   app.doc("/openapi.json", { openapi: "3.1.0", info: { title: "YOLT API", version: "0.1.0" } });
 

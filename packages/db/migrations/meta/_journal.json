@@ -29,6 +29,13 @@
       "when": 1790458097109,
       "tag": "0003_auth_sessions_attribution",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790460738228,
+      "tag": "0004_addresses_pickup",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,13 @@ export { DevOtpSender, UnconfiguredOtpSender, type OtpSender } from "./otp/sende
 export { UnconfiguredPaymentProvider, type PaymentProvider } from "./payments/provider";
 export { SandboxPaymentProvider } from "./payments/sandbox";
 export {
+  DevShippingProvider,
+  estimatedWeightGrams,
+  UnconfiguredShippingProvider,
+  type Serviceability,
+  type ShippingProvider,
+} from "./shipping/provider";
+export {
   mediaStorageFromEnv,
   MemoryMediaStorage,
   S3MediaStorage,

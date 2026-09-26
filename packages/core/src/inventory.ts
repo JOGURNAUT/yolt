@@ -14,6 +14,7 @@ import {
   refunds,
   sellers,
   users,
+  type AddressSnapshot,
   type CompleteListing,
   type Db,
   type FirstTouch,
@@ -219,7 +220,7 @@ export type StartPaymentResult =
       /** True when an unresolved attempt already existed; reuse it instead of charging again. */
       existing: boolean;
     }
-  | { ok: false; reason: "NOT_FOUND" | "NOT_AWAITING_PAYMENT" | "HOLD_EXPIRED" };
+  | { ok: false; reason: "NOT_FOUND" | "NOT_AWAITING_PAYMENT" | "HOLD_EXPIRED" | "ADDRESS_REQUIRED" };
 
 export async function startPayment(db: Db, input: StartPaymentInput): Promise<StartPaymentResult> {
   const now = input.now ?? new Date();
@@ -231,6 +232,8 @@ export async function startPayment(db: Db, input: StartPaymentInput): Promise<St
       .for("update");
     if (!order) return { ok: false, reason: "NOT_FOUND" } as const;
     if (order.status !== "AWAITING_PAYMENT") return { ok: false, reason: "NOT_AWAITING_PAYMENT" } as const;
+    // Never take money for an order we can't deliver.
+    if (!order.shippingAddress) return { ok: false, reason: "ADDRESS_REQUIRED" } as const;
 
     const orderHolds = await tx.select().from(holds).where(eq(holds.orderId, order.id)).for("update");
     const allLive = orderHolds.length > 0 && orderHolds.every((h) => h.status === "ACTIVE" && h.expiresAt > now);
@@ -280,6 +283,42 @@ export async function startPayment(db: Db, input: StartPaymentInput): Promise<St
       holdExpiresAt,
       existing: false,
     } as const;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Delivery address
+// ---------------------------------------------------------------------------
+
+export type SetOrderAddressResult =
+  | { ok: true }
+  | { ok: false; reason: "NOT_FOUND" | "NOT_AWAITING_PAYMENT" | "PAYMENT_IN_PROGRESS" };
+
+/**
+ * Copies a delivery address onto the order. Allowed only before payment starts: once the
+ * buyer is paying, the address is frozen with the rest of the order.
+ * The caller checks serviceability first.
+ */
+export async function setOrderShippingAddress(
+  db: Db,
+  input: { orderId: string; buyerId: string; address: AddressSnapshot; now?: Date },
+): Promise<SetOrderAddressResult> {
+  const now = input.now ?? new Date();
+  return db.transaction(async (tx) => {
+    const [order] = await tx
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(and(eq(orders.id, input.orderId), eq(orders.buyerId, input.buyerId)))
+      .for("update");
+    if (!order) return { ok: false, reason: "NOT_FOUND" } as const;
+    if (order.status !== "AWAITING_PAYMENT") return { ok: false, reason: "NOT_AWAITING_PAYMENT" } as const;
+    const [open] = await tx
+      .select({ id: paymentAttempts.id })
+      .from(paymentAttempts)
+      .where(and(eq(paymentAttempts.orderId, order.id), inArray(paymentAttempts.status, ["PENDING", "UNKNOWN"])));
+    if (open) return { ok: false, reason: "PAYMENT_IN_PROGRESS" } as const;
+    await tx.update(orders).set({ shippingAddress: input.address, updatedAt: now }).where(eq(orders.id, order.id));
+    return { ok: true } as const;
   });
 }
 

@@ -81,6 +81,7 @@ const [seller] = await db
     instagramHandle: "secondloop.thrift",
     instagramVerifiedAt: new Date(now - 60 * day),
     pickupState: "Maharashtra",
+    pickupPincode: "411001",
     shippingFeePaise: 7900,
     freeShippingAbovePaise: 199900,
     dispatchDays: 2,
