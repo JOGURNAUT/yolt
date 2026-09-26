@@ -26,13 +26,55 @@ const updatedAt = () => timestamp("updated_at", { withTimezone: true }).notNull(
 // Identity
 // ---------------------------------------------------------------------------
 
+/** How a browser first reached YOLT (decision D16). First visit decides; it is never overwritten. */
+export type FirstTouch = { type: "SELLER_LINK"; sellerHandle: string; at: string } | { type: "YOLT"; at: string };
+
 export const users = pgTable("users", {
   id: id(),
+  /** E.164, e.g. +919876543210 */
   phone: text("phone").unique(),
+  phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
   email: text("email").unique(),
   name: text("name"),
+  firstTouch: jsonb("first_touch").$type<FirstTouch>(),
   createdAt: createdAt(),
 });
+
+export const otpChannel = pgEnum("otp_channel", ["WHATSAPP", "SMS"]);
+
+/** One-time login codes. Only an HMAC of the code is stored. */
+export const otpChallenges = pgTable(
+  "otp_challenges",
+  {
+    id: id(),
+    phone: text("phone").notNull(),
+    codeHash: text("code_hash").notNull(),
+    channel: otpChannel("channel").notNull(),
+    attempts: smallint("attempts").notNull().default(0),
+    /** Hashed client IP, for per-network rate limits without storing raw IPs. */
+    ipHash: text("ip_hash"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("otp_phone_created_idx").on(t.phone, t.createdAt), index("otp_ip_created_idx").on(t.ipHash, t.createdAt)],
+);
+
+/** Login sessions. The cookie holds a random token; only its SHA-256 is stored, so a DB leak can't be replayed. */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: id(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    tokenHash: text("token_hash").notNull().unique(),
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [index("sessions_user_idx").on(t.userId)],
+);
 
 export const addresses = pgTable(
   "addresses",
@@ -234,6 +276,9 @@ export const orderStatus = pgEnum("order_status", [
   "NEEDS_REFUND", // paid, but the item could not be allocated (late payment)
 ]);
 
+/** Decision D16: did the seller bring this buyer (their share link) or did YOLT? */
+export const orderSource = pgEnum("order_source", ["SELLER_LINK", "YOLT_DISCOVERY"]);
+
 export type AddressSnapshot = {
   name: string;
   phone: string;
@@ -253,6 +298,7 @@ export const orders = pgTable(
     buyerId: uuid("buyer_id").notNull().references(() => users.id),
     sellerId: uuid("seller_id").notNull().references(() => sellers.id),
     status: orderStatus("status").notNull().default("AWAITING_PAYMENT"),
+    source: orderSource("source").notNull().default("YOLT_DISCOVERY"),
     subtotalPaise: integer("subtotal_paise").notNull(),
     shippingPaise: integer("shipping_paise").notNull(),
     platformFeePaise: integer("platform_fee_paise").notNull().default(0),

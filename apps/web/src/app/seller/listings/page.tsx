@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { getSellerListings, getSellerTabCounts, SELLER_TABS, type SellerTab } from "@yolt/core";
 import { ListingActions } from "@/components/seller/listing-actions";
 import { NewListingButton } from "@/components/seller/new-listing-button";
+import { ShareLinkButton } from "@/components/seller/share-link-button";
 import { GarmentImage } from "@/components/garment-image";
 import { formatINR } from "@/lib/format";
 import { db } from "@/lib/server/db";
-import { getCurrentSeller } from "@/lib/server/session";
+import { requireSeller } from "@/lib/server/session";
 
 export const metadata: Metadata = { title: "Your listings", robots: { index: false } };
 
@@ -24,8 +24,7 @@ const TAB_LABELS: Record<SellerTab, string> = {
 export default async function SellerListingsPage({ searchParams }: PageProps<"/seller/listings">) {
   await connection();
   // Layouts and pages render concurrently, so each seller page checks the session itself.
-  const current = await getCurrentSeller();
-  if (!current) redirect("/dev?next=/seller/listings");
+  const current = await requireSeller("/seller/listings");
   const requested = (await searchParams).tab;
   const tab: SellerTab = typeof requested === "string" && requested in SELLER_TABS ? (requested as SellerTab) : "live";
   const sellerId = current.seller.id;
@@ -35,7 +34,10 @@ export default async function SellerListingsPage({ searchParams }: PageProps<"/s
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Listings</h1>
-        <NewListingButton />
+        <div className="flex items-center gap-2">
+          <ShareLinkButton path={`/s/${current.seller.handle}`} sellerHandle={current.seller.handle} label="Copy store link" />
+          <NewListingButton />
+        </div>
       </div>
 
       <nav aria-label="Listing status" className="flex gap-2 overflow-x-auto pb-1">

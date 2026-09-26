@@ -22,6 +22,13 @@
       "when": 1790455823680,
       "tag": "0002_nullable_draft_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790458097109,
+      "tag": "0003_auth_sessions_attribution",
+      "breakpoints": true
     }
   ]
 }

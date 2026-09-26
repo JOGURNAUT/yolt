@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { getSellerListing } from "@yolt/core";
 import { ListingEditor } from "@/components/seller/listing-editor";
 import { db } from "@/lib/server/db";
-import { getCurrentSeller } from "@/lib/server/session";
+import { requireSeller } from "@/lib/server/session";
 
 export const metadata: Metadata = { title: "Edit listing", robots: { index: false } };
 
@@ -19,9 +19,9 @@ const FROZEN: Record<string, string> = {
 
 export default async function EditListingPage({ params }: PageProps<"/seller/listings/[id]">) {
   await connection();
-  const current = await getCurrentSeller();
-  if (!current) redirect("/dev?next=/seller/listings");
-  const data = await getSellerListing(db, { sellerId: current.seller.id, listingId: (await params).id });
+  const listingId = (await params).id;
+  const current = await requireSeller(`/seller/listings/${listingId}`);
+  const data = await getSellerListing(db, { sellerId: current.seller.id, listingId });
   if (!data) notFound();
 
   const frozen = FROZEN[data.listing.status];

@@ -19,11 +19,11 @@ import {
 } from "@yolt/core";
 import { sellers, type Db } from "@yolt/db";
 import { CATEGORIES, CONDITIONS, MAX_PRICE_PAISE, PHOTO_KINDS, type PhotoKind } from "@yolt/shared";
-import type { Session } from "../auth";
+import type { AuthVariables } from "../auth";
 import { InvalidImageError, MAX_UPLOAD_BYTES, processPhoto } from "../media/process";
 import type { MediaStorage } from "../media/storage";
 
-type Env = { Variables: { seller: typeof sellers.$inferSelect; userId: string } };
+type Env = { Variables: AuthVariables & { seller: typeof sellers.$inferSelect; userId: string } };
 
 const ErrorSchema = z.object({ error: z.string(), details: z.unknown().optional() });
 const json = <T extends z.ZodType>(schema: T, description: string) => ({
@@ -69,7 +69,7 @@ const PatchSchema = z
 
 const TabSchema = z.enum(Object.keys(SELLER_TABS) as [SellerTab, ...SellerTab[]]);
 
-export function sellerRoutes(deps: { db: Db; media: MediaStorage; getSession: (c: never) => Session | null }) {
+export function sellerRoutes(deps: { db: Db; media: MediaStorage }) {
   const { db, media } = deps;
   const app = new OpenAPIHono<Env>({
     defaultHook: (result, c) => {
@@ -79,7 +79,7 @@ export function sellerRoutes(deps: { db: Db; media: MediaStorage; getSession: (c
 
   // Every seller route acts as the signed-in user's approved seller profile — never one named in the request.
   app.use("*", async (c, next) => {
-    const session = deps.getSession(c as never);
+    const session = c.get("session");
     if (!session) return c.json({ error: "SIGN_IN_REQUIRED" }, 401);
     const [seller] = await db
       .select()

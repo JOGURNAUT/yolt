@@ -14,7 +14,7 @@ export function testDb(max = 20) {
 
 export async function truncateAll(db: Db) {
   await db.execute(sql`
-    TRUNCATE audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
+    TRUNCATE sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
       order_items, holds, orders, saved_items, follows, listing_photos, listings, drops,
       addresses, sellers, users RESTART IDENTITY CASCADE`);
 }
