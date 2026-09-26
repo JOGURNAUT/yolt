@@ -7,6 +7,7 @@ import {
   handlePaymentEvent,
   markSoldElsewhere,
   releaseCheckout,
+  setOrderShippingAddress,
   startPayment,
 } from "../src";
 import { createListing, createSeller, createUser, testDb, truncateAll } from "./fixtures";
@@ -22,8 +23,19 @@ async function listingStatus(id: string) {
   return l!;
 }
 
+const ADDRESS = {
+  name: "Ananya Sharma",
+  phone: "+919876543210",
+  line1: "Flat 12, Sunrise Apartments",
+  city: "Pune",
+  state: "Maharashtra",
+  pincode: "411001",
+};
+
+/** Sets a delivery address (required before payment), then starts paying. */
 async function pay(orderId: string, buyerId: string, opts: { now?: Date; eventId?: string } = {}) {
   const providerOrderId = `cf_${orderId}`;
+  await setOrderShippingAddress(db, { orderId, buyerId, address: ADDRESS, now: opts.now });
   const started = await startPayment(db, { orderId, buyerId, provider: "cashfree", providerOrderId, now: opts.now });
   return { started, providerOrderId };
 }
@@ -343,5 +355,36 @@ describe("sold elsewhere", () => {
       ]);
       expect(Number(checkout.ok) + Number(mark.ok)).toBe(1);
     }
+  });
+});
+
+describe("delivery address", () => {
+  it("payment can't start without an address", async () => {
+    const { seller } = await createSeller(db);
+    const l = await createListing(db, seller.id);
+    const buyer = await createUser(db);
+    const r = await createCheckout(db, { buyerId: buyer.id, listingIds: [l.id] });
+    if (!r.ok) throw new Error();
+    expect(await startPayment(db, { orderId: r.orderId, buyerId: buyer.id, provider: "cashfree", providerOrderId: "x" })).toEqual({
+      ok: false,
+      reason: "ADDRESS_REQUIRED",
+    });
+  });
+
+  it("the address is frozen once payment starts, and only the buyer can set it", async () => {
+    const { seller } = await createSeller(db);
+    const l = await createListing(db, seller.id);
+    const [buyer, other] = [await createUser(db), await createUser(db)];
+    const r = await createCheckout(db, { buyerId: buyer.id, listingIds: [l.id] });
+    if (!r.ok) throw new Error();
+
+    expect(await setOrderShippingAddress(db, { orderId: r.orderId, buyerId: other.id, address: ADDRESS })).toEqual({ ok: false, reason: "NOT_FOUND" });
+    await pay(r.orderId, buyer.id);
+    expect(await setOrderShippingAddress(db, { orderId: r.orderId, buyerId: buyer.id, address: { ...ADDRESS, city: "Mumbai" } })).toEqual({
+      ok: false,
+      reason: "PAYMENT_IN_PROGRESS",
+    });
+    const [o] = await db.select().from(orders).where(eq(orders.id, r.orderId));
+    expect(o!.shippingAddress?.city).toBe("Pune");
   });
 });
