@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { and, asc, eq, inArray, lte, or, sql } from "drizzle-orm";
 import {
+  asComplete,
   auditEvents,
   holds,
   listingPhotos,
@@ -12,6 +13,7 @@ import {
   paymentEvents,
   refunds,
   sellers,
+  type CompleteListing,
   type Db,
   type ListingSnapshot,
   type Tx,
@@ -111,20 +113,23 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
     // Atomic conditional claim: only an AVAILABLE item can be reserved. Concurrent claimers
     // block on the row lock, re-check the WHERE clause after the winner commits, and get 0 rows.
     const unavailable: string[] = [];
+    const claimedListings: CompleteListing[] = [];
     for (const listingId of ids) {
-      const claimed = await tx
+      const [claimed] = await tx
         .update(listings)
         .set({ status: "RESERVED", currentHoldId: holdIds.get(listingId)!, updatedAt: now })
         .where(and(eq(listings.id, listingId), eq(listings.status, "AVAILABLE")))
-        .returning({ id: listings.id });
-      if (claimed.length === 0) unavailable.push(listingId);
+        .returning();
+      // Price and details come from the claimed row itself, never an earlier read.
+      if (claimed) claimedListings.push(asComplete(claimed));
+      else unavailable.push(listingId);
     }
     if (unavailable.length > 0) {
       // Never hold a partial set silently; the buyer decides whether to continue with fewer items.
       throw new Rollback({ ok: false, reason: "UNAVAILABLE", unavailableListingIds: unavailable } as const);
     }
 
-    const subtotal = rows.reduce((sum, r) => sum + r.listing.pricePaise, 0);
+    const subtotal = claimedListings.reduce((sum, l) => sum + l.pricePaise, 0);
     if (input.expectedSubtotalPaise !== undefined && input.expectedSubtotalPaise !== subtotal) {
       throw new Rollback({ ok: false, reason: "PRICE_CHANGED", subtotalPaise: subtotal } as const);
     }
@@ -149,7 +154,7 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
       totalPaise: total,
     });
     await tx.insert(orderItems).values(
-      rows.map(({ listing: l }) => ({
+      claimedListings.map((l) => ({
         orderId,
         listingId: l.id,
         pricePaise: l.pricePaise,

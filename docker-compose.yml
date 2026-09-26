@@ -15,5 +15,16 @@ services:
       interval: 2s
       timeout: 3s
       retries: 20
+  # S3-compatible stand-in for Cloudflare R2 (MinIO no longer publishes images).
+  media:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: yolt
+      RUSTFS_SECRET_KEY: yolt-dev-secret
+    ports:
+      - "9000:9000"
+    volumes:
+      - mediadata:/data
 volumes:
   pgdata:
+  mediadata:
