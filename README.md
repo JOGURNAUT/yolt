@@ -19,13 +19,14 @@ Needs Node 24, pnpm 12 and Docker.
 cp .env.example .env                        # root: database URLs for scripts and tests
 cp apps/web/.env.example apps/web/.env.local
 pnpm install
-pnpm db:up        # Postgres 17 on localhost:5433
+pnpm db:up        # Postgres 17 on :5433 and RustFS (S3-compatible, stands in for R2) on :9000
+pnpm media:setup  # once: creates the public-read yolt-media bucket
 pnpm db:migrate
 pnpm db:seed      # made-up store "Second Loop" + demo buyers
 pnpm --filter @yolt/web dev
 ```
 
-Open http://localhost:3000/s/secondloop. Use **Dev: switch user** in the header to sign in as a demo buyer, then buy something. The checkout uses a sandbox gateway that sends signed webhooks through the real webhook path.
+Open http://localhost:3000/s/secondloop. To list an item, sign in as **Second Loop (demo seller)** and open http://localhost:3000/seller/listings. Use **Dev: switch user** in the header to sign in as a demo buyer, then buy something. The checkout uses a sandbox gateway that sends signed webhooks through the real webhook path.
 
 ## Tests
 
@@ -39,5 +40,5 @@ Covers: 100 concurrent buyers for one garment → one hold; stale releases can't
 
 - Real auth (Better Auth + WhatsApp/SMS OTP). `/dev` cookie login is development-only and disabled in production.
 - Cashfree payments. Production refuses payments until the adapter exists.
-- Seller workspace UI (listing editor, photo upload to R2), search (Typesense), addresses and Shiprocket, drops opening job, returns, admin.
+- Seller onboarding and KYC (the seed seller is pre-verified), drops builder, search (Typesense), addresses and Shiprocket, drops opening job, returns, admin.
 - Hold expiry: Vercel Cron calls `/api/cron/expire-holds` every minute (needs `CRON_SECRET`). Checkout also frees expired holds on the items it touches, so nothing gets stuck locally without cron.

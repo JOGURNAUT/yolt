@@ -124,21 +124,8 @@ export const conditionGrade = pgEnum("condition_grade", ["NEW_WITH_TAGS", "LIKE_
 
 export const photoKind = pgEnum("photo_kind", ["FRONT", "BACK", "LABEL", "FLAW", "DETAIL", "PROOF_OF_PURCHASE"]);
 
-/**
- * Measurements in centimetres. `chestCm` etc. state whether they are flat (one side)
- * or around; never fabricated — missing means unknown.
- */
-export type Measurements = {
-  basis?: "FLAT" | "AROUND";
-  chestCm?: number;
-  waistCm?: number;
-  lengthCm?: number;
-  shoulderCm?: number;
-  sleeveCm?: number;
-  inseamCm?: number;
-  hipCm?: number;
-  footLengthCm?: number;
-};
+export type { Measurements } from "@yolt/shared";
+import type { Measurements } from "@yolt/shared";
 
 export const listings = pgTable(
   "listings",
@@ -147,17 +134,17 @@ export const listings = pgTable(
     sellerId: uuid("seller_id").notNull().references(() => sellers.id),
     dropId: uuid("drop_id").references(() => drops.id),
     slug: text("slug").notNull().unique(),
-    title: text("title").notNull(),
+    title: text("title"),
     description: text("description"),
-    category: text("category").notNull(),
+    category: text("category"),
     brandDeclared: text("brand_declared"),
     tagSize: text("tag_size"),
     measurements: jsonb("measurements").$type<Measurements>().notNull().default({}),
-    condition: conditionGrade("condition").notNull(),
+    condition: conditionGrade("condition"),
     flaws: text("flaws"),
     /** Seller explicitly ticked "no flaws" — an empty flaws field alone is not enough. */
     noFlawsConfirmed: boolean("no_flaws_confirmed").notNull().default(false),
-    pricePaise: integer("price_paise").notNull(),
+    pricePaise: integer("price_paise"),
     currency: text("currency").notNull().default("INR"),
     status: listingStatus("status").notNull().default("DRAFT"),
     /** The hold that currently owns this item. Acts as the generation token for releases. */
@@ -173,6 +160,11 @@ export const listings = pgTable(
     index("listings_seller_status_idx").on(t.sellerId, t.status),
     index("listings_status_published_idx").on(t.status, t.publishedAt),
     check("listings_price_positive", sql`${t.pricePaise} > 0`),
+    // Drafts may be half-filled; anything past DRAFT must have the essentials.
+    check(
+      "listings_complete_unless_draft",
+      sql`${t.status} = 'DRAFT' OR (${t.title} IS NOT NULL AND ${t.category} IS NOT NULL AND ${t.condition} IS NOT NULL AND ${t.pricePaise} IS NOT NULL)`,
+    ),
     check(
       "listings_hold_matches_status",
       sql`(${t.currentHoldId} IS NULL) = (${t.status} NOT IN ('RESERVED', 'PAYMENT_PENDING'))`,
@@ -186,6 +178,10 @@ export const listingPhotos = pgTable(
     id: id(),
     listingId: uuid("listing_id").notNull().references(() => listings.id, { onDelete: "cascade" }),
     url: text("url").notNull(),
+    /** Object key in media storage; null for externally hosted demo images. */
+    storageKey: text("storage_key"),
+    width: integer("width"),
+    height: integer("height"),
     kind: photoKind("kind").notNull(),
     caption: text("caption"),
     position: smallint("position").notNull(),
@@ -437,3 +433,26 @@ export const auditEvents = pgTable(
   },
   (t) => [index("audit_entity_idx").on(t.entity, t.entityId)],
 );
+
+// ---------------------------------------------------------------------------
+// Listing completeness
+// ---------------------------------------------------------------------------
+
+export type Listing = typeof listings.$inferSelect;
+/** A listing past DRAFT: `listings_complete_unless_draft` guarantees these fields. */
+export type CompleteListing = Listing & {
+  title: string;
+  category: string;
+  condition: NonNullable<Listing["condition"]>;
+  pricePaise: number;
+};
+
+export function isComplete(l: Listing): l is CompleteListing {
+  return l.title !== null && l.category !== null && l.condition !== null && l.pricePaise !== null;
+}
+
+/** For listings the database already guarantees are complete (anything not DRAFT). */
+export function asComplete(l: Listing): CompleteListing {
+  if (!isComplete(l)) throw new Error(`listing ${l.id} is incomplete (status ${l.status})`);
+  return l;
+}

@@ -23,7 +23,11 @@
       "cache": false,
       "passThroughEnv": [
         "DATABASE_URL",
-        "TEST_DATABASE_URL"
+        "TEST_DATABASE_URL",
+        "MEDIA_ENDPOINT",
+        "MEDIA_BUCKET",
+        "MEDIA_ACCESS_KEY_ID",
+        "MEDIA_SECRET_ACCESS_KEY"
       ]
     },
     "dev": {

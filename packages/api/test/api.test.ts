@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { listings } from "@yolt/db";
-import { createApp, DEV_USER_COOKIE, SandboxPaymentProvider } from "../src";
+import { createApp, DEV_USER_COOKIE, MemoryMediaStorage, SandboxPaymentProvider } from "../src";
 import { createListing, createSeller, createUser, testDb, truncateAll } from "../../core/test/fixtures";
 
 const { db, close } = testDb(10);
@@ -9,7 +9,7 @@ afterAll(close);
 beforeEach(() => truncateAll(db));
 
 const sandbox = new SandboxPaymentProvider("test-secret");
-const app = createApp({ db, payments: sandbox, sandbox, allowDevAuth: true, cronSecret: "cron" });
+const app = createApp({ db, payments: sandbox, media: new MemoryMediaStorage(), sandbox, allowDevAuth: true, cronSecret: "cron" });
 
 const as = (userId: string) => ({ cookie: `${DEV_USER_COOKIE}=${userId}`, "content-type": "application/json" });
 const post = (path: string, userId: string | null, body?: unknown) =>
@@ -84,7 +84,7 @@ describe("buy flow over HTTP", () => {
   });
 
   it("dev routes don't exist when dev auth is off", async () => {
-    const prod = createApp({ db, payments: sandbox, allowDevAuth: false });
+    const prod = createApp({ db, payments: sandbox, media: new MemoryMediaStorage(), allowDevAuth: false });
     const r = await prod.request("/api/dev/login", { method: "POST", body: "{}" });
     expect(r.status).toBe(404);
   });

@@ -1,22 +1,25 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { and, asc, eq } from "drizzle-orm";
+import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import {
   createCheckout,
   expireHolds,
   handlePaymentEvent,
-  markSoldElsewhere,
   releaseCheckout,
   startPayment,
 } from "@yolt/core";
-import { holds, orderItems, orders, paymentAttempts, sellers, users, type Db } from "@yolt/db";
+import { holds, orderItems, orders, paymentAttempts, users, type Db } from "@yolt/db";
 import { DEV_USER_COOKIE, getSession } from "./auth";
 import { WebhookVerificationError, type PaymentProvider } from "./payments/provider";
+import type { MediaStorage } from "./media/storage";
 import type { SandboxPaymentProvider } from "./payments/sandbox";
+import { sellerRoutes } from "./routes/seller";
 
 export type AppDeps = {
   db: Db;
   payments: PaymentProvider;
+  media: MediaStorage;
   /** Present only outside production: lets the local UI "complete" a payment. */
   sandbox?: SandboxPaymentProvider;
   /** Dev cookie login. Must be false in production. */
@@ -250,40 +253,10 @@ export function createApp(deps: AppDeps) {
   });
 
   // -------------------------------------------------------------------------
-  // Seller
+  // Seller workspace
   // -------------------------------------------------------------------------
 
-  app.openapi(
-    createRoute({
-      method: "post",
-      path: "/seller/listings/{id}/sold-elsewhere",
-      summary: "Mark an item sold on Instagram or in person",
-      request: { params: OrderParams },
-      responses: {
-        200: json(z.object({ ok: z.literal(true) }), "Marked"),
-        401: json(ErrorSchema, "Sign in required"),
-        403: json(ErrorSchema, "Not a seller"),
-        404: json(ErrorSchema, "Not found"),
-        409: json(ErrorSchema, "A buyer is checking out, or the item isn't available"),
-      },
-    }),
-    async (c) => {
-      const session = requireUser(c);
-      if (!session) return c.json({ error: "SIGN_IN_REQUIRED" }, 401);
-      const [seller] = await db
-        .select({ id: sellers.id })
-        .from(sellers)
-        .where(and(eq(sellers.userId, session.userId), eq(sellers.status, "APPROVED")));
-      if (!seller) return c.json({ error: "NOT_A_SELLER" }, 403);
-      const r = await markSoldElsewhere(db, {
-        sellerId: seller.id,
-        listingId: c.req.valid("param").id,
-        actorUserId: session.userId,
-      });
-      if (r.ok) return c.json({ ok: true as const }, 200);
-      return c.json({ error: r.reason }, r.reason === "NOT_FOUND" ? 404 : 409);
-    },
-  );
+  app.route("/seller", sellerRoutes({ db, media: deps.media, getSession: (c: Context) => getSession(c, deps.allowDevAuth) }));
 
   // -------------------------------------------------------------------------
   // Jobs

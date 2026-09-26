@@ -1,5 +1,5 @@
 import "server-only";
-import { createApp, SandboxPaymentProvider, UnconfiguredPaymentProvider } from "@yolt/api";
+import { createApp, mediaStorageFromEnv, SandboxPaymentProvider, UnconfiguredPaymentProvider } from "@yolt/api";
 import { db } from "./db";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -11,6 +11,7 @@ const sandbox = isProduction ? undefined : new SandboxPaymentProvider(process.en
 export const api = createApp({
   db,
   payments: sandbox ?? new UnconfiguredPaymentProvider(),
+  media: mediaStorageFromEnv(process.env),
   sandbox,
   allowDevAuth: !isProduction,
   cronSecret: process.env.CRON_SECRET,
