@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { connection } from "next/server";
-import { drops, listingPhotos, listings, reviews, sellers, users, orderItems } from "@yolt/db";
+import { asComplete, drops, listingPhotos, listings, orderItems, reviews, sellers, users } from "@yolt/db";
 import { db } from "./db";
 
 /** The three pills on store, search and category grids. */
@@ -41,7 +41,23 @@ const cardColumns = {
     WHERE ${listingPhotos.listingId} = ${listings.id} ORDER BY ${listingPhotos.position} LIMIT 1)`,
 };
 
-export type ListingCard = Awaited<ReturnType<typeof getStoreListings>>[number];
+/** Cards are only built from non-draft listings, which the database guarantees are complete. */
+function toCard<T extends { id: string; title: string | null; category: string | null; condition: string | null; pricePaise: number | null }>(r: T) {
+  if (r.title === null || r.category === null || r.condition === null || r.pricePaise === null) {
+    throw new Error(`listing ${r.id} is incomplete but was shown to buyers`);
+  }
+  return { ...r, title: r.title, category: r.category, condition: r.condition, pricePaise: r.pricePaise };
+}
+
+export type ListingCard = ReturnType<typeof toCard<Awaited<ReturnType<typeof selectCards>>[number]>>;
+
+function selectCards() {
+  return db
+    .select(cardColumns)
+    .from(listings)
+    .innerJoin(sellers, eq(sellers.id, listings.sellerId))
+    .leftJoin(drops, eq(drops.id, listings.dropId));
+}
 
 export async function getStore(handle: string) {
   await connection(); // stock changes constantly — always render at request time
@@ -70,14 +86,11 @@ export async function getStoreListings(sellerId: string, filter: StockFilter) {
       : filter === "coming-soon"
         ? [asc(drops.startsAt), asc(listings.createdAt)]
         : [desc(listings.publishedAt)];
-  return db
-    .select(cardColumns)
-    .from(listings)
-    .innerJoin(sellers, eq(sellers.id, listings.sellerId))
-    .leftJoin(drops, eq(drops.id, listings.dropId))
+  const rows = await selectCards()
     .where(and(eq(listings.sellerId, sellerId), inArray(listings.status, [...statusesFor[filter]])))
     .orderBy(...order)
     .limit(60);
+  return rows.map(toCard);
 }
 
 export async function getUpcomingDrop(sellerId: string) {
@@ -129,7 +142,7 @@ export async function getListing(slug: string) {
     .from(listingPhotos)
     .where(eq(listingPhotos.listingId, row.listing.id))
     .orderBy(asc(listingPhotos.position));
-  return { ...row, photos };
+  return { ...row, listing: asComplete(row.listing), photos };
 }
 
 export async function getMoreFromStore(sellerId: string, excludeId: string) {
@@ -139,14 +152,11 @@ export async function getMoreFromStore(sellerId: string, excludeId: string) {
 
 export async function getFreshFinds() {
   await connection();
-  return db
-    .select(cardColumns)
-    .from(listings)
-    .innerJoin(sellers, eq(sellers.id, listings.sellerId))
-    .leftJoin(drops, eq(drops.id, listings.dropId))
+  const rows = await selectCards()
     .where(and(eq(listings.status, "AVAILABLE"), eq(sellers.status, "APPROVED")))
     .orderBy(desc(listings.publishedAt))
     .limit(24);
+  return rows.map(toCard);
 }
 
 export async function getStores() {
