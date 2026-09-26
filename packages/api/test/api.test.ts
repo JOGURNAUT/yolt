@@ -1,21 +1,20 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { listings } from "@yolt/db";
-import { createApp, DEV_USER_COOKIE, MemoryMediaStorage, SandboxPaymentProvider } from "../src";
+import { makeApp, sessionCookie } from "./helpers";
 import { createListing, createSeller, createUser, testDb, truncateAll } from "../../core/test/fixtures";
 
 const { db, close } = testDb(10);
 afterAll(close);
 beforeEach(() => truncateAll(db));
 
-const sandbox = new SandboxPaymentProvider("test-secret");
-const app = createApp({ db, payments: sandbox, media: new MemoryMediaStorage(), sandbox, allowDevAuth: true, cronSecret: "cron" });
+const { app, sandbox } = makeApp(db);
 
-const as = (userId: string) => ({ cookie: `${DEV_USER_COOKIE}=${userId}`, "content-type": "application/json" });
-const post = (path: string, userId: string | null, body?: unknown) =>
+const as = async (userId: string) => ({ cookie: await sessionCookie(db, userId), "content-type": "application/json" });
+const post = async (path: string, userId: string | null, body?: unknown) =>
   app.request(path, {
     method: "POST",
-    headers: userId ? as(userId) : { "content-type": "application/json" },
+    headers: userId ? await as(userId) : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -36,7 +35,7 @@ describe("buy flow over HTTP", () => {
     const done = await post("/api/dev/sandbox/complete", buyer.id, { providerOrderId, outcome: "success" });
     expect(await done.json()).toMatchObject({ status: "CONFIRMED" });
 
-    const order = await app.request(`/api/orders/${orderId}`, { headers: as(buyer.id) });
+    const order = await app.request(`/api/orders/${orderId}`, { headers: await as(buyer.id) });
     expect(await order.json()).toMatchObject({ status: "CONFIRMED", payment: "SUCCEEDED" });
     const [after] = await db.select().from(listings).where(eq(listings.id, l.id));
     expect(after!.status).toBe("SOLD");
@@ -63,7 +62,7 @@ describe("buy flow over HTTP", () => {
     const l = await createListing(db, seller.id);
     const [a, b] = [await createUser(db), await createUser(db)];
     const { orderId } = (await (await post("/api/checkout", a.id, { listingIds: [l.id] })).json()) as { orderId: string };
-    expect((await app.request(`/api/orders/${orderId}`, { headers: as(b.id) })).status).toBe(404);
+    expect((await app.request(`/api/orders/${orderId}`, { headers: await as(b.id) })).status).toBe(404);
   });
 
   it("rejects webhooks with a bad signature", async () => {
@@ -84,7 +83,7 @@ describe("buy flow over HTTP", () => {
   });
 
   it("dev routes don't exist when dev auth is off", async () => {
-    const prod = createApp({ db, payments: sandbox, media: new MemoryMediaStorage(), allowDevAuth: false });
+    const { app: prod } = makeApp(db, { allowDevAuth: false, sandbox: undefined });
     const r = await prod.request("/api/dev/login", { method: "POST", body: "{}" });
     expect(r.status).toBe(404);
   });
