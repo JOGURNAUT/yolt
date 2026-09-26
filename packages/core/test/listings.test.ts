@@ -7,6 +7,7 @@ import {
   createDraft,
   deleteDraft,
   getSellerListing,
+  getSellerListings,
   getSellerTabCounts,
   publishListing,
   removePhoto,
@@ -204,5 +205,9 @@ describe("photos", () => {
     await createDraft(db, { sellerId: seller.id });
     await publishListing(db, { sellerId: seller.id, listingId: draft.id, actorUserId: owner.id });
     expect(await getSellerTabCounts(db, seller.id)).toMatchObject({ draft: 1, live: 1, sold: 0 });
+    // The cover is the first photo of *this* listing (regression: unqualified subquery columns).
+    const [live] = await getSellerListings(db, { sellerId: seller.id, tab: "live" });
+    const detail = await getSellerListing(db, { sellerId: seller.id, listingId: draft.id });
+    expect(live!.coverUrl).toBe(detail!.photos[0]!.url);
   });
 });

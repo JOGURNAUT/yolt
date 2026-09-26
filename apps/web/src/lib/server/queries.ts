@@ -36,9 +36,10 @@ const cardColumns = {
   sellerName: sellers.displayName,
   sellerHandle: sellers.handle,
   dropStartsAt: drops.startsAt,
+  // Correlated subquery with explicit table names: Drizzle leaves columns unqualified when a
+  // query has no join, which would silently compare the photo's own id instead of the listing's.
   coverUrl: sql<string | null>`(
-    SELECT ${listingPhotos.url} FROM ${listingPhotos}
-    WHERE ${listingPhotos.listingId} = ${listings.id} ORDER BY ${listingPhotos.position} LIMIT 1)`,
+    SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id ORDER BY lp.position LIMIT 1)`,
 };
 
 /** Cards are only built from non-draft listings, which the database guarantees are complete. */

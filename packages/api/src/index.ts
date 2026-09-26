@@ -7,6 +7,7 @@ export {
   DevShippingProvider,
   estimatedWeightGrams,
   UnconfiguredShippingProvider,
+  type CreatedShipment,
   type Serviceability,
   type ShippingProvider,
 } from "./shipping/provider";
