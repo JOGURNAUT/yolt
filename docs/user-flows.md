@@ -101,7 +101,9 @@ Bag (grouped by seller) or Buy now
 - Bag holds nothing and says so: "Items in your bag aren't reserved. Unique pieces can sell."
 - One seller per payment in P0. Bag with several sellers checks out one group at a time.
 - Hold expires → items return to AVAILABLE; if a late successful payment arrives after the item went to someone else → automatic refund + apology + admin exception record.
-- Zero platform fee (D13). Shipping is charged as set by the seller per store (flat fee or free above an amount).
+- No buyer fee, ever (D13): the price matches the seller's Instagram price. Shipping is charged as set by the seller per store (flat fee or free above an amount).
+- The order records its **source** (D16): the seller's own share link or YOLT discovery. First visit decides, and a share-link visit keeps that buyer "the seller's own" for 30 days.
+- Bundling prompt in the bag: "Add another piece from this store and save ₹79" when the free-shipping threshold is close (P1).
 
 ### B-F6 Structured offers (P1)
 
@@ -288,7 +290,7 @@ Payouts → balance: pending (in return window) · available · paid
   → Automatic settlement through Cashfree Easy Split after the return window closes
 ```
 
-- Zero commission at launch; the statement still shows "Platform fee: ₹0" and TCS deducted if L1 applies, so later pricing isn't a surprise.
+- Zero commission in the pilot. Each order on the statement is labelled **Your link** (always ₹0) or **Found on YOLT** (₹0 in the pilot; commission later, D13), plus TCS deducted if L1 applies, so the later pricing is never a surprise.
 
 ### S-F10 Posts (P1; reels P2)
 
