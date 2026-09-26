@@ -22,7 +22,10 @@ export function AccountMenu({ phone, isSeller }: { phone: string | null; isSelle
 
   return (
     <div className="flex items-center gap-3 text-sm">
-      <Link href={isSeller ? "/seller/listings" : "/sell"} className="hover:underline">
+      <Link href="/orders" className="hover:underline">
+        Orders
+      </Link>
+      <Link href={isSeller ? "/seller/orders" : "/sell"} className="hover:underline">
         {isSeller ? "Your store" : "Sell"}
       </Link>
       <span className="hidden text-muted sm:inline">{phone}</span>

@@ -11,6 +11,9 @@ export default async function SellerLayout({ children }: LayoutProps<"/seller">)
           <p className="font-semibold">{current.seller.displayName}</p>
         </div>
         <nav className="flex gap-4 text-sm">
+          <Link href="/seller/orders" className="hover:underline">
+            Orders
+          </Link>
           <Link href="/seller/listings" className="hover:underline">
             Listings
           </Link>

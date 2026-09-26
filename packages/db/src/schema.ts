@@ -316,6 +316,12 @@ export const orders = pgTable(
     shippingAddress: jsonb("shipping_address").$type<AddressSnapshot>(),
     dispatchBy: timestamp("dispatch_by", { withTimezone: true }),
     confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    packedAt: timestamp("packed_at", { withTimezone: true }),
+    shippedAt: timestamp("shipped_at", { withTimezone: true }),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelReason: text("cancel_reason"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -409,6 +415,59 @@ export const refunds = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [index("refunds_order_idx").on(t.orderId)],
+);
+
+// ---------------------------------------------------------------------------
+// Shipments
+// ---------------------------------------------------------------------------
+
+/** Ordered: a tracking update may only move a shipment forward (RTO and CANCELLED are terminal branches). */
+export const shipmentStatus = pgEnum("shipment_status", [
+  "BOOKED", // label created, waiting for pickup
+  "PICKED_UP",
+  "IN_TRANSIT",
+  "OUT_FOR_DELIVERY",
+  "DELIVERED",
+  "RTO", // returned to origin: couldn't be delivered
+  "CANCELLED",
+]);
+
+export const shipments = pgTable(
+  "shipments",
+  {
+    id: id(),
+    orderId: uuid("order_id").notNull().unique().references(() => orders.id),
+    provider: text("provider").notNull(),
+    providerShipmentId: text("provider_shipment_id").notNull(),
+    awb: text("awb").notNull(),
+    courierName: text("courier_name").notNull(),
+    trackingUrl: text("tracking_url"),
+    labelUrl: text("label_url"),
+    status: shipmentStatus("status").notNull().default("BOOKED"),
+    pickupScheduledFor: timestamp("pickup_scheduled_for", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("shipments_provider_awb_uq").on(t.provider, t.awb)],
+);
+
+/** Every tracking update we accept, deduplicated by the provider's event id. */
+export const shipmentEvents = pgTable(
+  "shipment_events",
+  {
+    id: id(),
+    shipmentId: uuid("shipment_id").notNull().references(() => shipments.id),
+    providerEventId: text("provider_event_id").notNull(),
+    status: shipmentStatus("status").notNull(),
+    description: text("description"),
+    location: text("location"),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("shipment_events_provider_event_uq").on(t.shipmentId, t.providerEventId),
+    index("shipment_events_shipment_idx").on(t.shipmentId, t.occurredAt),
+  ],
 );
 
 // ---------------------------------------------------------------------------

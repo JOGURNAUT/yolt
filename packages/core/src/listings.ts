@@ -365,9 +365,9 @@ export async function getSellerListings(db: Db, input: { sellerId: string; tab: 
   const rows = await db
     .select({
       listing: listings,
+      // Correlated subquery with explicit table names: without a join Drizzle renders columns unqualified.
       coverUrl: sql<string | null>`(
-        SELECT ${listingPhotos.url} FROM ${listingPhotos}
-        WHERE ${listingPhotos.listingId} = ${listings.id} ORDER BY ${listingPhotos.position} LIMIT 1)`,
+        SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id ORDER BY lp.position LIMIT 1)`,
     })
     .from(listings)
     .where(and(eq(listings.sellerId, input.sellerId), inArray(listings.status, [...SELLER_TABS[input.tab]])))

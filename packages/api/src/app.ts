@@ -2,8 +2,14 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getCookie } from "hono/cookie";
 import {
+  applyTrackingEvent,
+  cancelOrderForLateDispatch,
+  closeDeliveredOrders,
   createCheckout,
   createSession,
+  getBuyerOrder,
+  getBuyerOrders,
+  lateCancelAvailableAt,
   getAddress,
   setOrderShippingAddress,
   expireHolds,
@@ -14,7 +20,7 @@ import {
   startPayment,
   type AuthSecrets,
 } from "@yolt/core";
-import { asComplete, holds, listings, orderItems, orders, paymentAttempts, sellers, users, type Db } from "@yolt/db";
+import { asComplete, holds, listings, orderItems, orders, paymentAttempts, sellers, shipments, users, type Db } from "@yolt/db";
 import { FIRST_TOUCH_COOKIE } from "@yolt/shared";
 import { SESSION_COOKIE, sameOriginMiddleware, sessionMiddleware, type AuthVariables } from "./auth";
 import type { OtpSender } from "./otp/sender";
@@ -24,7 +30,14 @@ import type { MediaStorage } from "./media/storage";
 import type { SandboxPaymentProvider } from "./payments/sandbox";
 import { addressRoutes } from "./routes/addresses";
 import { sellerRoutes } from "./routes/seller";
-import { estimatedWeightGrams, ShippingUnavailableError, type ShippingProvider } from "./shipping/provider";
+import {
+  DevShippingProvider,
+  estimatedWeightGrams,
+  NEXT_DEV_STATUS,
+  ShippingUnavailableError,
+  TrackingVerificationError,
+  type ShippingProvider,
+} from "./shipping/provider";
 
 export type AppDeps = {
   db: Db;
@@ -259,6 +272,50 @@ export function createApp(deps: AppDeps) {
   );
 
   app.openapi(
+    createRoute({ method: "get", path: "/orders", summary: "The buyer's paid orders, newest first", responses: { 200: json(z.any(), "Orders"), 401: json(ErrorSchema, "Sign in required") } }),
+    async (c) => {
+      const session = requireUser(c);
+      if (!session) return c.json({ error: "SIGN_IN_REQUIRED" }, 401);
+      return c.json(await getBuyerOrders(db, session.userId), 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/orders/{id}/tracking",
+      summary: "Order with shipment timeline, for the buyer's order page",
+      request: { params: OrderParams },
+      responses: { 200: json(z.any(), "Order"), 401: json(ErrorSchema, "Sign in required"), 404: json(ErrorSchema, "Not found") },
+    }),
+    async (c) => {
+      const session = requireUser(c);
+      if (!session) return c.json({ error: "SIGN_IN_REQUIRED" }, 401);
+      const r = await getBuyerOrder(db, { buyerId: session.userId, orderId: c.req.valid("param").id });
+      if (!r) return c.json({ error: "NOT_FOUND" }, 404);
+      return c.json({ ...r, lateCancelAvailableAt: lateCancelAvailableAt(r.order)?.toISOString() ?? null }, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/orders/{id}/cancel-late",
+      summary: "Cancel for a full refund when the seller missed the dispatch deadline",
+      request: { params: OrderParams },
+      responses: { 200: json(z.any(), "Cancelled"), 401: json(ErrorSchema, "Sign in required"), 404: json(ErrorSchema, "Not found"), 409: json(ErrorSchema, "Not yet") },
+    }),
+    async (c) => {
+      const session = requireUser(c);
+      if (!session) return c.json({ error: "SIGN_IN_REQUIRED" }, 401);
+      const r = await cancelOrderForLateDispatch(db, { buyerId: session.userId, orderId: c.req.valid("param").id });
+      if (!r.ok) return c.json({ error: r.reason }, r.reason === "NOT_FOUND" ? 404 : 409);
+      if (r.shipmentToCancel) await deps.shipping.cancelShipment(r.shipmentToCancel.providerShipmentId).catch(() => {});
+      return c.json({ ok: true }, 200);
+    },
+  );
+
+  app.openapi(
     createRoute({
       method: "post",
       path: "/orders/{id}/address",
@@ -375,6 +432,24 @@ export function createApp(deps: AppDeps) {
     return { status: 200 as const, body: result };
   };
 
+  const processTracking = async (request: Request) => {
+    let event;
+    try {
+      event = await deps.shipping.parseTrackingWebhook(request);
+    } catch (err) {
+      if (err instanceof TrackingVerificationError) return { status: 401 as const, body: { error: "INVALID_SIGNATURE" } as object };
+      throw err;
+    }
+    if (!event) return { status: 200 as const, body: { result: "IGNORED" } as object };
+    return { status: 200 as const, body: (await applyTrackingEvent(db, { provider: deps.shipping.name, ...event })) as object };
+  };
+
+  app.post("/webhooks/shipping/:provider", async (c) => {
+    if (c.req.param("provider") !== deps.shipping.name) return c.json({ error: "UNKNOWN_PROVIDER" }, 404);
+    const r = await processTracking(c.req.raw);
+    return c.json(r.body, r.status);
+  });
+
   app.post("/webhooks/:provider", async (c) => {
     if (c.req.param("provider") !== payments.name) return c.json({ error: "UNKNOWN_PROVIDER" }, 404);
     const r = await processWebhook(c.req.raw);
@@ -385,7 +460,7 @@ export function createApp(deps: AppDeps) {
   // Seller workspace
   // -------------------------------------------------------------------------
 
-  app.route("/seller", sellerRoutes({ db, media: deps.media }));
+  app.route("/seller", sellerRoutes({ db, media: deps.media, shipping: deps.shipping }));
   app.route("/addresses", addressRoutes({ db }));
 
   // -------------------------------------------------------------------------
@@ -397,6 +472,13 @@ export function createApp(deps: AppDeps) {
       return c.json({ error: "UNAUTHORIZED" }, 401);
     }
     return c.json(await expireHolds(db));
+  });
+
+  app.get("/cron/close-delivered", async (c) => {
+    if (!deps.cronSecret || c.req.header("authorization") !== `Bearer ${deps.cronSecret}`) {
+      return c.json({ error: "UNAUTHORIZED" }, 401);
+    }
+    return c.json(await closeDeliveredOrders(db));
   });
 
   // -------------------------------------------------------------------------
@@ -416,6 +498,42 @@ export function createApp(deps: AppDeps) {
       setSessionCookie(c, s.sessionToken, s.sessionExpiresAt, secureCookies);
       return c.json({ ok: true });
     });
+
+    const devShipping = deps.shipping instanceof DevShippingProvider ? deps.shipping : null;
+    if (devShipping) {
+      /** Pretend to be the courier: send the next signed tracking scan through the real webhook path. */
+      app.post("/dev/shipments/:awb/advance", async (c) => {
+        const awb = c.req.param("awb");
+        const outcome = (await c.req.json().catch(() => ({}))) as { status?: string };
+        const [s] = await db.select({ status: shipments.status }).from(shipments).where(eq(shipments.awb, awb));
+        if (!s) return c.json({ error: "NOT_FOUND" }, 404);
+        const next = outcome.status === "RTO" ? "RTO" : NEXT_DEV_STATUS[s.status];
+        if (!next) return c.json({ error: "NO_NEXT_STATUS", details: { status: s.status } }, 409);
+        const r = await processTracking(devShipping.buildTrackingWebhook(awb, next));
+        return c.json(r.body, r.status);
+      });
+
+      app.get("/dev/labels/:awb", async (c) => {
+        const awb = c.req.param("awb");
+        const [row] = await db
+          .select({ order: orders, courier: shipments.courierName, seller: sellers.displayName, pickupPincode: sellers.pickupPincode })
+          .from(shipments)
+          .innerJoin(orders, eq(orders.id, shipments.orderId))
+          .innerJoin(sellers, eq(sellers.id, orders.sellerId))
+          .where(eq(shipments.awb, awb));
+        if (!row?.order.shippingAddress) return c.text("Not found", 404);
+        const a = row.order.shippingAddress;
+        const esc = (v: string | null | undefined) => (v ?? "").replace(/[&<>"]/g, (ch) => `&#${ch.charCodeAt(0)};`);
+        return c.html(`<!doctype html><meta charset="utf-8"><title>Label ${esc(awb)}</title>
+<body style="font-family:system-ui;max-width:420px;margin:24px auto;border:2px solid #000;padding:16px">
+<p style="margin:0;font-size:12px">DEVELOPMENT LABEL — not valid for shipping</p>
+<h1 style="font-family:monospace;letter-spacing:2px">${esc(awb)}</h1>
+<p><b>${esc(row.courier)}</b> · Order ${esc(row.order.reference)}</p>
+<h3>Deliver to</h3><p>${esc(a.name)}<br>${esc(a.line1)}${a.line2 ? `<br>${esc(a.line2)}` : ""}${a.landmark ? `<br>Near ${esc(a.landmark)}` : ""}<br>${esc(a.city)}, ${esc(a.state)} ${esc(a.pincode)}<br>${esc(a.phone)}</p>
+<h3>From</h3><p>${esc(row.seller)} · ${esc(row.pickupPincode)}</p>
+<p>Prepaid · no cash to collect</p><script>print()</script></body>`);
+      });
+    }
 
     /** Pretend to be the gateway: send a signed webhook for an attempt through the real webhook path. */
     app.post("/dev/sandbox/complete", async (c) => {
