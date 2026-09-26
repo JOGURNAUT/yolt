@@ -2,17 +2,20 @@
   "name": "yolt",
   "private": true,
   "packageManager": "pnpm@12.6.0",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test --concurrency=1",
-    "db:up": "docker compose up -d --wait postgres",
+    "db:up": "docker compose up -d --wait postgres media",
     "db:down": "docker compose down",
     "db:generate": "pnpm --filter @yolt/db generate",
     "db:migrate": "pnpm --filter @yolt/db migrate",
-    "db:seed": "pnpm --filter @yolt/db seed"
+    "db:seed": "pnpm --filter @yolt/db seed",
+    "media:setup": "pnpm --filter @yolt/api media:setup"
   },
   "devDependencies": {
     "turbo": "^2.11.4",
