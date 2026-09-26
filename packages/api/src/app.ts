@@ -17,11 +17,12 @@ import {
   parseFirstTouch,
   releaseCheckout,
   revokeSession,
+  searchListings,
   startPayment,
   type AuthSecrets,
 } from "@yolt/core";
 import { asComplete, holds, listings, orderItems, orders, paymentAttempts, sellers, shipments, users, type Db } from "@yolt/db";
-import { FIRST_TOUCH_COOKIE } from "@yolt/shared";
+import { FIRST_TOUCH_COOKIE, parseSearchParams } from "@yolt/shared";
 import { SESSION_COOKIE, sameOriginMiddleware, sessionMiddleware, type AuthVariables } from "./auth";
 import type { OtpSender } from "./otp/sender";
 import { authRoutes, setSessionCookie } from "./routes/auth";
@@ -380,6 +381,16 @@ export function createApp(deps: AppDeps) {
       return c.json({ etaDaysMin: check.etaDaysMin, etaDaysMax: check.etaDaysMax }, 200);
     },
   );
+
+  // -------------------------------------------------------------------------
+  // Search (public). Same URL parameters as the /search page.
+  // -------------------------------------------------------------------------
+
+  app.get("/search", async (c) => {
+    const params = parseSearchParams(new URL(c.req.url).searchParams);
+    c.header("Cache-Control", "public, max-age=30");
+    return c.json(await searchListings(db, params));
+  });
 
   // -------------------------------------------------------------------------
   // Shipping (public): "Delivers to 411001 in 3–5 days"

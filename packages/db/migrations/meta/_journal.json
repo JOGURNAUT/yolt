@@ -43,6 +43,13 @@
       "when": 1790462354327,
       "tag": "0005_shipments",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790464179877,
+      "tag": "0006_search_indexes",
+      "breakpoints": true
     }
   ]
 }
