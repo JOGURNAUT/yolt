@@ -22,6 +22,8 @@ import { CATEGORIES, CONDITIONS, MAX_PRICE_PAISE, PHOTO_KINDS, type PhotoKind } 
 import type { AuthVariables } from "../auth";
 import { InvalidImageError, MAX_UPLOAD_BYTES, processPhoto } from "../media/process";
 import type { MediaStorage } from "../media/storage";
+import type { ShippingProvider } from "../shipping/provider";
+import { sellerOrderRoutes } from "./seller-orders";
 
 type Env = { Variables: AuthVariables & { seller: typeof sellers.$inferSelect; userId: string } };
 
@@ -69,7 +71,7 @@ const PatchSchema = z
 
 const TabSchema = z.enum(Object.keys(SELLER_TABS) as [SellerTab, ...SellerTab[]]);
 
-export function sellerRoutes(deps: { db: Db; media: MediaStorage }) {
+export function sellerRoutes(deps: { db: Db; media: MediaStorage; shipping: ShippingProvider }) {
   const { db, media } = deps;
   const app = new OpenAPIHono<Env>({
     defaultHook: (result, c) => {
@@ -90,6 +92,8 @@ export function sellerRoutes(deps: { db: Db; media: MediaStorage }) {
     c.set("userId", session.userId);
     await next();
   });
+
+  app.route("/", sellerOrderRoutes({ db, shipping: deps.shipping }));
 
   app.openapi(
     createRoute({ method: "get", path: "/me", summary: "The signed-in seller's store", responses: { 200: Any } }),
