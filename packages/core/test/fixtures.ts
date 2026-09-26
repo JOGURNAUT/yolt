@@ -37,6 +37,7 @@ export async function createSeller(db: Db, opts: Partial<typeof sellers.$inferIn
       displayName: "Second Loop",
       shippingFeePaise: 7900,
       freeShippingAbovePaise: 199900,
+      pickupPincode: "411001",
       ...opts,
     })
     .returning();
