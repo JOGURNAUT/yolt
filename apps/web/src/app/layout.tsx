@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
+import { AccountMenu } from "@/components/account-menu";
+import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
+import { formatIndianMobile } from "@yolt/shared";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -10,7 +13,8 @@ export const metadata: Metadata = {
   description: "One-of-one secondhand fashion from independent Indian thrift stores. Real measurements, honest flaws, safe checkout.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const [user, seller] = await Promise.all([getCurrentUser(), getCurrentSeller()]);
   return (
     <html lang="en-IN" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
@@ -19,11 +23,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/" className="text-lg font-bold tracking-tight">
               YOLT
             </Link>
-            {process.env.NODE_ENV !== "production" && (
-              <Link href="/dev" className="rounded-full border border-dashed border-line px-3 py-1 text-xs text-muted">
-                Dev: switch user
-              </Link>
-            )}
+            <div className="flex items-center gap-3">
+              {process.env.NODE_ENV !== "production" && (
+                <Link href="/dev" className="rounded-full border border-dashed border-line px-3 py-1 text-xs text-muted">
+                  Dev: switch user
+                </Link>
+              )}
+              <AccountMenu phone={user?.phone ? formatIndianMobile(user.phone) : null} isSeller={seller !== null} />
+            </div>
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-4">{children}</main>

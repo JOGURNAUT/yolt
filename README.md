@@ -26,7 +26,7 @@ pnpm db:seed      # made-up store "Second Loop" + demo buyers
 pnpm --filter @yolt/web dev
 ```
 
-Open http://localhost:3000/s/secondloop. To list an item, sign in as **Second Loop (demo seller)** and open http://localhost:3000/seller/listings. Use **Dev: switch user** in the header to sign in as a demo buyer, then buy something. The checkout uses a sandbox gateway that sends signed webhooks through the real webhook path.
+Open http://localhost:3000/s/secondloop. **Sign in** with any Indian mobile number: in development the code is shown on screen instead of being sent. To list an item, use **Dev: switch user** → **Second Loop (demo seller)**, then open http://localhost:3000/seller/listings. Use **Dev: switch user** in the header to sign in as a demo buyer, then buy something. The checkout uses a sandbox gateway that sends signed webhooks through the real webhook path.
 
 ## Tests
 
@@ -38,7 +38,7 @@ Covers: 100 concurrent buyers for one garment → one hold; stale releases can't
 
 ## Not built yet
 
-- Real auth (Better Auth + WhatsApp/SMS OTP). `/dev` cookie login is development-only and disabled in production.
+- MSG91 delivery for login codes. Production refuses to send codes until it's configured (set `AUTH_PEPPER` too).
 - Cashfree payments. Production refuses payments until the adapter exists.
 - Seller onboarding and KYC (the seed seller is pre-verified), drops builder, search (Typesense), addresses and Shiprocket, drops opening job, returns, admin.
 - Hold expiry: Vercel Cron calls `/api/cron/expire-holds` every minute (needs `CRON_SECRET`). Checkout also frees expired holds on the items it touches, so nothing gets stuck locally without cron.

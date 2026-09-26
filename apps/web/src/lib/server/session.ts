@@ -1,26 +1,35 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { DEV_USER_COOKIE } from "@yolt/api";
+import { redirect } from "next/navigation";
+import { SESSION_COOKIE } from "@yolt/api";
+import { getSessionUser } from "@yolt/core";
 import { sellers } from "@yolt/db";
 import { db } from "./db";
 
-/**
- * TEMPORARY: mirrors the API's dev cookie auth for server components until real
- * OTP sessions exist. Always null in production.
- */
-export async function getCurrentUserId(): Promise<string | null> {
-  if (process.env.NODE_ENV === "production") return null;
-  const id = (await cookies()).get(DEV_USER_COOKIE)?.value;
-  return id && /^[0-9a-f-]{36}$/i.test(id) ? id : null;
+/** The signed-in user for server components, from the same session cookie the API uses. */
+export async function getCurrentUser() {
+  return getSessionUser(db, (await cookies()).get(SESSION_COOKIE)?.value);
 }
 
 export async function getCurrentSeller() {
-  const userId = await getCurrentUserId();
-  if (!userId) return null;
+  const user = await getCurrentUser();
+  if (!user) return null;
   const [seller] = await db
     .select()
     .from(sellers)
-    .where(and(eq(sellers.userId, userId), eq(sellers.status, "APPROVED")));
-  return seller ? { seller, userId } : null;
+    .where(and(eq(sellers.userId, user.userId), eq(sellers.status, "APPROVED")));
+  return seller ? { seller, userId: user.userId } : null;
+}
+
+/**
+ * For seller pages: sends signed-out visitors to login and signed-in non-sellers to /sell
+ * (distinct targets, or login would bounce a signed-in buyer straight back here).
+ */
+export async function requireSeller(nextPath: string) {
+  const user = await getCurrentUser();
+  if (!user) redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  const current = await getCurrentSeller();
+  if (!current) redirect("/sell");
+  return current;
 }

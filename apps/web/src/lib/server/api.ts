@@ -1,17 +1,31 @@
 import "server-only";
-import { createApp, mediaStorageFromEnv, SandboxPaymentProvider, UnconfiguredPaymentProvider } from "@yolt/api";
+import { randomBytes } from "node:crypto";
+import {
+  createApp,
+  DevOtpSender,
+  mediaStorageFromEnv,
+  SandboxPaymentProvider,
+  UnconfiguredOtpSender,
+  UnconfiguredPaymentProvider,
+} from "@yolt/api";
 import { db } from "./db";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// Sandbox payments and dev login exist only outside production. Production refuses
-// payments until the Cashfree adapter and real auth are in place.
+// Development conveniences (sandbox payments, visible OTP codes, one-click login) exist only
+// outside production. Production refuses payments and OTPs until Cashfree and MSG91 are configured.
 const sandbox = isProduction ? undefined : new SandboxPaymentProvider(process.env.SANDBOX_WEBHOOK_SECRET ?? "dev-sandbox-secret");
+
+// AUTH_PEPPER must be set in production. Without it, a random per-process value keeps codes
+// unguessable, but they won't verify across instances, so login is effectively disabled.
+const pepper = process.env.AUTH_PEPPER ?? (isProduction ? randomBytes(32).toString("hex") : "dev-auth-pepper");
 
 export const api = createApp({
   db,
   payments: sandbox ?? new UnconfiguredPaymentProvider(),
   media: mediaStorageFromEnv(process.env),
+  otp: isProduction ? new UnconfiguredOtpSender() : new DevOtpSender(),
+  authSecrets: { pepper },
   sandbox,
   allowDevAuth: !isProduction,
   cronSecret: process.env.CRON_SECRET,

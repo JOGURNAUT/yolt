@@ -44,7 +44,7 @@ Changed from the earlier recommendation because the team is one person: fewer se
 | Cache / rate limits | Upstash Redis | Rate limits, waiting-room positions, live counters. Never the only oversell guard. |
 | Search | Typesense Cloud | Facets (size, measurements, price, condition), typo tolerance. Checkout always re-reads Postgres. |
 | Media | Cloudflare R2 + Image Transformations; Cloudflare Stream for reels (P2) | |
-| Auth | Better Auth in own Postgres + MSG91 (WhatsApp OTP first, SMS fallback) + Google sign-in | |
+| Auth | **Own phone-OTP login and database sessions** (`packages/core/src/auth.ts`), codes delivered by MSG91 (WhatsApp first, SMS fallback). Google sign-in later. | Changed from Better Auth (27 Sep 2026): its user model requires an email, and phone-only signup works by generating placeholder emails. YOLT's identity is the phone number, and the need is narrow. Design: HMAC-hashed 6-digit codes, 5 min expiry, 5 attempts, 30 s resend cooldown, 5/hour per phone, 20/hour per network; 32-byte session tokens stored only as SHA-256, 30-day sliding expiry, revocable per device or everywhere; HttpOnly SameSite=Lax cookies plus an Origin check on state-changing requests. |
 | Payments | Cashfree Payments + Easy Split (vendor KYC with individual PAN) | Apply to Razorpay Route as a second provider once over its ₹40L turnover threshold. Put payments behind a provider interface. |
 | KYC | Cashfree vendor KYC / Verification Suite (PAN, bank penny-drop) | |
 | Shipping | Shiprocket API: one pickup location per seller, forward and reverse pickups, tracking webhooks | |

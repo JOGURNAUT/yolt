@@ -1,21 +1,25 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import sharp from "sharp";
-import { createApp, DEV_USER_COOKIE, MemoryMediaStorage, SandboxPaymentProvider } from "../src";
+import { MemoryMediaStorage } from "../src";
+import { makeApp, sessionCookie } from "./helpers";
 import { createSeller, createUser, testDb, truncateAll } from "../../core/test/fixtures";
 
 const { db, close } = testDb(10);
 afterAll(close);
-beforeEach(() => truncateAll(db));
+beforeEach(async () => {
+  await truncateAll(db);
+  cookies.clear();
+});
 
 const media = new MemoryMediaStorage();
-const sandbox = new SandboxPaymentProvider("s");
-const app = createApp({ db, payments: sandbox, media, sandbox, allowDevAuth: true });
+const { app } = makeApp(db, { media });
 
-const cookie = (userId: string) => `${DEV_USER_COOKIE}=${userId}`;
-const call = (method: string, path: string, userId: string, body?: unknown) =>
+const cookies = new Map<string, string>();
+const cookie = async (userId: string) => cookies.get(userId) ?? cookies.set(userId, await sessionCookie(db, userId)).get(userId)!;
+const call = async (method: string, path: string, userId: string, body?: unknown) =>
   app.request(`/api/seller${path}`, {
     method,
-    headers: { cookie: cookie(userId), "content-type": "application/json" },
+    headers: { cookie: await cookie(userId), "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
@@ -31,7 +35,7 @@ async function upload(userId: string, listingId: string, kind: string, file?: Bu
   const form = new FormData();
   form.set("kind", kind);
   form.set("file", new File([new Uint8Array(file ?? (await phonePhoto()))], "photo.jpg", { type: "image/jpeg" }));
-  return app.request(`/api/seller/listings/${listingId}/photos`, { method: "POST", headers: { cookie: cookie(userId) }, body: form });
+  return app.request(`/api/seller/listings/${listingId}/photos`, { method: "POST", headers: { cookie: await cookie(userId) }, body: form });
 }
 
 describe("seller listing editor API", () => {

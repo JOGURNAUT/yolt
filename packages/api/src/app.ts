@@ -1,16 +1,22 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { and, asc, eq } from "drizzle-orm";
-import type { Context } from "hono";
-import { deleteCookie, setCookie } from "hono/cookie";
+import { getCookie } from "hono/cookie";
 import {
   createCheckout,
+  createSession,
   expireHolds,
   handlePaymentEvent,
+  parseFirstTouch,
   releaseCheckout,
+  revokeSession,
   startPayment,
+  type AuthSecrets,
 } from "@yolt/core";
 import { holds, orderItems, orders, paymentAttempts, users, type Db } from "@yolt/db";
-import { DEV_USER_COOKIE, getSession } from "./auth";
+import { FIRST_TOUCH_COOKIE } from "@yolt/shared";
+import { SESSION_COOKIE, sameOriginMiddleware, sessionMiddleware, type AuthVariables } from "./auth";
+import type { OtpSender } from "./otp/sender";
+import { authRoutes, setSessionCookie } from "./routes/auth";
 import { WebhookVerificationError, type PaymentProvider } from "./payments/provider";
 import type { MediaStorage } from "./media/storage";
 import type { SandboxPaymentProvider } from "./payments/sandbox";
@@ -22,8 +28,14 @@ export type AppDeps = {
   media: MediaStorage;
   /** Present only outside production: lets the local UI "complete" a payment. */
   sandbox?: SandboxPaymentProvider;
-  /** Dev cookie login. Must be false in production. */
+  otp: OtpSender;
+  authSecrets: AuthSecrets;
+  /** Development conveniences: one-click login as any user, visible OTP codes. Must be false in production. */
   allowDevAuth: boolean;
+  /** Mark cookies Secure. Defaults to true unless dev auth is on. */
+  secureCookies?: boolean;
+  /** Extra origins allowed to make state-changing requests (e.g. a future app domain). */
+  allowedOrigins?: string[];
   cronSecret?: string;
 };
 
@@ -36,13 +48,21 @@ const Uuid = z.string().uuid();
 
 export function createApp(deps: AppDeps) {
   const { db, payments } = deps;
-  const app = new OpenAPIHono({
+  const app = new OpenAPIHono<{ Variables: AuthVariables }>({
     defaultHook: (result, c) => {
       if (!result.success) return c.json({ error: "INVALID_REQUEST", details: result.error.issues }, 400);
     },
   }).basePath("/api");
 
-  const requireUser = (c: Parameters<typeof getSession>[0]) => getSession(c, deps.allowDevAuth);
+  const secureCookies = deps.secureCookies ?? !deps.allowDevAuth;
+  app.use("*", sameOriginMiddleware(deps.allowedOrigins ?? []));
+  app.use("*", sessionMiddleware(db));
+  const requireUser = (c: { get: (key: "session") => AuthVariables["session"] }) => c.get("session");
+
+  app.route(
+    "/auth",
+    authRoutes({ db, secrets: deps.authSecrets, otp: deps.otp, secureCookies, exposeDevCodes: deps.allowDevAuth }),
+  );
 
   // -------------------------------------------------------------------------
   // Checkout
@@ -79,7 +99,11 @@ export function createApp(deps: AppDeps) {
       const session = requireUser(c);
       if (!session) return c.json({ error: "SIGN_IN_REQUIRED" }, 401);
       const body = c.req.valid("json");
-      const r = await createCheckout(db, { buyerId: session.userId, ...body });
+      const r = await createCheckout(db, {
+        buyerId: session.userId,
+        ...body,
+        firstTouch: parseFirstTouch(getCookie(c, FIRST_TOUCH_COOKIE)),
+      });
       if (r.ok) {
         return c.json(
           { orderId: r.orderId, reference: r.reference, totalPaise: r.totalPaise, expiresAt: r.expiresAt.toISOString() },
@@ -256,7 +280,7 @@ export function createApp(deps: AppDeps) {
   // Seller workspace
   // -------------------------------------------------------------------------
 
-  app.route("/seller", sellerRoutes({ db, media: deps.media, getSession: (c: Context) => getSession(c, deps.allowDevAuth) }));
+  app.route("/seller", sellerRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------
   // Jobs
@@ -280,12 +304,10 @@ export function createApp(deps: AppDeps) {
       const { userId } = await c.req.json<{ userId: string }>();
       const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId));
       if (!user) return c.json({ error: "NOT_FOUND" }, 404);
-      setCookie(c, DEV_USER_COOKIE, user.id, { path: "/", httpOnly: true, sameSite: "Lax" });
-      return c.json({ ok: true });
-    });
-
-    app.post("/dev/logout", (c) => {
-      deleteCookie(c, DEV_USER_COOKIE, { path: "/" });
+      const previous = getCookie(c, SESSION_COOKIE);
+      if (previous) await revokeSession(db, previous);
+      const s = await createSession(db, { userId: user.id, userAgent: c.req.header("user-agent") });
+      setSessionCookie(c, s.sessionToken, s.sessionExpiresAt, secureCookies);
       return c.json({ ok: true });
     });
 

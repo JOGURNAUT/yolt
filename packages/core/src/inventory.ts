@@ -13,11 +13,14 @@ import {
   paymentEvents,
   refunds,
   sellers,
+  users,
   type CompleteListing,
   type Db,
+  type FirstTouch,
   type ListingSnapshot,
   type Tx,
 } from "@yolt/db";
+import { orderSourceFor } from "./attribution";
 
 /**
  * Inventory invariants (see docs/user-flows.md §7):
@@ -70,6 +73,8 @@ export type CreateCheckoutInput = {
   source?: "CHECKOUT" | "OFFER" | "DROP_CLAIM";
   /** Price the buyer saw. If the server total differs, checkout stops so the buyer can reconfirm. */
   expectedSubtotalPaise?: number;
+  /** From the browser cookie; used only when the account has no stored first touch (D16). */
+  firstTouch?: FirstTouch | null;
   holdSeconds?: number;
   now?: Date;
 };
@@ -143,12 +148,16 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
       .where(and(inArray(listingPhotos.listingId, ids), eq(listingPhotos.position, 0)));
     const coverByListing = new Map(photos.map((p) => [p.listingId, p.url]));
 
+    const [buyer] = await tx.select({ firstTouch: users.firstTouch }).from(users).where(eq(users.id, input.buyerId));
+    const source = orderSourceFor(buyer?.firstTouch ?? input.firstTouch, seller.handle, now);
+
     const reference = orderReference();
     await tx.insert(orders).values({
       id: orderId,
       reference,
       buyerId: input.buyerId,
       sellerId: seller.id,
+      source,
       subtotalPaise: subtotal,
       shippingPaise: shipping,
       totalPaise: total,
