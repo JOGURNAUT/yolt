@@ -10,6 +10,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  workflows:
+    # A broken workflow file only shows up after merge otherwise (this caught cron.yml).
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lint GitHub Actions workflows
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest -color
+
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -46,7 +55,7 @@ jobs:
         run: PGPASSWORD=yolt psql -h localhost -p 5433 -U yolt -d yolt -c "CREATE DATABASE yolt_test"
       - name: Create media bucket
         run: |
-          for i in $(seq 1 30); do curl -s -o /dev/null http://localhost:9000/ && break; sleep 1; done
+          for _ in $(seq 1 30); do curl -s -o /dev/null http://localhost:9000/ && break; sleep 1; done
           pnpm media:setup
       - run: pnpm typecheck
       - run: pnpm --filter @yolt/web lint
