@@ -7,3 +7,4 @@ export * from "./fulfilment";
 export * from "./search";
 export * from "./claims";
 export * from "./reviews";
+export * from "./admin";
