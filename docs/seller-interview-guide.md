@@ -88,7 +88,7 @@ Describe briefly: a thrift marketplace where buyers filter by size and measureme
 43. Would you keep stock in sync if a piece sells on Instagram first? How?
 44. Which fee structure seems fair: commission per sale, a monthly fee, or per-listing? What rate would make you walk away?
 45. Would you run a drop exclusively on the platform? What would you need to see first?
-46. Would you allow size returns if the platform covered return shipping? If not, why not?
+46. YOLT doesn't take size returns, but refunds buyers if an item isn't as described. How do you feel about that? What would make a claim against you feel fair?
 
 ## Wrap-up (1 min)
 

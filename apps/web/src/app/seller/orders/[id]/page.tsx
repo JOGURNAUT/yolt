@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { getSellerOrder } from "@yolt/core";
+import { getClaimForOrder, getSellerOrder } from "@yolt/core";
 import { formatIndianMobile } from "@yolt/shared";
 import { OrderTimeline, ORDER_STATUS_LABELS } from "@/components/order-timeline";
+import { ClaimResponse } from "@/components/seller/claim-response";
 import { SellerOrderActions } from "@/components/seller/seller-order-actions";
 import { formatINR, formatIST } from "@/lib/format";
 import { db } from "@/lib/server/db";
@@ -20,6 +21,7 @@ export default async function SellerOrderPage({ params }: PageProps<"/seller/ord
   if (!data) notFound();
   const { order, items, shipment, events } = data;
   const a = order.shippingAddress;
+  const claim = await getClaimForOrder(db, order.id);
 
   return (
     <div className="space-y-6">
@@ -83,6 +85,12 @@ export default async function SellerOrderPage({ params }: PageProps<"/seller/ord
           )}
         </section>
       </div>
+
+      {claim && (
+        <ClaimResponse
+          claim={{ id: claim.id, status: claim.status, reason: claim.reason, description: claim.description, photoUrls: claim.photoUrls, sellerResponse: claim.sellerResponse }}
+        />
+      )}
 
       <SellerOrderActions
         orderId={order.id}

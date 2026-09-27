@@ -122,6 +122,14 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
                     <Stars rating={r.rating} className="text-accent" />
                   </div>
                   {r.body && <p className="mt-2 text-sm">{r.body}</p>}
+                  {r.photoUrls.length > 0 && (
+                    <div className="mt-2 flex gap-2">
+                      {r.photoUrls.map((u) => (
+                        // eslint-disable-next-line @next/next/no-img-element -- buyer's review photo
+                        <img key={u} src={u} alt={`Photo from ${r.buyerName?.split(" ")[0] ?? "the buyer"}`} className="size-20 rounded object-cover" />
+                      ))}
+                    </div>
+                  )}
                   <p className="mt-3 text-xs text-muted">
                     Bought: {r.item.title}
                     {r.item.tagSize && ` · ${r.item.tagSize}`} · {formatINR(r.itemPricePaise)}

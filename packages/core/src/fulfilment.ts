@@ -1,18 +1,18 @@
 import { and, asc, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import {
   auditEvents,
+  claims,
   listings,
   orderItems,
   orders,
   outboxEvents,
-  paymentAttempts,
-  refunds,
   sellers,
   shipmentEvents,
   shipments,
   type Db,
   type Tx,
 } from "@yolt/db";
+import { requestFullRefund } from "./refunds";
 
 /**
  * Order fulfilment after payment (docs/user-flows.md S-F7, B-F8):
@@ -20,7 +20,7 @@ import {
  * Cancellation branches: seller before pickup; buyer if the seller misses the dispatch deadline.
  */
 
-/** Size/not-as-described return requests must be raised within this window (decision D6). */
+/** Buyer-protection claims must be raised within this window after delivery (decision D6). */
 export const RETURN_WINDOW_HOURS = 48;
 /** Extra time after the dispatch deadline before the buyer may cancel for a full refund. */
 export const DISPATCH_GRACE_HOURS = 48;
@@ -238,21 +238,7 @@ async function cancelPaidOrder(
     .set({ status: "WITHDRAWN", updatedAt: input.now })
     .where(and(inArray(listings.id, items.map((i) => i.listingId)), eq(listings.status, "SOLD")));
 
-  const [paid] = await tx
-    .select()
-    .from(paymentAttempts)
-    .where(and(eq(paymentAttempts.orderId, order.id), eq(paymentAttempts.status, "SUCCEEDED")))
-    .orderBy(desc(paymentAttempts.createdAt))
-    .limit(1);
-  let refundId: string | null = null;
-  if (paid) {
-    const [refund] = await tx
-      .insert(refunds)
-      .values({ orderId: order.id, paymentAttemptId: paid.id, amountPaise: paid.amountPaise, reason: input.status })
-      .returning({ id: refunds.id });
-    refundId = refund!.id;
-    await tx.insert(outboxEvents).values({ type: "refund.requested", payload: { refundId, orderId: order.id, reason: input.status } });
-  }
+  const refundId = await requestFullRefund(tx, { orderId: order.id, reason: input.status });
   await tx.insert(auditEvents).values({
     actorId: input.actorId,
     actorRole: input.actorRole,
@@ -334,7 +320,14 @@ export async function closeDeliveredOrders(db: Db, opts: { now?: Date } = {}) {
   const closed = await db
     .update(orders)
     .set({ status: "CLOSED", closedAt: now, updatedAt: now })
-    .where(and(eq(orders.status, "DELIVERED"), lte(orders.deliveredAt, new Date(now.getTime() - hours(RETURN_WINDOW_HOURS)))))
+    .where(
+      and(
+        eq(orders.status, "DELIVERED"),
+        lte(orders.deliveredAt, new Date(now.getTime() - hours(RETURN_WINDOW_HOURS))),
+        // An open protection claim keeps the order open until it's resolved.
+        sql`NOT EXISTS (SELECT 1 FROM ${claims} c WHERE c.order_id = ${orders}.id AND c.status IN ('OPEN', 'ESCALATED'))`,
+      ),
+    )
     .returning({ id: orders.id });
   if (closed.length) {
     await db.insert(outboxEvents).values(closed.map((o) => ({ type: "order.closed", payload: { orderId: o.id } })));
