@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProductGrid } from "@/components/product-card";
 import { Stars } from "@/components/stars";
@@ -85,6 +86,15 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
       <section aria-label="Items" className="space-y-4">
         <StockPills basePath={`/s/${handle}`} active={filter} counts={counts} />
         {items.length ? <ProductGrid items={items} /> : <p className="py-8 text-center text-muted">{EMPTY[filter]}</p>}
+      </section>
+
+      <section aria-label="Seller details" className="rounded-lg border border-line bg-surface p-4 text-xs text-muted">
+        <p className="font-medium text-foreground">Seller details</p>
+        <p>
+          Sold by {store.displayName}
+          {store.pickupState && <>, shipping from {store.pickupState}</>}. Customer care:{" "}
+          <Link href="/legal/grievance" className="underline">YOLT support</Link>.
+        </p>
       </section>
 
       <section id="reviews" className="space-y-4 border-t border-line pt-6">
