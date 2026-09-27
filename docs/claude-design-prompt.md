@@ -51,7 +51,7 @@ Every item is a single physical piece: once it's sold, it's gone.
 5. **Brand** "(declared by seller)". For sneakers and bags, add a note: "Seller-declared, not authenticated by YOLT".
 6. **Seller card:** name, rating, "Usually ships in 2 days", a link to the store.
 7. **Pincode check:** "Check delivery". Enter a pincode to see "Delivers to 411001 in 3–5 days", or "We can't deliver to this pincode yet".
-8. **Returns line:** "Size returns within 48 h (you pay return shipping). Always returnable if not as described." Or, if the item doesn't allow size returns: "Returns only if not as described."
+8. **Protection line:** "No size returns: check the measurements. Full refund if it isn't as described, arrives damaged, or never arrives."
 9. **Sticky bottom bar:** Save (heart) · Add to bag · **Buy now · ₹1,299**.
 10. **More from this store,** and similar items.
 
@@ -95,7 +95,7 @@ Search · a live and upcoming drops strip · a "Fresh finds" grid · "In your si
 ### 7. Order detail and returns
 - **Order detail:** order reference, item snapshot, a timeline (Paid → Packed → Shipped → Delivered) with a courier tracking link, "Ships by 29 Sep", and Help.
 - **Return request sheet:**
-  - Reasons: not as described, damaged, wrong item, didn't arrive, size doesn't fit (only if the item allows size returns).
+  - "Report a problem" (no size returns): not as described, arrived damaged, wrong item, never arrived. The seller accepts (full refund) or disputes (YOLT decides).
   - Photo upload.
   - A clear "what happens next", including who pays return shipping.
 
@@ -117,7 +117,7 @@ Two columns on desktop, stacked on mobile. An autosave indicator in the header (
 - **Measurements:** fields that change by category (tops: chest, length, shoulder, sleeve; jeans: waist, hip, length, inseam), each with a "cm" suffix, and a radio "Flat, across one side / All the way around".
 - **Condition:** four selectable cards (New with tags, Like new, Good, Fair), each with its one-line meaning.
 - **Flaws:** a text area, plus a checkbox "No flaws: I checked the whole item" (the two are mutually exclusive).
-- **Price:** "₹" input. A toggle "Allow size returns", with an explanation. Description (optional).
+- **Price:** "₹" input, with a note that YOLT has no size returns, so accurate measurements matter. Description (optional).
 - **Sticky side panel "Before you publish":** a checklist of what's missing ("Add a back photo", "Measure the length", "Say whether it was measured flat or around"), which turns into "Ready to publish". Then a **Publish** button (disabled until ready). For live listings, **Save changes** instead.
 - **Show states:** empty new draft, half-filled draft, ready to publish, editing a live listing (with the error "This item is live, so it must stay complete"), and the locked state ("A buyer is paying for this item, so it can't be changed right now").
 

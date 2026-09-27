@@ -71,7 +71,7 @@ Vinted's buyer-fee model works because its sellers are mostly individuals with n
 **Other levers:**
 - **Free shipping on a buyer's first order,** funded by YOLT: a better hook than any fee is a barrier.
 - **Bundling:** "Add another piece from this store and save ₹79". Shipping is the largest cost on a ₹500 item.
-- **Size returns:** the buyer pays return shipping (₹80–100 is 15–20% of a ₹500 item). Consider allowing size returns only above about ₹999.
+- **No size returns** (decided after this research, D6): like Vinted, Depop and Carousell. Reverse shipping (₹80–100) is 15–20% of a ₹500 item. Buyer protection covers not-as-described, damaged, wrong-item and never-arrived instead.
 - **Fast payouts** are what sellers valued in Oyela. Start with payouts after the return window closes, then offer faster payouts to sellers with a good track record (a Seller Pro feature).
 
 ## 6. Open questions to test
