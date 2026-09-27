@@ -22,7 +22,6 @@ export type ListingPatch = {
   flaws?: string | null;
   noFlawsConfirmed?: boolean;
   pricePaise?: number | null;
-  sizeReturnsAllowed?: boolean;
   allowOffers?: boolean;
 };
 
@@ -72,19 +71,9 @@ export function readinessOf(l: Listing, kinds: string[]) {
 // ---------------------------------------------------------------------------
 
 export async function createDraft(db: Db, input: { sellerId: string }) {
-  const [seller] = await db
-    .select({ sizeReturnsDefault: sellers.sizeReturnsDefault })
-    .from(sellers)
-    .where(eq(sellers.id, input.sellerId));
-  if (!seller) throw new Error(`seller ${input.sellerId} not found`);
   const [draft] = await db
     .insert(listings)
-    .values({
-      sellerId: input.sellerId,
-      slug: `draft-${suffix()}${suffix()}`,
-      status: "DRAFT",
-      sizeReturnsAllowed: seller.sizeReturnsDefault,
-    })
+    .values({ sellerId: input.sellerId, slug: `draft-${suffix()}${suffix()}`, status: "DRAFT" })
     .returning();
   return draft!;
 }
