@@ -28,6 +28,18 @@ pnpm --filter @yolt/web dev
 
 Open http://localhost:3000/s/secondloop. **Sign in** with any Indian mobile number: in development the code is shown on screen instead of being sent. To list an item, use **Dev: switch user** → **Second Loop (demo seller)**, then open http://localhost:3000/seller/listings. Use **Dev: switch user** in the header to sign in as a demo buyer, then buy something. The checkout uses a sandbox gateway that sends signed webhooks through the real webhook path.
 
+### Admin access
+
+Admin rights can only be granted from the command line, never in the app:
+
+```sh
+pnpm admin:grant 98765 43210 ADMIN            # dry run: shows which database it would change
+pnpm admin:grant 98765 43210 ADMIN --confirm  # ADMIN can act; SUPPORT is read-only
+pnpm admin:grant 98765 43210 --revoke --confirm
+```
+
+Then sign in with that phone number; **Admin** appears in the header. Admin actions need a login from the last 12 hours.
+
 ## Tests
 
 ```sh
@@ -40,5 +52,5 @@ Covers: 100 concurrent buyers for one garment → one hold; stale releases can't
 
 - MSG91 delivery for login codes. Production refuses to send codes until it's configured (set `AUTH_PEPPER` too).
 - Cashfree payments. Production refuses payments until the adapter exists.
-- Shiprocket (a dev shipping fake handles delivery checks, pickup booking, labels and tracking scans locally; production refuses to guess), seller onboarding and KYC (the seed seller is pre-verified), drops builder, Typesense (search runs on Postgres for now), drops opening job, returns, admin.
+- Shiprocket (a dev shipping fake handles delivery checks, pickup booking, labels and tracking scans locally; production refuses to guess), drops builder, Typesense (search runs on Postgres for now), drops opening job, seller self-signup (staff onboard stores from /admin for the pilot).
 - Hold expiry: Vercel Cron calls `/api/cron/expire-holds` every minute (needs `CRON_SECRET`). Checkout also frees expired holds on the items it touches, so nothing gets stuck locally without cron.

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
 import { AccountMenu } from "@/components/account-menu";
+import { getAdminRole } from "@yolt/core";
+import { db } from "@/lib/server/db";
 import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
 import { formatIndianMobile } from "@yolt/shared";
 import "./globals.css";
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [user, seller] = await Promise.all([getCurrentUser(), getCurrentSeller()]);
+  const isAdmin = user ? (await getAdminRole(db, user.userId)) !== null : false;
   return (
     <html lang="en-IN" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
@@ -37,6 +40,11 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               {process.env.NODE_ENV !== "production" && (
                 <Link href="/dev" className="rounded-full border border-dashed border-line px-3 py-1 text-xs text-muted">
                   Dev: switch user
+                </Link>
+              )}
+              {isAdmin && (
+                <Link href="/admin" className="text-sm font-medium hover:underline">
+                  Admin
                 </Link>
               )}
               <AccountMenu phone={user?.phone ? formatIndianMobile(user.phone) : null} isSeller={seller !== null} />

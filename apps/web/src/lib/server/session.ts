@@ -1,9 +1,9 @@
 import "server-only";
 import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SESSION_COOKIE } from "@yolt/api";
-import { getSessionUser } from "@yolt/core";
+import { adminSessionFresh, getAdminRole, getSessionUser } from "@yolt/core";
 import { sellers } from "@yolt/db";
 import { db } from "./db";
 
@@ -32,4 +32,16 @@ export async function requireSeller(nextPath: string) {
   const current = await getCurrentSeller();
   if (!current) redirect("/sell");
   return current;
+}
+
+/**
+ * For /admin pages. Non-staff get a 404 (admin pages don't reveal themselves). Staff whose
+ * login is older than 12 hours get `stale: true` and must sign in again.
+ */
+export async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user) notFound();
+  const role = await getAdminRole(db, user.userId);
+  if (!role) notFound();
+  return { user, role, stale: !adminSessionFresh(user.sessionCreatedAt) };
 }

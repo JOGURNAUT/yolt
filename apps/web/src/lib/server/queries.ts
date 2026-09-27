@@ -137,7 +137,7 @@ export async function getListing(slug: string) {
     .innerJoin(sellers, eq(sellers.id, listings.sellerId))
     .leftJoin(drops, eq(drops.id, listings.dropId))
     .where(eq(listings.slug, slug));
-  if (!row || row.listing.status === "DRAFT") return null;
+  if (!row || row.listing.status === "DRAFT" || row.seller.status !== "APPROVED") return null;
   const photos = await db
     .select()
     .from(listingPhotos)
