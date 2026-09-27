@@ -4,7 +4,9 @@ import Link from "next/link";
 import { AccountMenu } from "@/components/account-menu";
 import { envFlags } from "@/lib/env";
 import { LEGAL_PAGES } from "@/lib/legal";
-import { getAdminRole } from "@yolt/core";
+import { bagListingIds, getAdminRole, savedListingIds } from "@yolt/core";
+import { BagLink } from "@/components/shop-buttons";
+import { ShopStateProvider } from "@/components/shop-state";
 import { db } from "@/lib/server/db";
 import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
 import { formatIndianMobile } from "@yolt/shared";
@@ -19,10 +21,13 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const [user, seller] = await Promise.all([getCurrentUser(), getCurrentSeller()]);
-  const isAdmin = user ? (await getAdminRole(db, user.userId)) !== null : false;
+  const [isAdmin, saved, bag] = user
+    ? await Promise.all([getAdminRole(db, user.userId).then((r) => r !== null), savedListingIds(db, user.userId), bagListingIds(db, user.userId)])
+    : [false, [], []];
   return (
     <html lang="en-IN" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
+        <ShopStateProvider signedIn={user !== null} initialSaved={saved} initialBag={bag}>
         <header className="sticky top-0 z-10 border-b border-line bg-background/95 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
             <Link href="/" className="text-lg font-bold tracking-tight">
@@ -49,6 +54,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                   Admin
                 </Link>
               )}
+              <Link href="/saved" className="text-sm hover:underline">
+                Saved
+              </Link>
+              <BagLink />
               <AccountMenu phone={user?.phone ? formatIndianMobile(user.phone) : null} isSeller={seller !== null} />
             </div>
           </div>
@@ -64,6 +73,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             ))}
           </div>
         </footer>
+        </ShopStateProvider>
       </body>
     </html>
   );
