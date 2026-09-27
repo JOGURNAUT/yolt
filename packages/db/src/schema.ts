@@ -561,7 +561,18 @@ export const follows = pgTable(
     sellerId: uuid("seller_id").notNull().references(() => sellers.id),
     createdAt: createdAt(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.sellerId] })],
+  (t) => [primaryKey({ columns: [t.userId, t.sellerId] }), index("follows_seller_idx").on(t.sellerId)],
+);
+
+/** The bag holds nothing: adding an item never reserves it. Reservation starts at checkout. */
+export const bagItems = pgTable(
+  "bag_items",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id),
+    listingId: uuid("listing_id").notNull().references(() => listings.id),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.listingId] })],
 );
 
 // ---------------------------------------------------------------------------

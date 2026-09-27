@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, lte, or, sql } from "drizzle-orm";
 import {
   asComplete,
   auditEvents,
+  bagItems,
   holds,
   listingPhotos,
   listings,
@@ -488,6 +489,10 @@ export async function handlePaymentEvent(db: Db, input: PaymentEventInput): Prom
       })
       .where(eq(orders.id, order.id));
     await tx.insert(outboxEvents).values({ type: "order.confirmed", payload: { orderId: order.id } });
+    // Paid items leave the buyer's bag. (An abandoned checkout leaves the bag untouched.)
+    await tx
+      .delete(bagItems)
+      .where(and(eq(bagItems.userId, order.buyerId), inArray(bagItems.listingId, items.map((i) => i.listingId))));
     return { status: "CONFIRMED", orderId: order.id } as const;
   });
 }

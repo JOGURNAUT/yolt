@@ -5,6 +5,7 @@ import type { Measurements } from "@yolt/db";
 import { BuyButton } from "@/components/buy-button";
 import { GarmentImage } from "@/components/garment-image";
 import { PincodeCheck } from "@/components/pincode-check";
+import { AddToBagButton, SaveButton } from "@/components/shop-buttons";
 import { ProductGrid } from "@/components/product-card";
 import { CONDITION, formatIST, formatINR } from "@/lib/format";
 import { getListing, getMoreFromStore } from "@/lib/server/queries";
@@ -158,11 +159,25 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
             </p>
           </section>
 
-          {l.status === "AVAILABLE" && <BuyButton listingId={l.id} pricePaise={l.pricePaise} />}
+          {l.status === "AVAILABLE" && (
+            <div className="space-y-2">
+              <BuyButton listingId={l.id} pricePaise={l.pricePaise} />
+              <AddToBagButton listingId={l.id} />
+            </div>
+          )}
+          <div className="flex items-center gap-3 text-sm">
+            <SaveButton listingId={l.id} />
+            <span className="text-muted">Save to find it later</span>
+          </div>
           {(sold || withdrawn) && (
-            <Link href={`/s/${seller.handle}`} className="block rounded-full border border-line py-3 text-center font-medium">
-              See what&apos;s in stock at {seller.displayName}
-            </Link>
+            <div className="space-y-2">
+              <Link href={`/search?cat=${l.category}`} className="block rounded-full bg-foreground py-3 text-center font-medium text-background">
+                Find similar pieces
+              </Link>
+              <Link href={`/s/${seller.handle}`} className="block rounded-full border border-line py-3 text-center font-medium">
+                See what&apos;s in stock at {seller.displayName}
+              </Link>
+            </div>
           )}
         </div>
       </div>

@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { followerCount, isFollowing } from "@yolt/core";
+import { FollowButton } from "@/components/follow-button";
 import { ProductGrid } from "@/components/product-card";
+import { db } from "@/lib/server/db";
+import { getCurrentUser } from "@/lib/server/session";
 import { Stars } from "@/components/stars";
 import { StockPills } from "@/components/stock-pills";
 import { formatIST, formatINR } from "@/lib/format";
@@ -38,6 +42,11 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
     getUpcomingDrop(store.id),
     getStoreReviews(store.id),
   ]);
+  const user = await getCurrentUser();
+  const [followers, following] = await Promise.all([
+    followerCount(db, store.id),
+    user ? isFollowing(db, { userId: user.userId, sellerId: store.id }) : Promise.resolve(false),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -51,6 +60,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
         <div className="min-w-0 space-y-1">
           <h1 className="text-xl font-bold">{store.displayName}</h1>
           {store.instagramHandle && <p className="text-sm text-muted">@{store.instagramHandle}</p>}
+          {user?.userId !== store.userId && <FollowButton sellerId={store.id} following={following} followers={followers} signedIn={user !== null} />}
           {store.bio && <p className="text-sm">{store.bio}</p>}
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {reviewData.average !== null && (
