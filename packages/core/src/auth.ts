@@ -206,7 +206,14 @@ export async function createSession(db: Db, input: { userId: string; userAgent?:
   return insertSession(db, { ...input, now: input.now ?? new Date() });
 }
 
-export type SessionUser = { userId: string; sessionId: string; phone: string | null; name: string | null };
+export type SessionUser = {
+  userId: string;
+  sessionId: string;
+  /** When the user last proved control of their phone (sessions start at OTP verification). */
+  sessionCreatedAt: Date;
+  phone: string | null;
+  name: string | null;
+};
 
 /** Resolves a session token. Slides the expiry forward at most once an hour. */
 export async function getSessionUser(db: Db, token: string | null | undefined, now = new Date()): Promise<SessionUser | null> {
@@ -224,7 +231,13 @@ export async function getSessionUser(db: Db, token: string | null | undefined, n
       .set({ lastSeenAt: now, expiresAt: addSeconds(now, SESSION_TTL_SECONDS) })
       .where(eq(sessions.id, row.session.id));
   }
-  return { userId: row.session.userId, sessionId: row.session.id, phone: row.phone, name: row.name };
+  return {
+    userId: row.session.userId,
+    sessionId: row.session.id,
+    sessionCreatedAt: row.session.createdAt,
+    phone: row.phone,
+    name: row.name,
+  };
 }
 
 export async function revokeSession(db: Db, token: string, now = new Date()) {

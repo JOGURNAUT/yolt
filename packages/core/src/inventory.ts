@@ -82,7 +82,7 @@ export type CreateCheckoutInput = {
 
 export type CreateCheckoutResult =
   | { ok: true; orderId: string; reference: string; totalPaise: number; expiresAt: Date }
-  | { ok: false; reason: "NOT_FOUND" | "MULTIPLE_SELLERS" | "OWN_LISTING" | "EMPTY" }
+  | { ok: false; reason: "NOT_FOUND" | "MULTIPLE_SELLERS" | "OWN_LISTING" | "EMPTY" | "SELLER_UNAVAILABLE" }
   | { ok: false; reason: "UNAVAILABLE"; unavailableListingIds: string[] }
   | { ok: false; reason: "PRICE_CHANGED"; subtotalPaise: number };
 
@@ -103,6 +103,7 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
     if (sellerIds.size > 1) return { ok: false, reason: "MULTIPLE_SELLERS" } as const;
     const seller = rows[0]!.seller;
     if (seller.userId === input.buyerId) return { ok: false, reason: "OWN_LISTING" } as const;
+    if (seller.status !== "APPROVED") return { ok: false, reason: "SELLER_UNAVAILABLE" } as const;
 
     // Lazy expiry: free items whose hold already ran out, so buyers never wait on the sweep job.
     const stale = await tx
