@@ -28,7 +28,6 @@ type Listing = {
   flaws: string | null;
   noFlawsConfirmed: boolean;
   pricePaise: number | null;
-  sizeReturnsAllowed: boolean;
 };
 
 type Form = Omit<Listing, "id" | "status" | "pricePaise"> & { price: string };
@@ -44,7 +43,6 @@ const toForm = (l: Listing): Form => ({
   flaws: l.flaws,
   noFlawsConfirmed: l.noFlawsConfirmed,
   price: l.pricePaise !== null ? String(l.pricePaise / 100) : "",
-  sizeReturnsAllowed: l.sizeReturnsAllowed,
 });
 
 const pricePaise = (price: string) => {
@@ -298,20 +296,13 @@ export function ListingEditor({
           </label>
         </Section>
 
-        <Section title="Price and returns">
+        <Section title="Price" hint="No size returns on YOLT, which is why accurate measurements matter. Buyers are refunded if an item isn't as described.">
           <Field label="Price">
             <div className="relative max-w-48">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">₹</span>
               <input className={`${input} pl-7`} inputMode="numeric" value={form.price} onChange={(e) => set("price", e.target.value)} />
             </div>
           </Field>
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" className="mt-1" checked={form.sizeReturnsAllowed} onChange={(e) => set("sizeReturnsAllowed", e.target.checked)} />
-            <span>
-              Allow size returns
-              <span className="block text-muted">Buyer can return within 48 hours if it doesn&apos;t fit (unworn, tags on). Returns for items not as described are always allowed.</span>
-            </span>
-          </label>
           <Field label="Description (optional)" hint="Fit notes, styling, story of the piece.">
             <textarea className={`${input} min-h-20`} value={form.description ?? ""} maxLength={2000} onChange={(e) => set("description", e.target.value)} />
           </Field>

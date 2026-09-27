@@ -31,6 +31,7 @@ import type { MediaStorage } from "./media/storage";
 import type { SandboxPaymentProvider } from "./payments/sandbox";
 import { addressRoutes } from "./routes/addresses";
 import { sellerRoutes } from "./routes/seller";
+import { trustRoutes } from "./routes/trust";
 import {
   DevShippingProvider,
   estimatedWeightGrams,
@@ -473,6 +474,7 @@ export function createApp(deps: AppDeps) {
 
   app.route("/seller", sellerRoutes({ db, media: deps.media, shipping: deps.shipping }));
   app.route("/addresses", addressRoutes({ db }));
+  app.route("/", trustRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------
   // Jobs

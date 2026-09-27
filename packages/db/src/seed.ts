@@ -21,13 +21,13 @@ const now = Date.now();
 type Item = Omit<typeof s.listings.$inferInsert, "sellerId" | "slug" | "title"> & { title: string };
 
 const inStock: Item[] = [
-  { title: "Vintage Levi's 501 jeans", category: "jeans", brandDeclared: "Levi's", tagSize: "W32 L32", measurements: { basis: "FLAT", waistCm: 41, lengthCm: 104, inseamCm: 80 }, condition: "GOOD", flaws: "Small bleach spot near left back pocket (photo 5).", pricePaise: 129900, sizeReturnsAllowed: true },
+  { title: "Vintage Levi's 501 jeans", category: "jeans", brandDeclared: "Levi's", tagSize: "W32 L32", measurements: { basis: "FLAT", waistCm: 41, lengthCm: 104, inseamCm: 80 }, condition: "GOOD", flaws: "Small bleach spot near left back pocket (photo 5).", pricePaise: 129900 },
   { title: "Oversized Carhartt workwear jacket, brown", category: "jackets", brandDeclared: "Carhartt", tagSize: "L", measurements: { basis: "FLAT", chestCm: 64, lengthCm: 74, sleeveCm: 62 }, condition: "LIKE_NEW", noFlawsConfirmed: true, pricePaise: 245000 },
-  { title: "Y2K graphic baby tee", category: "tops", tagSize: "S", measurements: { basis: "FLAT", chestCm: 42, lengthCm: 50 }, condition: "GOOD", noFlawsConfirmed: true, pricePaise: 54900, sizeReturnsAllowed: true },
+  { title: "Y2K graphic baby tee", category: "tops", tagSize: "S", measurements: { basis: "FLAT", chestCm: 42, lengthCm: 50 }, condition: "GOOD", noFlawsConfirmed: true, pricePaise: 54900 },
   { title: "Nike Air Force 1 '07", category: "sneakers", brandDeclared: "Nike", tagSize: "UK 8", measurements: { footLengthCm: 27 }, condition: "FAIR", flaws: "Creasing on toe box, yellowing on sole edge.", pricePaise: 320000 },
   { title: "Mini shoulder bag, beige faux leather", category: "bags", tagSize: "One size", measurements: {}, condition: "LIKE_NEW", noFlawsConfirmed: true, pricePaise: 79900 },
-  { title: "Striped rugby polo, navy and cream", category: "tops", brandDeclared: "Tommy Hilfiger", tagSize: "M", measurements: { basis: "FLAT", chestCm: 56, lengthCm: 72 }, condition: "GOOD", flaws: "Collar slightly faded.", pricePaise: 89900, sizeReturnsAllowed: true },
-  { title: "Corduroy wide-leg trousers, olive", category: "trousers", tagSize: "W30", measurements: { basis: "FLAT", waistCm: 38, lengthCm: 102, hipCm: 52 }, condition: "LIKE_NEW", noFlawsConfirmed: true, pricePaise: 99900, sizeReturnsAllowed: true },
+  { title: "Striped rugby polo, navy and cream", category: "tops", brandDeclared: "Tommy Hilfiger", tagSize: "M", measurements: { basis: "FLAT", chestCm: 56, lengthCm: 72 }, condition: "GOOD", flaws: "Collar slightly faded.", pricePaise: 89900 },
+  { title: "Corduroy wide-leg trousers, olive", category: "trousers", tagSize: "W30", measurements: { basis: "FLAT", waistCm: 38, lengthCm: 102, hipCm: 52 }, condition: "LIKE_NEW", noFlawsConfirmed: true, pricePaise: 99900 },
   { title: "Wool cable-knit sweater, cream", category: "knitwear", tagSize: "L", measurements: { basis: "FLAT", chestCm: 60, lengthCm: 68 }, condition: "GOOD", flaws: "One small pull on right sleeve (photo 4).", pricePaise: 114900 },
 ];
 
@@ -55,7 +55,7 @@ const slugify = (t: string) =>
   t.toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 await db.execute(sql`
-  TRUNCATE shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
+  TRUNCATE claims, shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
     order_items, holds, orders, saved_items, follows, listing_photos, listings, drops,
     addresses, sellers, users RESTART IDENTITY CASCADE`);
 
@@ -150,7 +150,6 @@ for (const [i, l] of sold.entries()) {
         measurements: l.measurements,
         condition: l.condition,
         flaws: l.flaws,
-        sizeReturnsAllowed: l.sizeReturnsAllowed,
         photoUrl: null,
       },
     })

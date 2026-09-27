@@ -14,7 +14,7 @@ export function testDb(max = 20) {
 
 export async function truncateAll(db: Db) {
   await db.execute(sql`
-    TRUNCATE shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
+    TRUNCATE claims, shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
       order_items, holds, orders, saved_items, follows, listing_photos, listings, drops,
       addresses, sellers, users RESTART IDENTITY CASCADE`);
 }
@@ -97,4 +97,20 @@ export async function paidOrder(db: Db, opts: { now?: Date } = {}) {
   });
   if (paid.status !== "CONFIRMED") throw new Error(`payment not confirmed: ${paid.status}`);
   return { seller, owner, listing, buyer, orderId: r.orderId };
+}
+
+/** A delivered order: paid, pickup booked, and a DELIVERED courier scan at `deliveredAt`. */
+export async function deliveredOrder(db: Db, opts: { deliveredAt?: Date } = {}) {
+  const { recordShipmentBooked, applyTrackingEvent } = await import("../src");
+  const p = await paidOrder(db);
+  const awb = `AWB${randomUUID().slice(0, 8)}`;
+  const booked = await recordShipmentBooked(db, {
+    sellerId: p.seller.id,
+    orderId: p.orderId,
+    actorUserId: p.owner.id,
+    booking: { provider: "dev", providerShipmentId: `s_${awb}`, awb, courierName: "Dev Express" },
+  });
+  if (!booked.ok) throw new Error(booked.reason);
+  await applyTrackingEvent(db, { provider: "dev", awb, providerEventId: `d_${awb}`, status: "DELIVERED", occurredAt: opts.deliveredAt ?? new Date() });
+  return { ...p, awb };
 }

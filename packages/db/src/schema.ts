@@ -129,7 +129,6 @@ export const sellers = pgTable("sellers", {
   shippingFeePaise: integer("shipping_fee_paise").notNull().default(0),
   freeShippingAbovePaise: integer("free_shipping_above_paise"),
   dispatchDays: smallint("dispatch_days").notNull().default(2),
-  sizeReturnsDefault: boolean("size_returns_default").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -199,7 +198,6 @@ export const listings = pgTable(
     status: listingStatus("status").notNull().default("DRAFT"),
     /** The hold that currently owns this item. Acts as the generation token for releases. */
     currentHoldId: uuid("current_hold_id"),
-    sizeReturnsAllowed: boolean("size_returns_allowed").notNull().default(false),
     allowOffers: boolean("allow_offers").notNull().default(false),
     publishedAt: timestamp("published_at", { withTimezone: true }),
     soldAt: timestamp("sold_at", { withTimezone: true }),
@@ -341,7 +339,6 @@ export type ListingSnapshot = {
   measurements: Measurements;
   condition: string;
   flaws: string | null;
-  sizeReturnsAllowed: boolean;
   photoUrl: string | null;
 };
 
@@ -471,6 +468,45 @@ export const shipmentEvents = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Buyer protection claims (decision D6: no size returns; protection when an item isn't as
+// described, arrives damaged, is the wrong item, or never arrives)
+// ---------------------------------------------------------------------------
+
+export const claimReason = pgEnum("claim_reason", ["NOT_AS_DESCRIBED", "DAMAGED", "WRONG_ITEM", "NOT_RECEIVED"]);
+export const claimStatus = pgEnum("claim_status", [
+  "OPEN", // waiting for the seller
+  "ESCALATED", // seller disputed it; YOLT decides
+  "REFUNDED", // resolved with a full refund
+  "REJECTED", // resolved without a refund (YOLT decision)
+  "WITHDRAWN", // buyer withdrew it
+]);
+
+export const claims = pgTable(
+  "claims",
+  {
+    id: id(),
+    orderId: uuid("order_id").notNull().references(() => orders.id),
+    buyerId: uuid("buyer_id").notNull().references(() => users.id),
+    sellerId: uuid("seller_id").notNull().references(() => sellers.id),
+    reason: claimReason("reason").notNull(),
+    description: text("description").notNull(),
+    photoUrls: jsonb("photo_urls").$type<string[]>().notNull().default([]),
+    status: claimStatus("status").notNull().default("OPEN"),
+    sellerResponse: text("seller_response"),
+    sellerRespondedAt: timestamp("seller_responded_at", { withTimezone: true }),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    refundId: uuid("refund_id").references(() => refunds.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    // One claim per order at a time; a resolved claim can't be reopened by a second one.
+    uniqueIndex("claims_one_per_order").on(t.orderId),
+    index("claims_seller_status_idx").on(t.sellerId, t.status),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Trust and retention
 // ---------------------------------------------------------------------------
 
@@ -486,6 +522,7 @@ export const reviews = pgTable(
     body: text("body"),
     photoUrls: jsonb("photo_urls").$type<string[]>().notNull().default([]),
     sellerReply: text("seller_reply"),
+    sellerRepliedAt: timestamp("seller_replied_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [

@@ -176,7 +176,6 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
           measurements: l.measurements,
           condition: l.condition,
           flaws: l.flaws,
-          sizeReturnsAllowed: l.sizeReturnsAllowed,
           photoUrl: coverByListing.get(l.id) ?? null,
         } satisfies ListingSnapshot,
       })),

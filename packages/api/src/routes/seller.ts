@@ -24,6 +24,7 @@ import { InvalidImageError, MAX_UPLOAD_BYTES, processPhoto } from "../media/proc
 import type { MediaStorage } from "../media/storage";
 import type { ShippingProvider } from "../shipping/provider";
 import { sellerOrderRoutes } from "./seller-orders";
+import { sellerTrustRoutes } from "./seller-trust";
 
 type Env = { Variables: AuthVariables & { seller: typeof sellers.$inferSelect; userId: string } };
 
@@ -64,7 +65,6 @@ const PatchSchema = z
     flaws: text(1000),
     noFlawsConfirmed: z.boolean().optional(),
     pricePaise: z.number().int().positive().max(MAX_PRICE_PAISE).nullable().optional(),
-    sizeReturnsAllowed: z.boolean().optional(),
     allowOffers: z.boolean().optional(),
   })
   .strict();
@@ -94,13 +94,14 @@ export function sellerRoutes(deps: { db: Db; media: MediaStorage; shipping: Ship
   });
 
   app.route("/", sellerOrderRoutes({ db, shipping: deps.shipping }));
+  app.route("/", sellerTrustRoutes({ db }));
 
   app.openapi(
     createRoute({ method: "get", path: "/me", summary: "The signed-in seller's store", responses: { 200: Any } }),
     (c) => {
       const s = c.get("seller");
       return c.json(
-        { id: s.id, handle: s.handle, displayName: s.displayName, kycStatus: s.kycStatus, sizeReturnsDefault: s.sizeReturnsDefault },
+        { id: s.id, handle: s.handle, displayName: s.displayName, kycStatus: s.kycStatus },
         200,
       );
     },

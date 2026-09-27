@@ -16,7 +16,7 @@ The buyer, seller and admin flows for YOLT, with the state machines behind them.
 | Phase | Goal | Scope |
 |---|---|---|
 | **P0 — pilot** | One seller lists, one buyer finds, pays, receives, can return | Guest browse; OTP login; seller application + KYC; store setup; listing editor; inventory; home, search, filters; product page (PDP); save and follow; bag and prepaid checkout with holds; orders with Shiprocket; not-as-described returns; verified reviews on store; FCFS scheduled drops; admin basics; PWA install and web push |
-| **P1 — engagement** | Buyers come back without the seller's Instagram | Structured offers; size returns; following feed; seller photo posts with tagged listings; buyer fit pics (verified); likes and saves on posts; waiting room; Instagram post import; saved searches |
+| **P1 — engagement** | Buyers come back without the seller's Instagram | Structured offers; following feed; seller photo posts with tagged listings; buyer fit pics (verified); likes and saves on posts; waiting room; Instagram post import; saved searches |
 | **P2 — scale** | Video, native app | Reels (video); comments; For You feed ranking; Expo app; authentication partner for sneakers/luxury |
 | **Later — not planned** | Only if sellers ask for them | Raffles (free and paid), live auctions |
 
@@ -62,7 +62,7 @@ Open link or app → Home (no login needed)
 
 Sold-out pages stay live, so share links from Instagram and search engines keep working. They never show a buy button.
 
-**Page contents, top to bottom:** photos (front, back, label, every flaw) · title, price, condition grade + plain-language description · tag size + measured dimensions (flat vs around stated) · flaws with linked photos · brand as *declared by seller*; for sneakers/luxury a "Seller-declared, not authenticated by YOLT" note and proof-of-purchase badge if uploaded · seller card (rating, dispatch time, "verified PAN" badge wording: "Identity verified", never "Authentic") · delivery estimate by pincode + exact shipping cost · return summary (size returns allowed or not for this item) · more from this store · similar items.
+**Page contents, top to bottom:** photos (front, back, label, every flaw) · title, price, condition grade + plain-language description · tag size + measured dimensions (flat vs around stated) · flaws with linked photos · brand as *declared by seller*; for sneakers/luxury a "Seller-declared, not authenticated by YOLT" note and proof-of-purchase badge if uploaded · seller card (rating, dispatch time, "verified PAN" badge wording: "Identity verified", never "Authentic") · delivery estimate by pincode + exact shipping cost · protection line ("No size returns: check the measurements. Full refund if it isn't as described, arrives damaged, or never arrives.") · more from this store · similar items.
 
 ### B-F3 Save and follow (P0)
 
@@ -159,28 +159,27 @@ Profile → Orders → Order detail: timeline (Paid → Packed → Shipped → D
 - Updates by WhatsApp and push. Dispatch deadline shown ("Seller ships by 29 Sep").
 - Seller misses dispatch deadline + 48 h grace → buyer may cancel for a full refund in one tap.
 
-### B-F9 Returns (P0: not-as-described; P1: size)
+### B-F9 Buyer protection (P0; no size returns, decision D6)
 
 ```
-Order (delivered) → Help → Return or report a problem
-  → Reason
-      ├ Not as described / damage not disclosed / wrong item → photos required → seller responds in 48 h → accept or admin decides
-      ├ Didn't arrive → tracking checked → admin case
-      └ Size doesn't fit (P1, only if item was marked "size returns allowed") → must be within 48 h of delivery, unworn, tags/YOLT seal intact
-  → Approved → reverse pickup booked through Shiprocket
-  → Seller receives, inspects within 48 h → refund released
-      └ Seller disputes condition → photos from both → admin decides
-  → Refund to original payment method; item back to AVAILABLE only after the seller confirms inspection
+Order page → "Report a problem" (within 48 h of delivery; or 10 days after shipping if it never arrived)
+  → Reason: not as described · arrived damaged · wrong item · never arrived
+  → Description + photos (required except for "never arrived"; location data stripped on upload)
+  → Seller sees it on the order page:
+      ├ Accept → full refund (item price + shipping) immediately
+      └ Dispute → must explain their side → escalated to YOLT, who decides
+  → Buyer can withdraw while it's unresolved (e.g. the parcel turned up)
+  → The order doesn't close while a claim is open
 ```
 
-- Who pays return shipping: not-as-described → seller; size return → buyer (deducted from refund). Platform may cover it in the pilot to test conversion.
-- Size returns can be switched off per listing (e.g. altered or fragile vintage); the PDP says so before purchase.
-- High-value sneakers/luxury: seller attaches a numbered YOLT tamper tag before shipping and photographs it; returns without the same intact tag are refused. (P2 — needs physical tags.)
+- One claim per order. Photos must be uploaded through YOLT by that buyer (no outside links).
+- Later: reverse pickup for high-value items before refunding, and an admin screen for escalated claims (today they raise an outbox event).
+- High-value sneakers/luxury: numbered YOLT tamper tag, photographed before shipping (P2 — needs physical tags).
 
 ### B-F10 Reviews on the store page (P0)
 
 ```
-Delivered + return window closed (or 7 days) → prompt: rate item accuracy, packing, dispatch speed + optional text + optional photos
+Delivered → order page shows a review form per item: overall stars, "matched the listing" stars, optional text and up to 3 photos
   → Review appears on the store page with a snapshot of the item bought (thumbnail, title, size, price)
 ```
 
@@ -225,7 +224,7 @@ Profile → Sell on YOLT → choose track
 
 ### S-F2 Store setup (P0)
 
-Logo, banner, bio, shipping fee rule, dispatch time (1–3 days), default return settings (size returns on or off), pickup address → preview store → publish.
+Logo, banner, bio, shipping fee rule, dispatch time (1–3 days), pickup address → preview store → publish.
 
 ### S-F3 Create a listing (P0; Instagram import P1)
 
@@ -234,7 +233,7 @@ Listings → New
   → Photos (camera or gallery; minimum front, back, label; flaws prompted)
   → Category → brand (declared) → tag size → measurements (fields depend on category; inches/cm; flat or around)
   → Condition grade + description of flaws (required field, "No flaws" must be ticked explicitly)
-  → Price → allow offers? (P1) → size returns allowed? → sneakers/luxury: proof-of-purchase upload (optional, shown as badge)
+  → Price → allow offers? (P1) → sneakers/luxury: proof-of-purchase upload (optional, shown as badge)
   → Save draft (autosave throughout) → Publish now / Add to drop
 ```
 
