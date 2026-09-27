@@ -17,6 +17,7 @@ import {
   parseFirstTouch,
   releaseCheckout,
   revokeSession,
+  listingCardsByIds,
   searchListings,
   startPayment,
   type AuthSecrets,
@@ -32,6 +33,7 @@ import type { SandboxPaymentProvider } from "./payments/sandbox";
 import { addressRoutes } from "./routes/addresses";
 import { adminRoutes } from "./routes/admin";
 import { sellerRoutes } from "./routes/seller";
+import { bagRoutes, followRoutes, saveRoutes } from "./routes/shopping";
 import { trustRoutes } from "./routes/trust";
 import {
   DevShippingProvider,
@@ -393,6 +395,15 @@ export function createApp(deps: AppDeps) {
   // Search (public). Same URL parameters as the /search page.
   // -------------------------------------------------------------------------
 
+  /** Public cards for a guest's device-stored saves and bag. Drafts and suspended stores are hidden. */
+  app.get("/listings/cards", async (c) => {
+    const ids = (c.req.query("ids") ?? "")
+      .split(",")
+      .filter((id) => /^[0-9a-f-]{36}$/i.test(id))
+      .slice(0, 60);
+    return c.json(await listingCardsByIds(db, ids, { approvedOnly: true }));
+  });
+
   app.get("/search", async (c) => {
     const params = parseSearchParams(new URL(c.req.url).searchParams);
     c.header("Cache-Control", "public, max-age=30");
@@ -481,6 +492,9 @@ export function createApp(deps: AppDeps) {
   app.route("/seller", sellerRoutes({ db, media: deps.media, shipping: deps.shipping }));
   app.route("/addresses", addressRoutes({ db }));
   app.route("/admin", adminRoutes({ db }));
+  app.route("/saves", saveRoutes({ db }));
+  app.route("/follows", followRoutes({ db }));
+  app.route("/bag", bagRoutes({ db }));
   app.route("/", trustRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------

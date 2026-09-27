@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CONDITION, formatIST, formatINR } from "@/lib/format";
 import type { ListingCard } from "@/lib/server/queries";
 import { GarmentImage } from "./garment-image";
+import { SaveButton } from "./shop-buttons";
 
 export function ProductCard({ item, showSeller = false }: { item: ListingCard; showSeller?: boolean }) {
   const sold = item.status === "SOLD" || item.status === "SOLD_ELSEWHERE";
@@ -13,6 +14,7 @@ export function ProductCard({ item, showSeller = false }: { item: ListingCard; s
       <div className={`relative overflow-hidden rounded-lg ${sold ? "opacity-60" : ""}`}>
         <GarmentImage src={item.coverUrl} alt={item.title} category={item.category} />
         {sold && <Badge>Sold out</Badge>}
+        <SaveButton listingId={item.id} className="absolute right-2 top-2" />
         {reserved && <Badge>Reserved</Badge>}
         {comingSoon && <Badge>{item.dropStartsAt ? `Drops ${formatIST(item.dropStartsAt)}` : "Coming soon"}</Badge>}
       </div>

@@ -213,3 +213,24 @@ describe("staging mode", () => {
     expect(await sandbox.json()).toEqual({ error: "NOT_FOUND" });
   });
 });
+
+describe("saves, follows and bag over HTTP", () => {
+  it("guest items merge at sign-in; bag groups by store; routes need sign-in", async () => {
+    const { seller } = await createSeller(db);
+    const [a, b] = [await createListing(db, seller.id), await createListing(db, seller.id)];
+    const buyer = await createUser(db);
+    expect((await app.request("/api/bag")).status).toBe(401);
+    expect(await (await post("/api/saves/merge", buyer.id, { listingIds: [a.id, b.id, "junk"] })).json()).toEqual({ merged: 2 });
+    expect(await (await post("/api/bag/merge", buyer.id, { listingIds: [a.id] })).json()).toEqual({ merged: 1 });
+    expect((await post("/api/bag", buyer.id, { listingId: b.id })).status).toBe(200);
+    const bag = (await (await app.request("/api/bag", { headers: await as(buyer.id) })).json()) as { items: unknown[] }[];
+    expect(bag).toHaveLength(1);
+    expect(bag[0]!.items).toHaveLength(2);
+    expect((await post("/api/follows", buyer.id, { sellerId: seller.id })).status).toBe(200);
+  });
+
+  it("the new prefixes don't leak sign-in onto public routes", async () => {
+    expect((await app.request("/api/search")).status).toBe(200);
+    expect((await app.request("/api/cron/expire-holds", { headers: { authorization: "Bearer cron" } })).status).toBe(200);
+  });
+});
