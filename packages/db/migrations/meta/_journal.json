@@ -57,6 +57,13 @@
       "when": 1790465715557,
       "tag": "0007_claims_drop_size_returns",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790496359499,
+      "tag": "0008_admins",
+      "breakpoints": true
     }
   ]
 }

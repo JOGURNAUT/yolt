@@ -30,6 +30,7 @@ import { WebhookVerificationError, type PaymentProvider } from "./payments/provi
 import type { MediaStorage } from "./media/storage";
 import type { SandboxPaymentProvider } from "./payments/sandbox";
 import { addressRoutes } from "./routes/addresses";
+import { adminRoutes } from "./routes/admin";
 import { sellerRoutes } from "./routes/seller";
 import { trustRoutes } from "./routes/trust";
 import {
@@ -132,6 +133,7 @@ export function createApp(deps: AppDeps) {
       }
       if (r.reason === "UNAVAILABLE") return c.json({ error: r.reason, details: { unavailableListingIds: r.unavailableListingIds } }, 409);
       if (r.reason === "PRICE_CHANGED") return c.json({ error: r.reason, details: { subtotalPaise: r.subtotalPaise } }, 409);
+      if (r.reason === "SELLER_UNAVAILABLE") return c.json({ error: r.reason }, 409);
       return c.json({ error: r.reason }, 400);
     },
   );
@@ -474,6 +476,7 @@ export function createApp(deps: AppDeps) {
 
   app.route("/seller", sellerRoutes({ db, media: deps.media, shipping: deps.shipping }));
   app.route("/addresses", addressRoutes({ db }));
+  app.route("/admin", adminRoutes({ db }));
   app.route("/", trustRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------

@@ -15,7 +15,8 @@
     "db:generate": "pnpm --filter @yolt/db generate",
     "db:migrate": "pnpm --filter @yolt/db migrate",
     "db:seed": "pnpm --filter @yolt/db seed",
-    "media:setup": "pnpm --filter @yolt/api media:setup"
+    "media:setup": "pnpm --filter @yolt/api media:setup",
+    "admin:grant": "pnpm --filter @yolt/db admin:grant"
   },
   "devDependencies": {
     "turbo": "^2.11.4",
