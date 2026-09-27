@@ -10,26 +10,31 @@ import {
   UnconfiguredPaymentProvider,
   UnconfiguredShippingProvider,
 } from "@yolt/api";
+import { envFlags } from "@/lib/env";
 import { db } from "./db";
 
-const isProduction = process.env.NODE_ENV === "production";
+const flags = envFlags();
 
-// Development conveniences (sandbox payments, visible OTP codes, one-click login) exist only
-// outside production. Production refuses payments and OTPs until Cashfree and MSG91 are configured.
-const sandbox = isProduction ? undefined : new SandboxPaymentProvider(process.env.SANDBOX_WEBHOOK_SECRET ?? "dev-sandbox-secret");
+// Sandbox payments, the dev courier and on-screen login codes run in development and staging.
+// Production refuses payments, codes and courier bookings until Cashfree, MSG91 and Shiprocket
+// adapters are configured, instead of faking them.
+const sandbox = flags.sandboxTools ? new SandboxPaymentProvider(process.env.SANDBOX_WEBHOOK_SECRET ?? "dev-sandbox-secret") : undefined;
 
-// AUTH_PEPPER must be set in production. Without it, a random per-process value keeps codes
+// AUTH_PEPPER must be set outside development. Without it, a random per-process value keeps codes
 // unguessable, but they won't verify across instances, so login is effectively disabled.
-const pepper = process.env.AUTH_PEPPER ?? (isProduction ? randomBytes(32).toString("hex") : "dev-auth-pepper");
+const pepper = process.env.AUTH_PEPPER ?? (flags.env === "development" ? "dev-auth-pepper" : randomBytes(32).toString("hex"));
 
 export const api = createApp({
   db,
   payments: sandbox ?? new UnconfiguredPaymentProvider(),
   media: mediaStorageFromEnv(process.env),
-  otp: isProduction ? new UnconfiguredOtpSender() : new DevOtpSender(),
-  shipping: isProduction ? new UnconfiguredShippingProvider() : new DevShippingProvider(),
+  otp: flags.exposeOtpCodes ? new DevOtpSender() : new UnconfiguredOtpSender(),
+  shipping: flags.sandboxTools ? new DevShippingProvider(process.env.SANDBOX_WEBHOOK_SECRET ?? "dev-shipping-secret") : new UnconfiguredShippingProvider(),
   authSecrets: { pepper },
   sandbox,
-  allowDevAuth: !isProduction,
+  devLogin: flags.devLogin,
+  sandboxTools: flags.sandboxTools,
+  exposeOtpCodes: flags.exposeOtpCodes,
+  secureCookies: flags.secureCookies,
   cronSecret: process.env.CRON_SECRET,
 });

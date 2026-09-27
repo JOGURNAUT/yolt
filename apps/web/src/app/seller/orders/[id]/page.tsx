@@ -7,6 +7,7 @@ import { formatIndianMobile } from "@yolt/shared";
 import { OrderTimeline, ORDER_STATUS_LABELS } from "@/components/order-timeline";
 import { ClaimResponse } from "@/components/seller/claim-response";
 import { SellerOrderActions } from "@/components/seller/seller-order-actions";
+import { envFlags } from "@/lib/env";
 import { formatINR, formatIST } from "@/lib/format";
 import { db } from "@/lib/server/db";
 import { requireSeller } from "@/lib/server/session";
@@ -96,7 +97,7 @@ export default async function SellerOrderPage({ params }: PageProps<"/seller/ord
         orderId={order.id}
         status={order.status}
         shipment={shipment ? { awb: shipment.awb, courierName: shipment.courierName, labelUrl: shipment.labelUrl, status: shipment.status } : null}
-        devShipping={process.env.NODE_ENV !== "production"}
+        devShipping={envFlags().sandboxTools}
       />
 
       {(shipment || order.confirmedAt) && (
