@@ -47,7 +47,7 @@ describe("phone login over HTTP", () => {
     expect(raw).toMatch(/HttpOnly/i);
     expect(raw).toMatch(/SameSite=Lax/i);
 
-    const { app: prodLike } = makeApp(db, { allowDevAuth: false, secureCookies: true });
+    const { app: prodLike } = makeApp(db, { devLogin: false, sandboxTools: false, exposeOtpCodes: false, secureCookies: true });
     // Codes are never returned without dev mode, so read one via the dev app, then verify on the prod-like app.
     await truncateAll(db);
     const sent = await post("/api/auth/otp", { phone: PHONE });
@@ -61,7 +61,7 @@ describe("phone login over HTTP", () => {
   });
 
   it("never returns the code when dev mode is off", async () => {
-    const { app: prod } = makeApp(db, { allowDevAuth: false, sandbox: undefined });
+    const { app: prod } = makeApp(db, { devLogin: false, sandboxTools: false, exposeOtpCodes: false, sandbox: undefined });
     const res = await prod.request("/api/auth/otp", {
       method: "POST",
       headers: { "content-type": "application/json" },

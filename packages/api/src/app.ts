@@ -50,9 +50,13 @@ export type AppDeps = {
   sandbox?: SandboxPaymentProvider;
   otp: OtpSender;
   authSecrets: AuthSecrets;
-  /** Development conveniences: one-click login as any user, visible OTP codes. Must be false in production. */
-  allowDevAuth: boolean;
-  /** Mark cookies Secure. Defaults to true unless dev auth is on. */
+  /** Local development only: one-click login as any user (/api/dev/login). */
+  devLogin: boolean;
+  /** Development and staging: sandbox payment completion, dev courier scans, printable dev labels. */
+  sandboxTools: boolean;
+  /** Development and staging (behind the staging password): return login codes to the client. */
+  exposeOtpCodes: boolean;
+  /** Mark cookies Secure. Defaults to true. */
   secureCookies?: boolean;
   /** Extra origins allowed to make state-changing requests (e.g. a future app domain). */
   allowedOrigins?: string[];
@@ -75,14 +79,14 @@ export function createApp(deps: AppDeps) {
     },
   }).basePath("/api");
 
-  const secureCookies = deps.secureCookies ?? !deps.allowDevAuth;
+  const secureCookies = deps.secureCookies ?? true;
   app.use("*", sameOriginMiddleware(deps.allowedOrigins ?? []));
   app.use("*", sessionMiddleware(db));
   const requireUser = (c: { get: (key: "session") => AuthVariables["session"] }) => c.get("session");
 
   app.route(
     "/auth",
-    authRoutes({ db, secrets: deps.authSecrets, otp: deps.otp, secureCookies, exposeDevCodes: deps.allowDevAuth }),
+    authRoutes({ db, secrets: deps.authSecrets, otp: deps.otp, secureCookies, exposeDevCodes: deps.exposeOtpCodes }),
   );
 
   // -------------------------------------------------------------------------
@@ -501,9 +505,7 @@ export function createApp(deps: AppDeps) {
   // Development only
   // -------------------------------------------------------------------------
 
-  if (deps.sandbox && deps.allowDevAuth) {
-    const sandbox = deps.sandbox;
-
+  if (deps.devLogin) {
     app.post("/dev/login", async (c) => {
       const { userId } = await c.req.json<{ userId: string }>();
       const [user] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId));
@@ -514,7 +516,9 @@ export function createApp(deps: AppDeps) {
       setSessionCookie(c, s.sessionToken, s.sessionExpiresAt, secureCookies);
       return c.json({ ok: true });
     });
+  }
 
+  if (deps.sandboxTools) {
     const devShipping = deps.shipping instanceof DevShippingProvider ? deps.shipping : null;
     if (devShipping) {
       /** Pretend to be the courier: send the next signed tracking scan through the real webhook path. */
@@ -551,8 +555,9 @@ export function createApp(deps: AppDeps) {
       });
     }
 
+    const sandbox = deps.sandbox;
     /** Pretend to be the gateway: send a signed webhook for an attempt through the real webhook path. */
-    app.post("/dev/sandbox/complete", async (c) => {
+    if (sandbox) app.post("/dev/sandbox/complete", async (c) => {
       const { providerOrderId, outcome } = await c.req.json<{ providerOrderId: string; outcome: "success" | "failure" }>();
       const [attempt] = await db
         .select()

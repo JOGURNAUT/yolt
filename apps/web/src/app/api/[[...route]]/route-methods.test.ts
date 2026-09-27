@@ -14,7 +14,9 @@ describe("API mount", () => {
       otp: new DevOtpSender(),
       authSecrets: { pepper: "x" },
       shipping: new DevShippingProvider(),
-      allowDevAuth: false,
+      devLogin: false,
+      sandboxTools: false,
+      exposeOtpCodes: false,
     });
     const methods = new Set(app.routes.map((r) => r.method).filter((m) => m !== "ALL"));
     const source = readFileSync(new URL("./route.ts", import.meta.url), "utf8");
