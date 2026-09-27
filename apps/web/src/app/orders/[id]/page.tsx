@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
-import { getBuyerOrder, lateCancelAvailableAt } from "@yolt/core";
+import { claimWindow, getBuyerOrder, getClaimForOrder, getReviewableItems, lateCancelAvailableAt } from "@yolt/core";
 import { LateCancelButton } from "@/components/late-cancel-button";
 import { OrderTimeline, ORDER_STATUS_LABELS } from "@/components/order-timeline";
+import { ClaimSection, ReviewForm } from "@/components/order-trust";
 import { formatINR, formatIST } from "@/lib/format";
 import { db } from "@/lib/server/db";
 import { getCurrentUser } from "@/lib/server/session";
@@ -20,6 +21,8 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
   if (!data || !data.order.confirmedAt) notFound();
   const { order, items, shipment, events } = data;
   const cancelAt = lateCancelAvailableAt(order);
+  const [claim, reviewable] = await Promise.all([getClaimForOrder(db, order.id), getReviewableItems(db, { buyerId: user.userId, orderId: order.id })]);
+  const claimWin = claimWindow(order, null);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -76,6 +79,18 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
       </section>
 
       {cancelAt && <LateCancelButton orderId={order.id} availableAt={cancelAt.toISOString()} />}
+
+      <ClaimSection
+        orderId={order.id}
+        claim={claim && { id: claim.id, status: claim.status, reason: claim.reason, description: claim.description, sellerResponse: claim.sellerResponse }}
+        windowOpen={claimWin.open}
+        windowClosesAt={claimWin.open && claimWin.closesAt ? claimWin.closesAt.toISOString() : null}
+        deliveredMode={order.status === "DELIVERED"}
+      />
+
+      {reviewable.map((item) => (
+        <ReviewForm key={item.id} orderItemId={item.id} title={item.snapshot.title} />
+      ))}
     </div>
   );
 }

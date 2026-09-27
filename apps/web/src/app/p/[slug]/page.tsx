@@ -153,9 +153,8 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
               {seller.freeShippingAbovePaise !== null && `, free above ${formatINR(seller.freeShippingAbovePaise)}`}.
             </p>
             <p className="mt-1 text-muted">
-              {l.sizeReturnsAllowed
-                ? "Size returns within 48 hours of delivery (unworn, tags on). Returns if not as described."
-                : "Returns only if the item isn't as described."}
+              No size returns: check the measurements. Full refund if it isn&apos;t as described, arrives damaged, or never
+              arrives.
             </p>
           </section>
 

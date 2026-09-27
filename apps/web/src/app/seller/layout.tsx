@@ -17,6 +17,9 @@ export default async function SellerLayout({ children }: LayoutProps<"/seller">)
           <Link href="/seller/listings" className="hover:underline">
             Listings
           </Link>
+          <Link href="/seller/reviews" className="hover:underline">
+            Reviews
+          </Link>
           <Link href={`/s/${current.seller.handle}`} className="hover:underline">
             View store
           </Link>
