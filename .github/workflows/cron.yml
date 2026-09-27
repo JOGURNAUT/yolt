@@ -1,0 +1,19 @@
+name: Scheduled jobs
+
+# Vercel's free plan only runs crons daily, so staging's jobs run from here.
+# Inactive until the repository has a CRON_BASE_URL variable and a CRON_SECRET secret.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    if: ${{ vars.CRON_BASE_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Expire reservations
+        run: curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.CRON_BASE_URL }}/api/cron/expire-holds"
+      - name: Close delivered orders
+        run: curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.CRON_BASE_URL }}/api/cron/close-delivered"

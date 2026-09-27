@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { DevLogin } from "@/components/dev-login";
+import { envFlags } from "@/lib/env";
 import { getDemoUsers } from "@/lib/server/queries";
 
 export default async function DevPage({ searchParams }: PageProps<"/dev">) {
-  if (process.env.NODE_ENV === "production") notFound();
+  if (!envFlags().devLogin) notFound();
   const users = await getDemoUsers();
   const next = (await searchParams).next;
   return (

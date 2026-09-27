@@ -98,7 +98,7 @@ describe("buy flow over HTTP", () => {
   });
 
   it("dev routes don't exist when dev auth is off", async () => {
-    const { app: prod } = makeApp(db, { allowDevAuth: false, sandbox: undefined });
+    const { app: prod } = makeApp(db, { devLogin: false, sandboxTools: false, exposeOtpCodes: false, sandbox: undefined });
     const r = await prod.request("/api/dev/login", { method: "POST", body: "{}" });
     expect(r.status).toBe(404);
   });
@@ -199,5 +199,17 @@ describe("search API", () => {
     expect(body.hits.map((h) => h.title)).toEqual(["Vintage Levi's 501"]);
     expect(body.stockCounts["in-stock"]).toBe(1);
     expect(body.mode).toBe("exact");
+  });
+});
+
+describe("staging mode", () => {
+  it("keeps sandbox tools for demos but never one-click login", async () => {
+    const { app: staging } = makeApp(db, { devLogin: false, sandboxTools: true, exposeOtpCodes: true });
+    const u = await createUser(db);
+    const login = await staging.request("/api/dev/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ userId: u.id }) });
+    expect(login.status).toBe(404);
+    const sandbox = await staging.request("/api/dev/sandbox/complete", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ providerOrderId: "none", outcome: "success" }) });
+    expect(sandbox.status).toBe(404); // route exists, attempt doesn't
+    expect(await sandbox.json()).toEqual({ error: "NOT_FOUND" });
   });
 });

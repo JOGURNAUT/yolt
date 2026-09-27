@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Link from "next/link";
 import { AccountMenu } from "@/components/account-menu";
+import { envFlags } from "@/lib/env";
+import { LEGAL_PAGES } from "@/lib/legal";
 import { getAdminRole } from "@yolt/core";
 import { db } from "@/lib/server/db";
 import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
@@ -37,7 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               />
             </form>
             <div className="flex items-center gap-3">
-              {process.env.NODE_ENV !== "production" && (
+              {envFlags().devLogin && (
                 <Link href="/dev" className="rounded-full border border-dashed border-line px-3 py-1 text-xs text-muted">
                   Dev: switch user
                 </Link>
@@ -52,6 +54,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-4">{children}</main>
+        <footer className="border-t border-line">
+          <div className="mx-auto flex max-w-6xl flex-wrap gap-x-5 gap-y-2 px-4 py-6 text-xs text-muted">
+            <span>Thrift without the DMs.</span>
+            {LEGAL_PAGES.map((p) => (
+              <Link key={p.href} href={p.href} className="hover:underline">
+                {p.label}
+              </Link>
+            ))}
+          </div>
+        </footer>
       </body>
     </html>
   );
