@@ -134,6 +134,50 @@ export type SearchHit = {
   coverUrl: string | null;
 };
 
+/** A card row as selected by hitColumns; drafts are excluded, so the nullable fields are set. */
+type HitRow = Omit<SearchHit, "title" | "category" | "condition" | "pricePaise"> & {
+  title: string | null;
+  category: string | null;
+  condition: SearchHit["condition"] | null;
+  pricePaise: number | null;
+};
+
+function toHit(row: HitRow): SearchHit {
+  if (row.title === null || row.category === null || row.condition === null || row.pricePaise === null) {
+    throw new Error(`incomplete listing ${row.id} in results`);
+  }
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    tagSize: row.tagSize,
+    condition: row.condition,
+    pricePaise: row.pricePaise,
+    status: row.status,
+    category: row.category,
+    sellerName: row.sellerName,
+    sellerHandle: row.sellerHandle,
+    dropStartsAt: row.dropStartsAt,
+    coverUrl: row.coverUrl,
+  };
+}
+
+/**
+ * Listing cards for specific ids (saved items, bag), excluding drafts. Order follows `ids`.
+ * `approvedOnly` also hides suspended stores (for public lookups).
+ */
+export async function listingCardsByIds(db: Db, ids: string[], opts: { approvedOnly?: boolean } = {}): Promise<SearchHit[]> {
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select(hitColumns)
+    .from(listings)
+    .innerJoin(sellers, eq(sellers.id, listings.sellerId))
+    .leftJoin(drops, eq(drops.id, listings.dropId))
+    .where(and(inArray(listings.id, ids), sql`${listings.status} <> 'DRAFT'`, opts.approvedOnly ? eq(sellers.status, "APPROVED") : undefined));
+  const byId = new Map(rows.map((r) => [r.id, toHit(r)]));
+  return ids.map((id) => byId.get(id)).filter((h): h is SearchHit => h !== undefined);
+}
+
 async function runQuery(db: Db, params: SearchParams, mode: Mode) {
   const rows = await db
     .select(hitColumns)
@@ -145,13 +189,7 @@ async function runQuery(db: Db, params: SearchParams, mode: Mode) {
     .limit(PAGE_SIZE)
     .offset((params.page - 1) * PAGE_SIZE);
   const total = rows[0]?.total ?? 0;
-  const hits: SearchHit[] = rows.map(({ total: _total, ...r }) => {
-    // Only non-draft statuses are searched, and the database guarantees those are complete.
-    if (r.title === null || r.category === null || r.condition === null || r.pricePaise === null) {
-      throw new Error(`incomplete listing ${r.id} in search results`);
-    }
-    return { ...r, title: r.title, category: r.category, condition: r.condition, pricePaise: r.pricePaise };
-  });
+  const hits = rows.map(toHit);
   return { hits, total };
 }
 
