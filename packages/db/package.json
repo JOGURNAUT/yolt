@@ -11,7 +11,8 @@
     "generate": "drizzle-kit generate",
     "migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed.ts",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "admin:grant": "tsx src/grant-admin.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.3",

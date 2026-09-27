@@ -40,6 +40,19 @@ export const users = pgTable("users", {
   createdAt: createdAt(),
 });
 
+/**
+ * YOLT staff. Granted only from the command line (`pnpm admin:grant`), never through the app,
+ * so no account can make itself an admin.
+ */
+export const adminRole = pgEnum("admin_role", ["ADMIN", "SUPPORT"]);
+
+export const admins = pgTable("admins", {
+  userId: uuid("user_id").primaryKey().references(() => users.id),
+  role: adminRole("role").notNull(),
+  grantedBy: text("granted_by").notNull(),
+  createdAt: createdAt(),
+});
+
 export const otpChannel = pgEnum("otp_channel", ["WHATSAPP", "SMS"]);
 
 /** One-time login codes. Only an HMAC of the code is stored. */
