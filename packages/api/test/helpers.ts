@@ -12,7 +12,10 @@ export function makeApp(db: Db, overrides: Partial<AppDeps> = {}) {
     otp: new DevOtpSender(),
     authSecrets: { pepper: "test-pepper" },
     shipping: new DevShippingProvider(),
-    allowDevAuth: true,
+    devLogin: true,
+    sandboxTools: true,
+    exposeOtpCodes: true,
+    secureCookies: false,
     cronSecret: "cron",
     ...overrides,
   };
