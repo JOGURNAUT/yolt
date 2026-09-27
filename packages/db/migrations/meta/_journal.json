@@ -50,6 +50,13 @@
       "when": 1790464179877,
       "tag": "0006_search_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790465715557,
+      "tag": "0007_claims_drop_size_returns",
+      "breakpoints": true
     }
   ]
 }
