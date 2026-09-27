@@ -12,8 +12,13 @@ jobs:
     if: ${{ vars.CRON_BASE_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      BASE_URL: ${{ vars.CRON_BASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - name: Expire reservations
-        run: curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.CRON_BASE_URL }}/api/cron/expire-holds"
+        run: |
+          curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/expire-holds"
       - name: Close delivered orders
-        run: curl -fsS -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ vars.CRON_BASE_URL }}/api/cron/close-delivered"
+        run: |
+          curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/close-delivered"
