@@ -162,9 +162,27 @@ export const drops = pgTable(
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     status: dropStatus("status").notNull().default("DRAFT"),
     maxHoldsPerBuyer: smallint("max_holds_per_buyer").notNull().default(2),
+    /** When the "starting soon" reminder was queued, so it's sent once. */
+    remindersQueuedAt: timestamp("reminders_queued_at", { withTimezone: true }),
+    openedAt: timestamp("opened_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index("drops_seller_idx").on(t.sellerId), index("drops_starts_idx").on(t.startsAt)],
+  (t) => [
+    index("drops_seller_idx").on(t.sellerId),
+    index("drops_starts_idx").on(t.startsAt),
+    check("drops_max_holds_range", sql`${t.maxHoldsPerBuyer} BETWEEN 1 AND 5`),
+  ],
+);
+
+/** "Remind me" for a drop. Delivery (WhatsApp/push) reads these when the drop is about to open. */
+export const dropReminders = pgTable(
+  "drop_reminders",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id),
+    dropId: uuid("drop_id").notNull().references(() => drops.id),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.dropId] }), index("drop_reminders_drop_idx").on(t.dropId)],
 );
 
 // ---------------------------------------------------------------------------
@@ -220,6 +238,7 @@ export const listings = pgTable(
   (t) => [
     index("listings_seller_status_idx").on(t.sellerId, t.status),
     index("listings_status_published_idx").on(t.status, t.publishedAt),
+    index("listings_drop_idx").on(t.dropId),
     check("listings_price_positive", sql`${t.pricePaise} > 0`),
     // Drafts may be half-filled; anything past DRAFT must have the essentials.
     check(
