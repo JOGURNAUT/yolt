@@ -5,6 +5,9 @@ import {
   applyTrackingEvent,
   cancelOrderForLateDispatch,
   closeDeliveredOrders,
+  endFinishedDrops,
+  openDueDrops,
+  queueDropReminders,
   createCheckout,
   createSession,
   getBuyerOrder,
@@ -34,6 +37,7 @@ import { addressRoutes } from "./routes/addresses";
 import { adminRoutes } from "./routes/admin";
 import { sellerRoutes } from "./routes/seller";
 import { bagRoutes, followRoutes, saveRoutes } from "./routes/shopping";
+import { dropRoutes } from "./routes/drops";
 import { trustRoutes } from "./routes/trust";
 import {
   DevShippingProvider,
@@ -140,6 +144,7 @@ export function createApp(deps: AppDeps) {
       if (r.reason === "UNAVAILABLE") return c.json({ error: r.reason, details: { unavailableListingIds: r.unavailableListingIds } }, 409);
       if (r.reason === "PRICE_CHANGED") return c.json({ error: r.reason, details: { subtotalPaise: r.subtotalPaise } }, 409);
       if (r.reason === "SELLER_UNAVAILABLE") return c.json({ error: r.reason }, 409);
+      if (r.reason === "DROP_LIMIT") return c.json({ error: r.reason, details: { maxHoldsPerBuyer: r.maxHoldsPerBuyer } }, 409);
       return c.json({ error: r.reason }, 400);
     },
   );
@@ -495,6 +500,7 @@ export function createApp(deps: AppDeps) {
   app.route("/saves", saveRoutes({ db }));
   app.route("/follows", followRoutes({ db }));
   app.route("/bag", bagRoutes({ db }));
+  app.route("/drops", dropRoutes({ db }));
   app.route("/", trustRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------
@@ -506,6 +512,14 @@ export function createApp(deps: AppDeps) {
       return c.json({ error: "UNAUTHORIZED" }, 401);
     }
     return c.json(await expireHolds(db));
+  });
+
+  app.get("/cron/drops", async (c) => {
+    if (!deps.cronSecret || c.req.header("authorization") !== `Bearer ${deps.cronSecret}`) {
+      return c.json({ error: "UNAUTHORIZED" }, 401);
+    }
+    const [reminders, opened, ended] = [await queueDropReminders(db), await openDueDrops(db), await endFinishedDrops(db)];
+    return c.json({ ...reminders, ...opened, ...ended });
   });
 
   app.get("/cron/close-delivered", async (c) => {

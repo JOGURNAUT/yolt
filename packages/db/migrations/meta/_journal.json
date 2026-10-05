@@ -71,6 +71,13 @@
       "when": 1790499816888,
       "tag": "0009_bag",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790501727389,
+      "tag": "0010_drop_reminders",
+      "breakpoints": true
     }
   ]
 }

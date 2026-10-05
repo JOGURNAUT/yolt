@@ -84,7 +84,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
 
       {drop && (
         <a
-          href={`/s/${handle}?status=coming-soon`}
+          href={`/d/${drop.id}`}
           className="block rounded-lg border border-line bg-surface p-4 hover:border-foreground"
         >
           <p className="text-xs font-medium uppercase tracking-wide text-accent">Upcoming drop</p>

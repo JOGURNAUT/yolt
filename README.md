@@ -26,6 +26,14 @@ pnpm db:seed      # made-up store "Second Loop" + demo buyers
 pnpm --filter @yolt/web dev
 ```
 
+**Every later session** (the containers restart with Docker on their own; migrate picks up any schema changes):
+
+```sh
+pnpm db:up && pnpm db:migrate && pnpm --filter @yolt/web dev
+```
+
+If a page shows `Failed query`, the database isn't running or isn't migrated: run the line above. Docker Desktop must be fully started first.
+
 Open http://localhost:3000/s/secondloop. **Sign in** with any Indian mobile number: in development the code is shown on screen instead of being sent. To list an item, use **Dev: switch user** → **Second Loop (demo seller)**, then open http://localhost:3000/seller/listings. Use **Dev: switch user** in the header to sign in as a demo buyer, then buy something. The checkout uses a sandbox gateway that sends signed webhooks through the real webhook path.
 
 ### Admin access
@@ -52,5 +60,5 @@ Covers: 100 concurrent buyers for one garment → one hold; stale releases can't
 
 - MSG91 delivery for login codes. Production refuses to send codes until it's configured (set `AUTH_PEPPER` too).
 - Cashfree payments. Production refuses payments until the adapter exists.
-- Shiprocket (a dev shipping fake handles delivery checks, pickup booking, labels and tracking scans locally; production refuses to guess), drops builder, Typesense (search runs on Postgres for now), drops opening job, seller self-signup (staff onboard stores from /admin for the pilot).
-- Hold expiry: Vercel Cron calls `/api/cron/expire-holds` every minute (needs `CRON_SECRET`). Checkout also frees expired holds on the items it touches, so nothing gets stuck locally without cron.
+- Shiprocket (a dev shipping fake handles delivery checks, pickup booking, labels and tracking scans locally; production refuses to guess), Typesense (search runs on Postgres for now), drop reminder delivery (reminders are recorded and queued; nothing sends them yet), seller self-signup (staff onboard stores from /admin for the pilot).
+- Hold expiry and drops: Vercel Cron calls `/api/cron/expire-holds` and `/api/cron/drops` every minute (needs `CRON_SECRET`). Checkout also frees expired holds and opens due drops on the items it touches, so nothing gets stuck locally without cron.

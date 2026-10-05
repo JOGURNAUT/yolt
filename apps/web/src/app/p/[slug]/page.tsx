@@ -75,7 +75,12 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
           {comingSoon && (
             <StatusBanner>
               Coming soon{drop ? ` in ${drop.title}, ${formatIST(drop.startsAt)}` : ""}. It can&apos;t be bought until the
-              drop opens.
+              drop opens.{" "}
+              {drop && (
+                <Link href={`/d/${drop.id}`} className="underline">
+                  Go to the drop
+                </Link>
+              )}
             </StatusBanner>
           )}
 
