@@ -26,6 +26,14 @@ pnpm db:seed      # made-up store "Second Loop" + demo buyers
 pnpm --filter @yolt/web dev
 ```
 
+**Every later session** (the containers restart with Docker on their own; migrate picks up any schema changes):
+
+```sh
+pnpm db:up && pnpm db:migrate && pnpm --filter @yolt/web dev
+```
+
+If a page shows `Failed query`, the database isn't running or isn't migrated: run the line above. Docker Desktop must be fully started first.
+
 Open http://localhost:3000/s/secondloop. **Sign in** with any Indian mobile number: in development the code is shown on screen instead of being sent. To list an item, use **Dev: switch user** → **Second Loop (demo seller)**, then open http://localhost:3000/seller/listings. Use **Dev: switch user** in the header to sign in as a demo buyer, then buy something. The checkout uses a sandbox gateway that sends signed webhooks through the real webhook path.
 
 ### Admin access

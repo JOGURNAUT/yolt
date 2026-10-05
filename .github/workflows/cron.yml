@@ -19,6 +19,9 @@ jobs:
       - name: Expire reservations
         run: |
           curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/expire-holds"
+      - name: Open drops and queue reminders
+        run: |
+          curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/drops"
       - name: Close delivered orders
         run: |
           curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/close-delivered"

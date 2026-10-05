@@ -54,6 +54,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                   Admin
                 </Link>
               )}
+              <Link href="/drops" className="hidden text-sm hover:underline sm:inline">
+                Drops
+              </Link>
               <Link href="/saved" className="text-sm hover:underline">
                 Saved
               </Link>

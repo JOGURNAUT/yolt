@@ -5,6 +5,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/drops",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/close-delivered",
       "schedule": "0 * * * *"
     }

@@ -1,6 +1,8 @@
 services:
   postgres:
     image: postgres:17
+    # Come back up after Docker or the machine restarts (stopped only by `pnpm db:down`).
+    restart: unless-stopped
     environment:
       POSTGRES_USER: yolt
       POSTGRES_PASSWORD: yolt
@@ -18,6 +20,7 @@ services:
   # S3-compatible stand-in for Cloudflare R2 (MinIO no longer publishes images).
   media:
     image: rustfs/rustfs:latest
+    restart: unless-stopped
     environment:
       RUSTFS_ACCESS_KEY: yolt
       RUSTFS_SECRET_KEY: yolt-dev-secret
