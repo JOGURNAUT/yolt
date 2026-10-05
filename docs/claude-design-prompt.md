@@ -580,6 +580,28 @@ Seller workspace, mobile 390 **and** desktop 1280. The nav is Overview · Listin
 - **B10.12** `PushPrompt`: shown only after Remind me. It asks with the reason first, then the browser prompt.
 - **B10.13** Toast catalogue: every toast used in the product.
 
+### Batch 10b — Live virtual try-on (page 02, P1 tag)
+
+"Try it on" puts the piece on the shopper through their camera, live, like Anywear. It's a planned feature, so design it fully and tag it P1.
+- **Entry:** a **Try it on** button on the product page, next to Save, for clothing only, with a small "AI" sticker. The button hides for pieces that can't use it.
+- **Consent sheet:** "See it on you, live. Your camera feed isn't recorded or stored." An 18+ checkbox, a link to the privacy policy, and **Turn on camera**.
+- **Live view:** full screen on mobile.
+  - The camera video with the piece on.
+  - A permanent label: "AI preview. Check the measurements for fit."
+  - A small piece card (photo, title, size, price).
+  - Controls: switch camera · end · **Add to bag** · **Buy now**.
+  - A 60 s session ring.
+- **States, one board each:**
+  - connecting ("Getting the fitting room ready…");
+  - live;
+  - session ended ("Want another look?", showing the daily tries left);
+  - camera denied (how to allow it);
+  - not supported in this browser (with "Open in Chrome" for Instagram's in-app browser);
+  - busy or slow network;
+  - signed out (the sign-in sheet first).
+- **Desktop:** a webcam view in a centred modal with the piece details beside it.
+- **Component:** `TryOnButton`, `TryOnConsent`, `TryOnView`.
+
 ### Batch 11 — Desktop pass and handoff (page 11)
 
 - Desktop 1280 boards for any buyer screen in Batches 2–7 that doesn't have one yet: landing, home, store, product, search, drops list, drop page, bag, checkout, orders, order detail, saved, account.
