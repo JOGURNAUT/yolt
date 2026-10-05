@@ -56,6 +56,7 @@ In code:
 | 8 | Seller overview, listings, editor (6), store settings, `/sell` | Seller nav (sidebar plus mobile tabs). **New:** `/seller/store` settings and the `/sell` apply form (stores an application for admin) |
 | 9 | Seller orders, order detail, reviews, drops, payouts | **New:** `/seller/payouts` (pilot ₹0 statement, Your link vs Found on YOLT) |
 | 10 | Admin (including homepage curation), 404, error, offline, legal, install card, push prompt, toasts | Admin restyle; **new: homepage curation** (featured store, Grails list and edit for the hero, scheduled; until it exists, the hero uses the store with the most live pieces and the newest category); `not-found`, `error`; **PWA manifest, service worker, install card, web push** (the next P0 feature, so drop reminders actually send) |
+| 10b | Live virtual try-on: entry button, consent, live view, failure states (P1) | After P0 launch work: background-removed front photo at upload; a token endpoint with a daily cap and a feature flag; `TryOnView` over WebRTC with Decart's real-time try-on model (D18). Needs a Decart API key and pricing confirmed. |
 | 11 | Desktop pass, handoff index | Desktop polish across all pages |
 
 Roughly one or two working sessions per code batch. Batches 0+1 and 2 matter most: once the tokens and components land, every page looks better at once.

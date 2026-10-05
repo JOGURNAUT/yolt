@@ -16,7 +16,7 @@ The buyer, seller and admin flows for YOLT, with the state machines behind them.
 | Phase | Goal | Scope |
 |---|---|---|
 | **P0 — pilot** | One seller lists, one buyer finds, pays, receives, can return | Guest browse; OTP login; seller application + KYC; store setup; listing editor; inventory; home, search, filters; product page (PDP); save and follow; bag and prepaid checkout with holds; orders with Shiprocket; not-as-described returns; verified reviews on store; FCFS scheduled drops; admin basics; PWA install and web push |
-| **P1 — engagement** | Buyers come back without the seller's Instagram | Structured offers; following feed; seller photo posts with tagged listings; buyer fit pics (verified); likes and saves on posts; waiting room; Instagram post import; saved searches |
+| **P1 — engagement** | Buyers come back without the seller's Instagram | Structured offers; following feed; seller photo posts with tagged listings; buyer fit pics (verified); likes and saves on posts; waiting room; Instagram post import; saved searches; **live virtual try-on (D18)** |
 | **P2 — scale** | Video, native app | Reels (video); comments; For You feed ranking; Expo app; authentication partner for sneakers/luxury |
 | **Later — not planned** | Only if sellers ask for them | Raffles (free and paid), live auctions |
 
@@ -202,6 +202,22 @@ Feed tab → Following (stores you follow, chronological) | For You (P2)
 - Fit pics only from verified purchases; they also appear on the store page.
 - Comments (P2): phone numbers, UPI IDs, emails and "DM me" patterns masked; "BOOK" or "price?" comments get an automatic reply with the Claim / Buy button.
 - Report and block on every post and comment. New closet sellers' posts go through review queue until they have 3 completed sales.
+
+### B-F12 Live virtual try-on (P1, decision D18)
+
+```
+Product page → "Try it on" (clothing with a clean front photo only)
+  → Signed out? Sign in first (sessions cost money)
+  → Consent sheet: what happens to the camera feed (nothing is recorded or stored), 18+ confirmation
+  → Camera permission (browser prompt) → live view of the shopper wearing the piece
+  → Controls: switch camera, end, Save / Add to bag / Buy now
+  → Session ends after 60 s, or when they leave the page
+```
+
+- Always labelled "AI preview. Check the measurements for fit." It shows the look, never claims the fit.
+- Server: issue a short-lived provider token per session after checking the daily cap (e.g. 5 sessions per user per day) and a feature flag; log session minutes for cost tracking.
+- Fallbacks: camera denied, unsupported browser (including Instagram's in-app browser if WebRTC camera access fails there), provider busy, network too slow. Each shows a plain message and an "Open in Chrome" hint where relevant.
+- Seller side: at photo upload, the front photo gets a background-removed copy, used only for try-on.
 
 ---
 
