@@ -1,9 +1,10 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { and, asc, eq, inArray, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, lte, or, sql } from "drizzle-orm";
 import {
   asComplete,
   auditEvents,
   bagItems,
+  drops,
   holds,
   listingPhotos,
   listings,
@@ -23,6 +24,7 @@ import {
   type Tx,
 } from "@yolt/db";
 import { orderSourceFor } from "./attribution";
+import { openDropIfDue } from "./drops";
 
 /**
  * Inventory invariants (see docs/user-flows.md §7):
@@ -85,7 +87,8 @@ export type CreateCheckoutResult =
   | { ok: true; orderId: string; reference: string; totalPaise: number; expiresAt: Date }
   | { ok: false; reason: "NOT_FOUND" | "MULTIPLE_SELLERS" | "OWN_LISTING" | "EMPTY" | "SELLER_UNAVAILABLE" }
   | { ok: false; reason: "UNAVAILABLE"; unavailableListingIds: string[] }
-  | { ok: false; reason: "PRICE_CHANGED"; subtotalPaise: number };
+  | { ok: false; reason: "PRICE_CHANGED"; subtotalPaise: number }
+  | { ok: false; reason: "DROP_LIMIT"; dropId: string; maxHoldsPerBuyer: number };
 
 export async function createCheckout(db: Db, input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
   const now = input.now ?? new Date();
@@ -105,6 +108,14 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
     const seller = rows[0]!.seller;
     if (seller.userId === input.buyerId) return { ok: false, reason: "OWN_LISTING" } as const;
     if (seller.status !== "APPROVED") return { ok: false, reason: "SELLER_UNAVAILABLE" } as const;
+
+    // Drops: open any whose time has come, so the first claim at opening time never waits on the
+    // sweep job; and serialise this buyer's claims per drop so the per-buyer limit holds.
+    const dropIds = [...new Set(rows.map((r) => r.listing.dropId).filter((d): d is string => d !== null))].sort();
+    for (const dropId of dropIds) {
+      await openDropIfDue(tx, dropId, now);
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`drop-claim:${input.buyerId}:${dropId}`}))`);
+    }
 
     // Lazy expiry: free items whose hold already ran out, so buyers never wait on the sweep job.
     const stale = await tx
@@ -135,6 +146,21 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
     if (unavailable.length > 0) {
       // Never hold a partial set silently; the buyer decides whether to continue with fewer items.
       throw new Rollback({ ok: false, reason: "UNAVAILABLE", unavailableListingIds: unavailable } as const);
+    }
+
+    // Per-buyer limit in a drop: active holds already held there plus the ones claimed now.
+    for (const dropId of dropIds) {
+      const [drop] = await tx.select({ max: drops.maxHoldsPerBuyer }).from(drops).where(eq(drops.id, dropId));
+      const [{ held }] = (await tx
+        .select({ held: sql<number>`count(*)::int` })
+        .from(holds)
+        .innerJoin(listings, eq(listings.id, holds.listingId))
+        // A hold past its expiry no longer counts, even if the sweep hasn't marked it yet.
+        .where(and(eq(holds.buyerId, input.buyerId), eq(holds.status, "ACTIVE"), gt(holds.expiresAt, now), eq(listings.dropId, dropId)))) as [{ held: number }];
+      const claimingNow = claimedListings.filter((l) => l.dropId === dropId).length;
+      if (drop && held + claimingNow > drop.max) {
+        throw new Rollback({ ok: false, reason: "DROP_LIMIT", dropId, maxHoldsPerBuyer: drop.max } as const);
+      }
     }
 
     const subtotal = claimedListings.reduce((sum, l) => sum + l.pricePaise, 0);
@@ -188,7 +214,7 @@ export async function createCheckout(db: Db, input: CreateCheckoutInput): Promis
         listingId,
         buyerId: input.buyerId,
         orderId,
-        source: input.source ?? "CHECKOUT",
+        source: input.source ?? (dropIds.length ? "DROP_CLAIM" : "CHECKOUT"),
         expiresAt,
         createdAt: now,
       })),

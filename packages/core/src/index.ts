@@ -9,3 +9,4 @@ export * from "./claims";
 export * from "./reviews";
 export * from "./admin";
 export * from "./shopping";
+export * from "./drops";
