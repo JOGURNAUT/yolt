@@ -16,7 +16,7 @@ test("store page: pills switch between in stock, sold out and coming soon, kept 
 
   await pills.getByRole("link", { name: /Coming soon/ }).click();
   await expect(page).toHaveURL(/status=coming-soon/);
-  await expect(page.locator('a[href^="/p/"]')).toHaveCount(3); // the seeded drop's pieces
+  await expect(page.getByRole("region", { name: "Pieces" }).locator('a[href^="/p/"]')).toHaveCount(3); // the seeded drop's pieces (reviews also link to the piece bought)
 });
 
 test("product pages: available can be bought, sold out and coming soon can't", async ({ page }) => {

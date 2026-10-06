@@ -1,212 +1,209 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Clock } from "lucide-react";
 import type { Measurements } from "@yolt/db";
-import { BuyButton } from "@/components/buy-button";
-import { ButtonLink } from "@/components/ui/button";
-import { GarmentImage } from "@/components/garment-image";
+import { getCategory, MEASUREMENT_LABELS, type MeasurementKey } from "@yolt/shared";
 import { PincodeCheck } from "@/components/pincode-check";
-import { AddToBagButton, SaveButton } from "@/components/shop-buttons";
-import { ProductGrid } from "@/components/product-card";
+import { ButtonLink } from "@/components/ui/button";
+import { ICON_STROKE } from "@/components/ui/cx";
+import { HangTag } from "@/components/ui/hang-tag";
+import { listingBadge, StatusBadge } from "@/components/ui/status-badge";
+import { Sticker } from "@/components/ui/sticker";
+import { ConditionBlock, FlawList, ProtectionNote, SellerCard } from "@/components/product/detail-blocks";
+import { DropCountdown } from "@/components/product/drop-countdown";
+import { MeasurementTable, type MeasurementRow } from "@/components/product/measurement-table";
+import { PhotoGallery } from "@/components/product/photo-gallery";
+import { ProductActions, type ProductState } from "@/components/product/product-actions";
+import { ProductRail } from "@/components/product/product-rail";
+import { ShareButton } from "@/components/store/share-button";
 import { CONDITION, formatIST, formatINR } from "@/lib/format";
-import { getListing, getMoreFromStore } from "@/lib/server/queries";
+import { getListing, getMoreFromStore, getSimilarListings, getStoreRating } from "@/lib/server/queries";
+import { shippingCost } from "@/components/store/store-header";
 
 export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Promise<Metadata> {
   const data = await getListing((await params).slug);
   return data ? { title: data.listing.title } : {};
 }
 
-const MEASUREMENT_LABELS: [keyof Measurements, string][] = [
-  ["chestCm", "Chest"],
-  ["waistCm", "Waist"],
-  ["hipCm", "Hip"],
-  ["shoulderCm", "Shoulder"],
-  ["sleeveCm", "Sleeve"],
-  ["lengthCm", "Length"],
-  ["inseamCm", "Inseam"],
-  ["footLengthCm", "Foot length"],
-];
-
-const AUTH_SENSITIVE = new Set(["sneakers", "luxury", "bags"]);
+/** What the seller measured, in the order the editor shows it. How each was taken is only said where it's unambiguous. */
+const MEASURE_ORDER: MeasurementKey[] = ["chestCm", "waistCm", "hipCm", "shoulderCm", "sleeveCm", "lengthCm", "inseamCm", "footLengthCm"];
+const HOW: Partial<Record<MeasurementKey, (basis: Measurements["basis"]) => string | null>> = {
+  chestCm: (b) => (b === "FLAT" ? "flat, one side" : b === "AROUND" ? "around" : null),
+  waistCm: (b) => (b === "FLAT" ? "flat, one side" : b === "AROUND" ? "around" : null),
+  hipCm: (b) => (b === "FLAT" ? "flat, one side" : b === "AROUND" ? "around" : null),
+  shoulderCm: () => "seam to seam",
+  sleeveCm: () => "shoulder seam to cuff",
+  inseamCm: () => "crotch to hem",
+  footLengthCm: () => "heel to toe",
+};
 
 export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
   const data = await getListing((await params).slug);
   if (!data) notFound();
   const { listing: l, seller, drop, photos } = data;
-  const more = await getMoreFromStore(seller.id, l.id);
+  const [more, similar, rating] = await Promise.all([getMoreFromStore(seller.id, l.id), getSimilarListings(l.category, seller.id), getStoreRating(seller.id)]);
 
   const sold = l.status === "SOLD" || l.status === "SOLD_ELSEWHERE";
   const reserved = l.status === "RESERVED" || l.status === "PAYMENT_PENDING";
-  const withdrawn = l.status === "WITHDRAWN";
-  const comingSoon = l.status === "SCHEDULED";
+  const removed = l.status === "WITHDRAWN";
+  const soon = l.status === "SCHEDULED";
+  const state: ProductState = sold ? "sold" : reserved ? "reserved" : soon ? "soon" : "available";
+  const badge = listingBadge(l.status);
+  const category = getCategory(l.category);
+  const authSensitive = category?.authSensitive === true || l.category === "luxury";
   const condition = CONDITION[l.condition];
-  const measured = MEASUREMENT_LABELS.filter(([k]) => typeof l.measurements[k] === "number");
-  const flat = l.measurements.basis === "FLAT";
+
+  const rows: MeasurementRow[] = MEASURE_ORDER.flatMap((key) => {
+    const cm = l.measurements[key];
+    return typeof cm === "number" ? [{ key, label: MEASUREMENT_LABELS[key], how: HOW[key]?.(l.measurements.basis) ?? null, cm }] : [];
+  });
+  const flawPhotos = photos.filter((p) => p.kind === "FLAW").map((p) => ({ id: p.id, position: p.position }));
+  const rails = (
+    <>
+      <ProductRail title={`More from ${seller.displayName}`} href={`/s/${seller.handle}`} items={more} />
+      <ProductRail title="Similar pieces" href={`/search?cat=${l.category}`} items={similar} showSeller />
+    </>
+  );
+
+  if (removed) {
+    return (
+      <div className="space-y-12 pb-8">
+        <div className="mx-auto flex max-w-md flex-col items-center gap-3.5 pt-8 text-center lg:pt-16">
+          <span aria-hidden="true">
+            <HangTag size="lg" ink className="-rotate-[8deg]">
+              Removed
+            </HangTag>
+          </span>
+          <h1 className="t-h1">No longer listed.</h1>
+          <p className="t-body muted">{seller.displayName} took this piece down. Here&apos;s what they have in stock.</p>
+          <ButtonLink href={`/s/${seller.handle}`}>See what&apos;s in stock at {seller.displayName}</ButtonLink>
+          <ButtonLink href={`/search?cat=${l.category}`} variant="ghost">
+            Find similar pieces
+          </ButtonLink>
+        </div>
+        {rails}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-10">
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-2">
-          <div className={`overflow-hidden rounded-lg ${sold ? "opacity-70" : ""}`}>
-            <GarmentImage src={photos[0]?.url ?? null} alt={l.title} category={l.category} />
+    <div className="space-y-10 pb-28 lg:space-y-14 lg:pb-8">
+      <div>
+        <nav aria-label="Breadcrumb" className="t-small muted mb-3 hidden lg:block">
+          <Link href="/">Home</Link> / <Link href={`/s/${seller.handle}`}>{seller.displayName}</Link>
+          {category && (
+            <>
+              {" "}
+              / <Link href={`/search?cat=${l.category}`}>{category.label}</Link>
+            </>
+          )}
+        </nav>
+
+        <div className="grid gap-4 lg:grid-cols-12 lg:gap-6">
+          <div className="lg:col-span-7">
+            <PhotoGallery
+              photos={photos.map((p) => ({ id: p.id, url: p.url, kind: p.kind, caption: p.caption }))}
+              title={l.title}
+              category={l.category}
+              muted={sold}
+              status={sold ? "Sold out" : soon ? "Coming soon" : undefined}
+            >
+              <ShareButton title={l.title} label="Share" iconOnly />
+            </PhotoGallery>
           </div>
-          {photos.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {photos.slice(1).map((p) => (
-                <div key={p.id} className="relative overflow-hidden rounded">
-                  <GarmentImage src={p.url} alt={p.caption ?? p.kind} category={l.category} />
-                  {p.kind === "FLAW" && (
-                    <span className="absolute bottom-1 left-1 rounded bg-surface px-1 text-[10px] font-medium">Flaw</span>
-                  )}
-                </div>
-              ))}
+
+          <div className="flex flex-col gap-4 lg:col-span-5 lg:gap-4">
+            <div className="flex flex-col gap-2 lg:gap-4">
+              <Link href={`/s/${seller.handle}`} className="t-small inline-flex min-h-11 items-center self-start font-bold lg:min-h-0">
+                {seller.displayName}
+              </Link>
+              <h1 className="t-h1 !text-2xl !leading-[27px] lg:!text-4xl lg:!leading-[38px]">{l.title}</h1>
+              <div className="flex flex-wrap items-center gap-3 lg:gap-3.5">
+                <HangTag size="lg" ink>
+                  {formatINR(l.pricePaise)}
+                </HangTag>
+                {badge && <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>}
+                {state === "available" && <Sticker className="hidden lg:inline-flex">1 of 1</Sticker>}
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="space-y-5">
-          {sold && <StatusBanner>Sold out. This piece found a home.</StatusBanner>}
-          {withdrawn && <StatusBanner>No longer listed.</StatusBanner>}
-          {reserved && (
-            <StatusBanner>
-              Reserved by another buyer. It may become available again in a few minutes if they don&apos;t complete
-              payment.
-            </StatusBanner>
-          )}
-          {comingSoon && (
-            <StatusBanner>
-              Coming soon{drop ? ` in ${drop.title}, ${formatIST(drop.startsAt)}` : ""}. It can&apos;t be bought until the
-              drop opens.{" "}
-              {drop && (
-                <Link href={`/d/${drop.id}`} className="underline">
-                  Go to the drop
-                </Link>
-              )}
-            </StatusBanner>
-          )}
-
-          <div>
-            <h1 className="text-xl font-bold">{l.title}</h1>
-            <p className="mt-1 text-2xl font-semibold">{formatINR(l.pricePaise)}</p>
-          </div>
-
-          <dl className="space-y-1 text-sm">
-            <Row label="Condition">
-              <span className="font-medium">{condition?.label}</span> — {condition?.meaning}
-            </Row>
-            {l.tagSize && <Row label="Tag size">{l.tagSize}</Row>}
-            {l.brandDeclared && (
-              <Row label="Brand">
-                {l.brandDeclared} <span className="text-muted">(declared by seller)</span>
-              </Row>
-            )}
-          </dl>
-
-          {AUTH_SENSITIVE.has(l.category) && l.brandDeclared && (
-            <p className="rounded-md bg-surface p-3 text-xs text-muted">
-              Brand is seller-declared and not authenticated by YOLT.
-            </p>
-          )}
-
-          <section>
-            <h2 className="text-sm font-semibold">Measurements</h2>
-            {measured.length ? (
-              <>
-                <table className="mt-2 w-full text-sm">
-                  <tbody>
-                    {measured.map(([k, label]) => (
-                      <tr key={k} className="border-b border-line last:border-0">
-                        <td className="py-1.5 text-muted">{label}</td>
-                        <td className="py-1.5 text-right">
-                          {l.measurements[k] as number} cm{" "}
-                          <span className="text-muted">({((l.measurements[k] as number) / 2.54).toFixed(1)}″)</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {l.measurements.basis && (
-                  <p className="mt-1 text-xs text-muted">
-                    {flat
-                      ? "Measured flat, one side. Double chest, waist and hip to compare with a tape measure around you."
-                      : "Measured all the way around."}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="mt-1 text-sm text-muted">The seller hasn&apos;t added measurements for this item.</p>
-            )}
-          </section>
-
-          <section>
-            <h2 className="text-sm font-semibold">Flaws</h2>
-            <p className="mt-1 text-sm">
-              {l.flaws ? l.flaws : l.noFlawsConfirmed ? "Seller confirmed: no flaws." : "Not specified."}
-            </p>
-          </section>
-
-          <section className="rounded-lg border border-line bg-surface p-4 text-sm">
-            <Link href={`/s/${seller.handle}`} className="font-medium hover:underline">
-              {seller.displayName}
-            </Link>
-            <p className="text-muted">Usually ships in {seller.dispatchDays} days.</p>
-            {!sold && !withdrawn && (
-              <div className="mt-3">
-                <PincodeCheck listingId={l.id} />
+            {reserved && (
+              <div role="status" className="flex items-start gap-2.5 rounded-xl bg-surface-2 px-3.5 py-3">
+                <Clock aria-hidden className="ic mt-px text-warning" strokeWidth={ICON_STROKE} />
+                <p className="t-small">
+                  Reserved by another buyer. It may become available again in a few minutes if they don&apos;t complete payment.
+                </p>
               </div>
             )}
-            <p className="mt-2">
-              Shipping {formatINR(seller.shippingFeePaise)}
-              {seller.freeShippingAbovePaise !== null && `, free above ${formatINR(seller.freeShippingAbovePaise)}`}.
-            </p>
-            <p className="mt-1 text-muted">
-              No size returns: check the measurements. Full refund if it isn&apos;t as described, arrives damaged, or never
-              arrives.
-            </p>
-          </section>
+            {sold && (
+              <div role="status" className="flex items-center gap-2.5 rounded-xl bg-[#0d0d0c] p-3.5 text-white">
+                <span aria-hidden="true">
+                  <Sticker>Sold out</Sticker>
+                </span>
+                <p className="t-body font-bold">
+                  <span className="sr-only">Sold out. </span>This piece found a home.
+                </p>
+              </div>
+            )}
+            {soon && (
+              <div role="status" className="flex flex-col gap-2.5 rounded-[14px] p-3.5 shadow-[inset_0_0_0_1.5px_var(--foreground)]">
+                <p className="t-small font-bold">
+                  Coming soon{drop ? ` in ${drop.title}, ${formatIST(drop.startsAt)}` : ""}
+                </p>
+                {drop && <DropCountdown startsAt={drop.startsAt.toISOString()} serverNow={new Date().toISOString()} />}
+              </div>
+            )}
 
-          {l.status === "AVAILABLE" && (
-            <div className="space-y-2">
-              <BuyButton listingId={l.id} pricePaise={l.pricePaise} />
-              <AddToBagButton listingId={l.id} />
-            </div>
-          )}
-          <div className="flex items-center gap-3 text-sm">
-            <SaveButton listingId={l.id} />
-            <span className="text-muted">Save to find it later</span>
+            <ProductActions
+              state={state}
+              listingId={l.id}
+              pricePaise={l.pricePaise}
+              category={l.category}
+              storeHandle={seller.handle}
+              storeName={seller.displayName}
+              dropId={drop?.id ?? null}
+            />
+
+            {condition && <ConditionBlock label={condition.label} meaning={condition.meaning} />}
+            <MeasurementTable tagSize={l.tagSize} rows={rows} basis={rows.length ? l.measurements.basis : undefined} />
+            <FlawList flaws={l.flaws} noFlawsConfirmed={l.noFlawsConfirmed} photos={flawPhotos} />
+
+            {(l.brandDeclared || authSensitive) && (
+              <p className="t-small">
+                {l.brandDeclared && (
+                  <>
+                    <span className="muted">Brand:</span> <strong>{l.brandDeclared}</strong> <span className="muted">(declared by seller)</span>{" "}
+                  </>
+                )}
+                {authSensitive && <span className="muted">Seller-declared, not authenticated by YOLT.</span>}
+              </p>
+            )}
+
+            <SellerCard
+              handle={seller.handle}
+              name={seller.displayName}
+              logoUrl={seller.logoUrl}
+              dispatchDays={seller.dispatchDays}
+              rating={rating}
+              verified={seller.kycStatus === "VERIFIED"}
+            />
+
+            {!sold && (
+              <section aria-label="Delivery" className="flex flex-col gap-2">
+                <PincodeCheck listingId={l.id} />
+                <p className="t-small">
+                  {shippingCost(seller)} <span className="muted">from {seller.displayName}</span>
+                </p>
+              </section>
+            )}
+
+            <ProtectionNote />
           </div>
-          {(sold || withdrawn) && (
-            <div className="space-y-2">
-              <ButtonLink href={`/search?cat=${l.category}`} size="lg" block>
-                Find similar pieces
-              </ButtonLink>
-              <ButtonLink href={`/s/${seller.handle}`} variant="secondary" size="lg" block>
-                See what&apos;s in stock at {seller.displayName}
-              </ButtonLink>
-            </div>
-          )}
         </div>
       </div>
 
-      {more.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-semibold">More from {seller.displayName}</h2>
-          <ProductGrid items={more} />
-        </section>
-      )}
+      {rails}
     </div>
   );
-}
-
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex gap-2">
-      <dt className="w-24 shrink-0 text-muted">{label}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
-}
-
-function StatusBanner({ children }: { children: React.ReactNode }) {
-  return <p className="rounded-md border border-line bg-surface p-3 text-sm font-medium">{children}</p>;
 }
