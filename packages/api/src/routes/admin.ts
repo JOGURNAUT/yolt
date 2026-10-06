@@ -1,6 +1,13 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import {
   adminSessionFresh,
+  createSlot,
+  deleteSlot,
+  listApplications,
+  listSlots,
+  updateApplicationStatus,
+  updateSlot,
+  type SlotFailure,
   decideClaim,
   getAdminCounts,
   getAdminRole,
@@ -136,6 +143,147 @@ export function adminRoutes(deps: { db: Db }) {
       const r = await markRefundSucceeded(db, { adminUserId: adminId(c), refundId: c.req.valid("param").id, providerRefundId: c.req.valid("json").providerRefundId });
       if (r.ok) return c.json(r, 200);
       return c.json({ error: r.reason }, r.reason === "NOT_FOUND" ? 404 : 400);
+    },
+  );
+
+  // ---- Homepage curation -------------------------------------------------------------------
+
+  const SlotFields = {
+    sellerId: z.string().uuid().nullable(),
+    title: z.string().max(100).nullable(),
+    listingIds: z.array(z.string().uuid()).max(50),
+    startsAt: z.string().datetime({ offset: true }).nullable(),
+    endsAt: z.string().datetime({ offset: true }).nullable(),
+  };
+  const toDate = (v: string | null | undefined) => (v === undefined ? undefined : v === null ? null : new Date(v));
+  const slotError = (r: SlotFailure) => {
+    if (r.reason === "NOT_FOUND") return [{ error: r.reason }, 404] as const;
+    if (r.reason === "INVALID") return [{ error: r.reason, details: { field: r.field } }, 400] as const;
+    if (r.reason === "REASON_REQUIRED") return [{ error: r.reason }, 400] as const;
+    if (r.reason === "LISTINGS_NOT_LIVE") return [{ error: r.reason, details: { listingIds: r.listingIds } }, 409] as const;
+    return [{ error: r.reason }, 409] as const;
+  };
+
+  app.openapi(
+    createRoute({ method: "get", path: "/homepage-slots", summary: "Curated homepage slots with their state (current, upcoming, expired) and which one is showing", responses: { 200: Any } }),
+    async (c) => c.json(await listSlots(db), 200),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/homepage-slots",
+      summary: "Curate a featured store, Grails list or edit, with a reason",
+      request: json(
+        z.object({
+          kind: z.enum(["FEATURED_STORE", "GRAILS", "EDIT"]),
+          sellerId: SlotFields.sellerId.optional(),
+          title: SlotFields.title.optional(),
+          listingIds: SlotFields.listingIds.optional(),
+          startsAt: SlotFields.startsAt.optional(),
+          endsAt: SlotFields.endsAt.optional(),
+          reason: z.string().max(1000),
+        }),
+      ),
+      responses: { 201: Any, 400: Any, 404: Any, 409: Any },
+    }),
+    async (c) => {
+      const b = c.req.valid("json");
+      const r = await createSlot(db, {
+        adminUserId: adminId(c),
+        kind: b.kind,
+        reason: b.reason,
+        sellerId: b.sellerId,
+        title: b.title,
+        listingIds: b.listingIds,
+        startsAt: toDate(b.startsAt),
+        endsAt: toDate(b.endsAt),
+      });
+      if (r.ok) return c.json(r.slot, 201);
+      const [body, status] = slotError(r);
+      return c.json(body, status);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "patch",
+      path: "/homepage-slots/{id}",
+      summary: "Change a slot's store, pieces, title or window, with a reason",
+      request: {
+        params: IdParam,
+        ...json(
+          z
+            .object({
+              sellerId: SlotFields.sellerId,
+              title: SlotFields.title,
+              listingIds: SlotFields.listingIds,
+              startsAt: SlotFields.startsAt,
+              endsAt: SlotFields.endsAt,
+              reason: z.string().max(1000),
+            })
+            .partial({ sellerId: true, title: true, listingIds: true, startsAt: true, endsAt: true }),
+        ),
+      },
+      responses: { 200: Any, 400: Any, 404: Any, 409: Any },
+    }),
+    async (c) => {
+      const { reason, startsAt, endsAt, ...rest } = c.req.valid("json");
+      const r = await updateSlot(db, {
+        adminUserId: adminId(c),
+        slotId: c.req.valid("param").id,
+        reason,
+        patch: { ...rest, startsAt: toDate(startsAt), endsAt: toDate(endsAt) },
+      });
+      if (r.ok) return c.json(r.slot, 200);
+      const [body, status] = slotError(r);
+      return c.json(body, status);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "delete",
+      path: "/homepage-slots/{id}",
+      summary: "Remove a slot, with a reason",
+      request: { params: IdParam, ...json(z.object({ reason: z.string().max(1000) })) },
+      responses: { 200: Any, 400: Any, 404: Any },
+    }),
+    async (c) => {
+      const r = await deleteSlot(db, { adminUserId: adminId(c), slotId: c.req.valid("param").id, reason: c.req.valid("json").reason });
+      if (r.ok) return c.json(r, 200);
+      return c.json({ error: r.reason }, r.reason === "NOT_FOUND" ? 404 : 400);
+    },
+  );
+
+  // ---- Seller applications -----------------------------------------------------------------
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/applications",
+      summary: "Apply-to-sell queue, newest first, optionally filtered by status",
+      request: { query: z.object({ status: z.enum(["NEW", "CONTACTED", "ONBOARDED", "REJECTED"]).optional() }) },
+      responses: { 200: Any },
+    }),
+    async (c) => c.json(await listApplications(db, { status: c.req.valid("query").status }), 200),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/applications/{id}/status",
+      summary: "Move an application along, with a reason and an optional staff note",
+      request: {
+        params: IdParam,
+        ...json(z.object({ status: z.enum(["NEW", "CONTACTED", "ONBOARDED", "REJECTED"]), note: z.string().max(2000).nullable().optional(), reason: z.string().max(1000) })),
+      },
+      responses: { 200: Any, 400: Any, 404: Any, 409: Any },
+    }),
+    async (c) => {
+      const r = await updateApplicationStatus(db, { adminUserId: adminId(c), applicationId: c.req.valid("param").id, ...c.req.valid("json") });
+      if (r.ok) return c.json(r.application, 200);
+      return c.json({ error: r.reason }, r.reason === "NOT_FOUND" ? 404 : r.reason === "REASON_REQUIRED" || r.reason === "NOTE_TOO_LONG" ? 400 : 409);
     },
   );
 

@@ -131,7 +131,10 @@ export const sellers = pgTable("sellers", {
   displayName: text("display_name").notNull(),
   bio: text("bio"),
   logoUrl: text("logo_url"),
+  /** Object keys for the uploaded logo and banner, so a replaced image can be deleted from storage. */
+  logoKey: text("logo_key"),
   bannerUrl: text("banner_url"),
+  bannerKey: text("banner_key"),
   instagramHandle: text("instagram_handle"),
   instagramVerifiedAt: timestamp("instagram_verified_at", { withTimezone: true }),
   gstin: text("gstin"),
@@ -139,6 +142,13 @@ export const sellers = pgTable("sellers", {
   pickupState: text("pickup_state"),
   /** Where couriers collect parcels; used for delivery estimates. */
   pickupPincode: text("pickup_pincode"),
+  /** The rest of the pickup address (same shape as a delivery address), filled in store settings. */
+  pickupName: text("pickup_name"),
+  pickupPhone: text("pickup_phone"),
+  pickupLine1: text("pickup_line1"),
+  pickupLine2: text("pickup_line2"),
+  pickupLandmark: text("pickup_landmark"),
+  pickupCity: text("pickup_city"),
   shippingFeePaise: integer("shipping_fee_paise").notNull().default(0),
   freeShippingAbovePaise: integer("free_shipping_above_paise"),
   dispatchDays: smallint("dispatch_days").notNull().default(2),
@@ -626,6 +636,95 @@ export const auditEvents = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index("audit_entity_idx").on(t.entity, t.entityId)],
+);
+
+// ---------------------------------------------------------------------------
+// Landing page curation, buyer preferences, seller applications
+// ---------------------------------------------------------------------------
+
+export const homepageSlotKind = pgEnum("homepage_slot_kind", ["FEATURED_STORE", "GRAILS", "EDIT"]);
+
+/**
+ * Staff-curated homepage content. A slot is current when now is inside its (optional) window;
+ * the latest current slot per kind wins. Listing ids are kept in curated order and checked
+ * when the slot is saved; the landing read re-checks that each piece is still live.
+ */
+export const homepageSlots = pgTable(
+  "homepage_slots",
+  {
+    id: id(),
+    kind: homepageSlotKind("kind").notNull(),
+    /** FEATURED_STORE only. */
+    sellerId: uuid("seller_id").references(() => sellers.id),
+    /** EDIT only (3-40 characters). */
+    title: text("title"),
+    /** GRAILS and EDIT: up to 12 listing ids, in display order. */
+    listingIds: jsonb("listing_ids").$type<string[]>().notNull().default([]),
+    startsAt: timestamp("starts_at", { withTimezone: true }),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    createdBy: uuid("created_by").notNull().references(() => users.id),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("homepage_slots_kind_idx").on(t.kind, t.createdAt),
+    check("homepage_slots_window_order", sql`${t.startsAt} IS NULL OR ${t.endsAt} IS NULL OR ${t.endsAt} > ${t.startsAt}`),
+    check(
+      "homepage_slots_shape",
+      sql`(${t.kind} = 'FEATURED_STORE' AND ${t.sellerId} IS NOT NULL) OR (${t.kind} <> 'FEATURED_STORE' AND ${t.sellerId} IS NULL)`,
+    ),
+  ],
+);
+
+/** Optional, skippable buyer preferences (docs/user-flows.md B-F4). Sizes are stored normalised. */
+export const buyerPreferences = pgTable("buyer_preferences", {
+  userId: uuid("user_id").primaryKey().references(() => users.id),
+  sizes: text("sizes").array().notNull().default(sql`'{}'::text[]`),
+  styles: text("styles").array().notNull().default(sql`'{}'::text[]`),
+  /** Per-piece budget ceiling; null means no limit. */
+  maxBudgetPaise: integer("max_budget_paise"),
+  updatedAt: updatedAt(),
+});
+
+export const applicationVolume = pgEnum("application_volume", ["UNDER_20", "BETWEEN_20_50", "BETWEEN_50_100", "OVER_100"]);
+export const applicationStatus = pgEnum("application_status", ["NEW", "CONTACTED", "ONBOARDED", "REJECTED"]);
+
+/** "Apply to sell" form submissions (guests allowed). Staff follow up and onboard by hand in the pilot. */
+export const sellerApplications = pgTable(
+  "seller_applications",
+  {
+    id: id(),
+    storeName: text("store_name").notNull(),
+    /** No @, lowercase, Instagram's allowed characters. */
+    instagramHandle: text("instagram_handle").notNull(),
+    city: text("city").notNull(),
+    whatTheySell: text("what_they_sell").notNull(),
+    piecesPerMonth: applicationVolume("pieces_per_month").notNull(),
+    /** E.164 */
+    phone: text("phone").notNull(),
+    userId: uuid("user_id").references(() => users.id),
+    status: applicationStatus("status").notNull().default("NEW"),
+    adminNote: text("admin_note"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("seller_applications_status_idx").on(t.status, t.createdAt),
+    // One open application per phone and per handle; a repeat submission returns the existing one.
+    uniqueIndex("seller_applications_open_phone").on(t.phone).where(sql`${t.status} IN ('NEW', 'CONTACTED')`),
+    uniqueIndex("seller_applications_open_handle").on(t.instagramHandle).where(sql`${t.status} IN ('NEW', 'CONTACTED')`),
+  ],
+);
+
+/** One row per rate-limited attempt. The key is an HMAC, so no raw IPs or phone numbers are stored. */
+export const rateLimitHits = pgTable(
+  "rate_limit_hits",
+  {
+    id: id(),
+    key: text("key").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("rate_limit_hits_key_idx").on(t.key, t.createdAt)],
 );
 
 // ---------------------------------------------------------------------------
