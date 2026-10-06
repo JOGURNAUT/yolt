@@ -55,16 +55,17 @@ const slugify = (t: string) =>
   t.toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 await db.execute(sql`
-  TRUNCATE drop_reminders, bag_items, admins, claims, shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
+  TRUNCATE rate_limit_hits, seller_applications, buyer_preferences, homepage_slots, drop_reminders, bag_items, admins, claims, shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
     order_items, holds, orders, saved_items, follows, listing_photos, listings, drops,
     addresses, sellers, users RESTART IDENTITY CASCADE`);
 
-const [owner, ananya, kabir] = await db
+const [owner, ananya, kabir, curator] = await db
   .insert(s.users)
   .values([
     { name: "Second Loop (demo seller)", phone: "+910000000001" },
     { name: "Ananya (demo buyer)", phone: "+910000000002" },
     { name: "Kabir (demo buyer)", phone: "+910000000003" },
+    { name: "YOLT staff (demo curator)", phone: "+910000000004" },
   ])
   .returning();
 
@@ -107,7 +108,7 @@ const insert = (items: Item[], extra: Partial<typeof s.listings.$inferInsert>, o
     )
     .returning();
 
-await insert(inStock, { status: "AVAILABLE" }, 0);
+const live = await insert(inStock, { status: "AVAILABLE" }, 0);
 const sold = (await insert(soldOut, { status: "SOLD" }, 10)).map(s.asComplete);
 await insert(comingSoon, { status: "SCHEDULED", dropId: drop!.id, publishedAt: null }, 0);
 await db.execute(sql`UPDATE listings SET sold_at = published_at + interval '1 day' WHERE status = 'SOLD'`);
@@ -166,6 +167,13 @@ for (const [i, l] of sold.entries()) {
     createdAt: new Date(now - (15 - i) * day),
   });
 }
+
+// Homepage curation (demo): Second Loop as the featured store, and a Grails list of its priciest live pieces.
+const grails = [...live].sort((a, b) => (b.pricePaise ?? 0) - (a.pricePaise ?? 0)).slice(0, 4);
+await db.insert(s.homepageSlots).values([
+  { kind: "FEATURED_STORE", sellerId: seller!.id, createdBy: curator!.id },
+  { kind: "GRAILS", listingIds: grails.map((l) => l.id), createdBy: curator!.id },
+]);
 
 await close();
 console.log(`Seeded store /s/secondloop — demo buyer ids: ${ananya!.id} (Ananya), ${kabir!.id} (Kabir)`);
