@@ -1,0 +1,31 @@
+/* Drop page (boards Drop, DropDesktop). Builds on yolt.css. */
+@layer components {
+  /* The dark band: cover, title, countdown, hold bar. Countdown cells turn white on it. */
+  .drop-band { background: #0D0D0C; color: #FFFFFF; border-radius: 0 0 28px 28px; }
+  .drop-band :focus-visible { outline-color: #FFFFFF; }
+  .drop-band .cd .cell { background: #FFFFFF; color: #0D0D0C; }
+  .drop-band a:not(.btn) { color: #FFFFFF; }
+  @media (min-width: 1024px) {
+    .drop-band { border-radius: 28px; position: sticky; top: 92px; }
+  }
+
+  /* A piece: a row with a small photo on phones, a tile on desktop. */
+  .dp { display: flex; gap: 14px; padding: 12px; background: var(--surface); border-radius: var(--r-lg); box-shadow: inset 0 0 0 1px var(--line); }
+  .dp.is-mine { box-shadow: inset 0 0 0 2px var(--foreground); }
+  .dp .photo { width: 96px; flex-shrink: 0; display: block; border-radius: 12px; overflow: hidden; }
+  .dp .photo .ph { border-radius: 12px; }
+  .dp.is-gone .photo { opacity: .5; }
+  .dp.is-taken .photo { opacity: .7; }
+  .dp .claimflip { animation: yolt-flip 360ms var(--ease) both; transform-origin: 50% 50%; }
+  @media (min-width: 1024px) {
+    .dp { flex-direction: column; gap: 10px; padding: 0; background: transparent; box-shadow: none; }
+    .dp.is-mine { box-shadow: none; }
+    .dp .photo { width: 100%; border-radius: 20px; }
+    .dp .photo .ph { border-radius: 20px; }
+    .dp.is-mine .photo { box-shadow: 0 0 0 3px #0D0D0C; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dp .claimflip { animation: none; }
+  }
+}

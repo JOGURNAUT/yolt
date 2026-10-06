@@ -1,43 +1,44 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { connection } from "next/server";
-import { listPublicDrops } from "@yolt/core";
-import { formatIST } from "@/lib/format";
-import { db } from "@/lib/server/db";
+import { DropTicket, EndedDropTicket } from "@/components/landing/drop-ticket";
+import { ButtonLink } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { getDropsPage } from "@/lib/server/queries";
+import { getCurrentUser } from "@/lib/server/session";
 
 export const metadata: Metadata = { title: "Drops" };
 
+/** `/drops` (boards Drops, DropsDesktop): live now, upcoming and recently ended, as ticket stubs. */
 export default async function DropsPage() {
-  await connection();
-  const drops = await listPublicDrops(db);
-  const live = drops.filter((d) => d.status === "LIVE");
-  const upcoming = drops.filter((d) => d.status === "SCHEDULED");
+  const user = await getCurrentUser();
+  const { live, upcoming, ended, reminders } = await getDropsPage(user?.userId ?? null);
+  const none = live.length + upcoming.length + ended.length === 0;
 
-  const card = (d: (typeof drops)[number]) => (
-    <li key={d.id}>
-      <Link href={`/d/${d.id}`} className="block rounded-lg border border-line bg-surface p-4 hover:border-foreground">
-        <p className="text-xs uppercase tracking-wide text-muted">{d.status === "LIVE" ? "Live now" : formatIST(d.startsAt)}</p>
-        <p className="font-semibold">{d.title}</p>
-        <p className="text-sm text-muted">
-          {d.sellerName} · {d.items} {d.items === 1 ? "piece" : "pieces"}
-        </p>
-      </Link>
-    </li>
+  const group = (title: string, children: React.ReactNode) => (
+    <section aria-label={title} className="flex flex-col gap-3">
+      <h2 className="t-h2">{title}</h2>
+      <div className="grid gap-3 lg:grid-cols-2 lg:gap-5">{children}</div>
+    </section>
   );
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold">Drops</h1>
-      {live.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold">Live now</h2>
-          <ul className="grid gap-3 sm:grid-cols-2">{live.map(card)}</ul>
-        </section>
+    <div className="flex flex-col gap-6 lg:gap-8">
+      <div className="flex flex-col gap-1.5">
+        <h1 className="t-display">Drops</h1>
+        <p className="t-small muted lg:t-body">Drops open on our clock. First to claim gets 5 minutes to pay.</p>
+      </div>
+
+      {none ? (
+        <EmptyState tag="No drops" title="No drops right now" action={<ButtonLink href="/search">Find stores to follow</ButtonLink>}>
+          Follow stores to hear when the next one is announced.
+        </EmptyState>
+      ) : (
+        <>
+          {live.length > 0 && group("Live now", live.map((d) => <DropTicket key={d.id} drop={d} signedIn={user !== null} reminderOn={reminders.has(d.id)} />))}
+          {upcoming.length > 0 && group("Upcoming", upcoming.map((d) => <DropTicket key={d.id} drop={d} signedIn={user !== null} reminderOn={reminders.has(d.id)} />))}
+          {live.length + upcoming.length === 0 && <p className="t-body muted">Nothing is live or announced yet. Follow stores to hear first.</p>}
+          {ended.length > 0 && group("Recently ended", ended.map((d) => <EndedDropTicket key={d.id} drop={d} />))}
+        </>
       )}
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Coming up</h2>
-        {upcoming.length ? <ul className="grid gap-3 sm:grid-cols-2">{upcoming.map(card)}</ul> : <p className="text-sm text-muted">No drops announced yet. Follow stores to hear first.</p>}
-      </section>
     </div>
   );
 }

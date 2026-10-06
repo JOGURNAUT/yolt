@@ -421,6 +421,16 @@ export async function getDropsPage(userId: string | null) {
   };
 }
 
+/** A cancelled drop's name and store, so its link says so instead of "not found". Drafts stay hidden. */
+export async function getCancelledDrop(dropId: string) {
+  const [row] = await db
+    .select({ title: drops.title, storeName: sellers.displayName, handle: sellers.handle })
+    .from(drops)
+    .innerJoin(sellers, eq(sellers.id, drops.sellerId))
+    .where(and(eq(drops.id, dropId), eq(drops.status, "CANCELLED"), eq(sellers.status, "APPROVED")));
+  return row ?? null;
+}
+
 /** The buyer's pieces held right now in this drop, with the order that pays for them. */
 export async function getDropHolds(userId: string, dropId: string) {
   return db
