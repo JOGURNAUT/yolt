@@ -40,7 +40,7 @@ export default async function SellerPayoutsPage({ searchParams }: PageProps<"/se
         ))}
       </section>
 
-      <p className="t-small rounded-[14px] bg-surface-2 p-3.5">
+      <p className="t-small rounded-none bg-surface-2 p-3.5">
         You get the item price plus the shipping the buyer paid. Commission ₹0 · Pilot: no commission. An order is released 48 hours after delivery if no report is open.
       </p>
 

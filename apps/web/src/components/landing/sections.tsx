@@ -178,8 +178,8 @@ export function WhyYolt() {
       </h2>
       <ul className="grid gap-3.5 lg:grid-cols-3 lg:gap-6">
         {WHY.map(({ icon: Icon, title, body, ...rest }) => (
-          <li key={title} className="flex items-start gap-3.5 rounded-2xl bg-surface p-4 shadow-[inset_0_0_0_1px_var(--line)] lg:flex-col lg:gap-2.5 lg:rounded-[20px] lg:p-6">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent lg:h-12 lg:w-12 lg:rounded-[14px]">
+          <li key={title} className="flex items-start gap-3.5 rounded-2xl bg-surface p-4 shadow-[inset_0_0_0_1px_var(--line)] lg:flex-col lg:gap-2.5 lg:rounded-none lg:p-6">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-on-accent lg:h-12 lg:w-12 lg:rounded-none">
               <Icon aria-hidden className="ic ic-24" strokeWidth={ICON_STROKE} />
             </span>
             <div className="flex flex-col gap-1">
@@ -217,7 +217,7 @@ export function ShopByPrice() {
           <li key={p.label}>
             <Link
               href={`/search?price=${p.query}`}
-              className="flex h-28 flex-col justify-between rounded-2xl bg-surface p-4 text-foreground no-underline shadow-[inset_0_0_0_1.5px_var(--foreground)] lg:h-[132px] lg:rounded-[20px] lg:p-5"
+              className="flex h-28 flex-col justify-between rounded-2xl bg-surface p-4 text-foreground no-underline shadow-[inset_0_0_0_1.5px_var(--foreground)] lg:h-[132px] lg:rounded-none lg:p-5"
             >
               <span className="self-start">
                 <HangTag ink size="md">
@@ -310,7 +310,7 @@ export function SellerBand() {
   return (
     <section
       aria-labelledby="sell-h"
-      className="band-dark relative -mx-4 mt-12 flex flex-col gap-[18px] overflow-hidden px-4 pb-10 pt-9 lg:mx-0 lg:mt-20 lg:grid lg:grid-cols-[1.3fr_1fr] lg:items-center lg:gap-10 lg:rounded-[28px] lg:p-12"
+      className="band-dark relative -mx-4 mt-12 flex flex-col gap-[18px] overflow-hidden px-4 pb-10 pt-9 lg:mx-0 lg:mt-20 lg:grid lg:grid-cols-[1.3fr_1fr] lg:items-center lg:gap-10 lg:rounded-none lg:p-12"
     >
       <div className="flex flex-col items-start gap-[18px]">
         <Sticker>For sellers</Sticker>

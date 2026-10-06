@@ -41,7 +41,7 @@ export function SellerNav({ store, toShip }: { store: { name: string; handle: st
             Seller
           </Sticker>
         </div>
-        <Link href={`/s/${store.handle}`} className="flex items-center gap-2.5 rounded-[14px] bg-surface-2 p-2.5 !no-underline" style={{ color: "inherit" }}>
+        <Link href={`/s/${store.handle}`} className="flex items-center gap-2.5 rounded-none bg-surface-2 p-2.5 !no-underline" style={{ color: "inherit" }}>
           <StoreMark store={store} />
           <span className="flex min-w-0 flex-col gap-0.5">
             <span className="t-small truncate font-bold">{store.name}</span>

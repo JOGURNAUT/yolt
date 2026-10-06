@@ -10,10 +10,10 @@ export default function Loading() {
     <div aria-busy="true" aria-label="Loading" className="page-wide">
       <AnnouncementTicker items={["Every flaw photographed", "Pay safely through YOLT. Never a personal UPI QR"]} className="bleed-x -mt-4 mb-1 lg:-mt-6 lg:mb-3" />
       <div className="hero-bleed grid gap-6 lg:grid-cols-12">
-        <Skeleton className="h-[330px] !rounded-[24px] lg:col-span-8 lg:h-[348px]" />
+        <Skeleton className="h-[330px] !rounded-none lg:col-span-8 lg:h-[348px]" />
         <div className="hidden h-[348px] flex-col gap-6 lg:col-span-4 lg:flex">
-          <Skeleton className="flex-1 !rounded-[20px]" />
-          <Skeleton className="flex-1 !rounded-[20px]" />
+          <Skeleton className="flex-1 !rounded-none" />
+          <Skeleton className="flex-1 !rounded-none" />
         </div>
       </div>
       <div className="flex flex-col gap-2 pt-4 lg:pt-5">

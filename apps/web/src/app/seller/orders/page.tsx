@@ -71,7 +71,7 @@ export default async function SellerOrdersPage({ searchParams }: PageProps<"/sel
         ))}
       </nav>
 
-      <p className="t-small flex items-start gap-2.5 rounded-[14px] bg-surface-2 p-3.5">{NOTES[tab]}</p>
+      <p className="t-small flex items-start gap-2.5 rounded-none bg-surface-2 p-3.5">{NOTES[tab]}</p>
 
       {empty ? (
         <p className="t-small muted py-10 text-center">{EMPTY[tab]}</p>

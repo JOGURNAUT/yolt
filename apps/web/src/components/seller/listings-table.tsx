@@ -100,7 +100,7 @@ export function ListingsTable({ rows, selectable }: { rows: ListingRowData[]; se
         <div
           role="region"
           aria-label="Bulk actions"
-          className={cx("flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-[14px] px-4 py-2", selected.length > 0 ? "bg-[#0d0d0c] text-white" : "bg-surface-2")}
+          className={cx("flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 rounded-none px-4 py-2", selected.length > 0 ? "bg-[#0d0d0c] text-white" : "bg-surface-2")}
         >
           {selected.length > 0 ? (
             <>
