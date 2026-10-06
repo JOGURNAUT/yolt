@@ -3,3 +3,4 @@ export * from "./phone";
 export * from "./attribution";
 export * from "./address";
 export * from "./search";
+export * from "./profile";
