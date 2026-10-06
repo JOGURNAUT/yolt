@@ -24,6 +24,7 @@ import {
   searchListings,
   startPayment,
   type AuthSecrets,
+  type PushSender,
 } from "@yolt/core";
 import { asComplete, holds, listings, orderItems, orders, paymentAttempts, sellers, shipments, users, type Db } from "@yolt/db";
 import { FIRST_TOUCH_COOKIE, parseSearchParams } from "@yolt/shared";
@@ -57,6 +58,7 @@ export type AppDeps = {
   /** Present only outside production: lets the local UI "complete" a payment. */
   sandbox?: SandboxPaymentProvider;
   otp: OtpSender;
+  push: PushSender;
   authSecrets: AuthSecrets;
   /** Local development only: one-click login as any user (/api/dev/login). */
   devLogin: boolean;

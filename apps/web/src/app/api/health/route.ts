@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { appEnv, missingConfig } from "@/lib/env";
+import { appEnv, missingConfig, missingOptionalConfig } from "@/lib/env";
 import { db } from "@/lib/server/db";
 
 /**
@@ -16,5 +16,7 @@ export async function GET() {
     database = "unreachable";
   }
   const ok = database === "ok" && missing.length === 0;
-  return Response.json({ ok, env: appEnv(), database, missingConfig: missing }, { status: ok ? 200 : 503, headers: { "Cache-Control": "no-store" } });
+  const pushMissing = missingOptionalConfig();
+  const push = pushMissing.length === 0 ? "on" : "off";
+  return Response.json({ ok, env: appEnv(), database, missingConfig: missing, push, missingOptionalConfig: pushMissing },{ status: ok ? 200 : 503, headers: { "Cache-Control": "no-store" } });
 }
