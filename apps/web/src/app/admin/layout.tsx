@@ -1,35 +1,40 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ReauthButton } from "@/components/admin/admin-actions";
+import { connection } from "next/server";
+import { AdminNav } from "@/components/admin/admin-nav";
+import { ReauthButton } from "@/components/admin/admin-ui";
+import { getAdminDashboardCounts } from "@/lib/server/admin-queries";
 import { requireAdmin } from "@/lib/server/session";
+import "@/styles/seller.css";
 
 export const metadata: Metadata = { title: { default: "Admin", template: "%s · Admin" }, robots: { index: false } };
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
+  await connection();
   const { role, stale } = await requireAdmin();
+  const counts = stale ? null : await getAdminDashboardCounts();
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
-        <p className="font-semibold">
-          YOLT admin <span className="ml-1 rounded bg-placeholder px-1.5 text-xs font-normal">{role}</span>
-        </p>
-        <nav className="flex flex-wrap gap-4 text-sm">
-          <Link href="/admin" className="hover:underline">Overview</Link>
-          <Link href="/admin/claims" className="hover:underline">Claims</Link>
-          <Link href="/admin/sellers" className="hover:underline">Sellers</Link>
-          <Link href="/admin/refunds" className="hover:underline">Refunds</Link>
-          <Link href="/admin/audit" className="hover:underline">Audit log</Link>
-        </nav>
+    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
+      <AdminNav role={role} counts={{ sellers: counts?.new_applications ?? 0, reports: counts?.escalated_reports ?? 0, refunds: counts?.open_refunds ?? 0 }} />
+      <div className="min-w-0 space-y-5">
+        {stale ? (
+          <section role="alert" className="sec is-emphasis">
+            <h1 className="t-h2">Sign in again to make admin changes</h1>
+            <p className="t-body muted">Your login is more than 12 hours old. Admin actions move money and change stores, so sign in again with your phone to continue.</p>
+            <div>
+              <ReauthButton />
+            </div>
+          </section>
+        ) : (
+          <>
+            {role === "SUPPORT" && (
+              <p role="note" className="t-small rounded-xl bg-surface-2 p-3">
+                <strong>Read-only access.</strong> You can see everything here, but only an admin can change it.
+              </p>
+            )}
+            {children}
+          </>
+        )}
       </div>
-      {stale ? (
-        <div className="space-y-3 rounded-lg border border-line bg-surface p-6 text-sm">
-          <p className="font-medium">Your login is more than 12 hours old.</p>
-          <p className="text-muted">Admin actions move money and change stores, so sign in again with your phone to continue.</p>
-          <ReauthButton />
-        </div>
-      ) : (
-        children
-      )}
     </div>
   );
 }

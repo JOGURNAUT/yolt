@@ -21,22 +21,6 @@ const ERRORS: Record<string, string> = {
 };
 const message = (e?: string, field?: string) => (e === "INVALID" && field ? `Check the ${field} field.` : ERRORS[e ?? ""] ?? "Something went wrong.");
 
-export function ReauthButton() {
-  const router = useRouter();
-  return (
-    <button
-      type="button"
-      className="rounded-full bg-foreground px-4 py-2 font-semibold text-background"
-      onClick={async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login?next=/admin");
-      }}
-    >
-      Sign in again
-    </button>
-  );
-}
-
 /** Refund or reject a claim, with a reason for the audit log. */
 export function DecideClaim({ claimId }: { claimId: string }) {
   const router = useRouter();
