@@ -2,6 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Printer, Truck } from "lucide-react";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { cx, ICON_STROKE } from "@/components/ui/cx";
 
 type Shipment = { awb: string; courierName: string; labelUrl: string | null; status: string } | null;
 
@@ -13,13 +16,11 @@ const ERRORS: Record<string, string> = {
   SHIPPING_UNAVAILABLE: "Courier booking is unavailable right now. Try again in a few minutes.",
 };
 
-export function SellerOrderActions({ orderId, status, shipment, devShipping }: { orderId: string; status: string; shipment: Shipment; devShipping: boolean }) {
+/** POSTs to the seller API and refreshes the page; returns an error message, or null on success. */
+function useCall() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState(false);
-  const [reason, setReason] = useState("");
-
   async function call(path: string, body?: unknown) {
     setBusy(true);
     setError(null);
@@ -37,82 +38,94 @@ export function SellerOrderActions({ orderId, status, shipment, devShipping }: {
     router.refresh();
     return true;
   }
+  return { call, busy, error };
+}
 
-  const canCancel = status === "CONFIRMED" || (status === "PACKED" && shipment?.status === "BOOKED");
+/** Book the pickup, then print the label; in development, a button that plays the courier's scans. */
+export function SellerOrderActions({ orderId, status, shipment, devShipping }: { orderId: string; status: string; shipment: Shipment; devShipping: boolean }) {
+  const { call, busy, error } = useCall();
 
   return (
-    <section className="space-y-3">
+    <div className="space-y-3">
       {status === "CONFIRMED" && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => call(`/api/seller/orders/${orderId}/ship`)}
-          className="w-full rounded-full bg-foreground py-3 font-semibold text-background disabled:opacity-60 sm:w-auto sm:px-8"
-        >
-          {busy ? "Booking…" : "Packed — book pickup"}
-        </button>
+        <Button size="lg" loading={busy} onClick={() => call(`/api/seller/orders/${orderId}/ship`)} className="w-full sm:w-auto sm:px-8">
+          <Truck aria-hidden className="ic" strokeWidth={ICON_STROKE} />
+          Packed — book pickup
+        </Button>
       )}
 
       {shipment && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-surface p-3 text-sm">
-          <span>
-            {shipment.courierName} · AWB <span className="font-mono">{shipment.awb}</span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-surface-2 p-3.5">
+          <span className="t-small">
+            <strong>{shipment.courierName}</strong> · AWB <span className="t-mono !text-[13px]">{shipment.awb}</span>
           </span>
           {shipment.labelUrl && status === "PACKED" && (
-            <a href={shipment.labelUrl} target="_blank" rel="noopener" className="rounded-full border border-line px-3 py-1 hover:border-foreground">
+            <ButtonLink href={shipment.labelUrl} target="_blank" rel="noopener" variant="secondary" size="sm" className="!h-11">
+              <Printer aria-hidden className="ic ic-16" strokeWidth={ICON_STROKE} />
               Print label
-            </a>
+            </ButtonLink>
           )}
           {devShipping && !["DELIVERED", "RTO", "CANCELLED"].includes(shipment.status) && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               disabled={busy}
               onClick={() => call(`/api/dev/shipments/${shipment.awb}/advance`, {})}
-              className="rounded-full border border-dashed border-line px-3 py-1 text-muted"
+              className="!h-11 !border !border-dashed !border-muted"
             >
               Dev: next courier scan
-            </button>
+            </Button>
           )}
         </div>
       )}
 
-      {canCancel &&
-        (cancelling ? (
-          <form
-            className="space-y-2 rounded-lg border border-line p-3"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (await call(`/api/seller/orders/${orderId}/cancel`, { reason })) setCancelling(false);
-            }}
-          >
-            <label className="block text-sm">
-              <span className="font-medium">Why can&apos;t you send it?</span>
-              <textarea
-                className="mt-1 w-full rounded-md border border-line bg-background px-3 py-2"
-                value={reason}
-                minLength={3}
-                maxLength={300}
-                required
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </label>
-            <p className="text-xs text-muted">The buyer gets a full refund. The item is taken off sale; you can relist it later.</p>
-            <div className="flex gap-2">
-              <button type="submit" disabled={busy} className="rounded-full bg-danger px-4 py-2 text-sm font-semibold text-background disabled:opacity-60">
-                Cancel order
-              </button>
-              <button type="button" onClick={() => setCancelling(false)} className="rounded-full border border-line px-4 py-2 text-sm">
-                Keep order
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button type="button" onClick={() => setCancelling(true)} className="text-sm text-muted underline">
-            I can&apos;t send this order
-          </button>
-        ))}
+      <p role="alert" aria-live="polite" className={cx("t-small font-semibold text-danger", !error && "hidden")}>
+        {error}
+      </p>
+    </div>
+  );
+}
 
-      <p role="alert" aria-live="polite" className="text-sm text-danger">
+/** "Can't send it?": cancel with a reason; the buyer is refunded in full. */
+export function CancelOrder({ orderId }: { orderId: string }) {
+  const { call, busy, error } = useCall();
+  const [cancelling, setCancelling] = useState(false);
+  const [reason, setReason] = useState("");
+
+  return (
+    <section aria-labelledby="cancel-h" className="card flex flex-col gap-2.5 p-5">
+      <h2 id="cancel-h" className="t-h3 !normal-case">
+        Can&apos;t send it?
+      </h2>
+      <p className="t-small muted">Cancel now and the buyer gets a full refund. This counts toward your cancellation rate.</p>
+      {cancelling ? (
+        <form
+          className="space-y-3"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (await call(`/api/seller/orders/${orderId}/cancel`, { reason })) setCancelling(false);
+          }}
+        >
+          <label className="field">
+            Why can&apos;t you send it?
+            <textarea className="input !h-auto min-h-24 !py-3 !leading-[1.4]" value={reason} minLength={3} maxLength={300} required onChange={(e) => setReason(e.target.value)} />
+            <span className="help">The item is taken off sale; you can relist it later. {reason.length} / 300</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" variant="danger" loading={busy}>
+              Cancel order
+            </Button>
+            <Button variant="secondary" onClick={() => setCancelling(false)}>
+              Keep order
+            </Button>
+          </div>
+        </form>
+      ) : (
+        <Button variant="ghost" className="!h-11 self-start !px-0 !text-danger" onClick={() => setCancelling(true)}>
+          I can&apos;t send this order
+        </Button>
+      )}
+      <p role="alert" aria-live="polite" className={cx("t-small font-semibold text-danger", !error && "hidden")}>
         {error}
       </p>
     </section>
