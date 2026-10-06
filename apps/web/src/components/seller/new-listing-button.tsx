@@ -2,26 +2,37 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ICON_STROKE } from "@/components/ui/cx";
 
-export function NewListingButton() {
+export function NewListingButton({ className }: { className?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   async function create() {
     setBusy(true);
+    setFailed(false);
     const res = await fetch("/api/seller/listings", { method: "POST" });
     if (res.ok) {
       const { id } = (await res.json()) as { id: string };
       router.push(`/seller/listings/${id}`);
-    } else setBusy(false);
+    } else {
+      setBusy(false);
+      setFailed(true);
+    }
   }
   return (
-    <button
-      type="button"
-      onClick={create}
-      disabled={busy}
-      className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:opacity-60"
-    >
-      {busy ? "Starting…" : "New listing"}
-    </button>
+    <>
+      <Button onClick={create} loading={busy} className={className}>
+        <Plus aria-hidden className="ic" strokeWidth={ICON_STROKE} />
+        New listing
+      </Button>
+      {failed && (
+        <span role="alert" className="t-small text-danger">
+          Couldn&apos;t start a listing. Try again.
+        </span>
+      )}
+    </>
   );
 }
