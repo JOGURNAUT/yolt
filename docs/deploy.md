@@ -42,13 +42,14 @@ No CORS setup is needed: uploads go through the app server, which strips photo m
 | `MEDIA_BUCKET` | `yolt-media` |
 | `MEDIA_ACCESS_KEY_ID` / `MEDIA_SECRET_ACCESS_KEY` | from the R2 token |
 | `MEDIA_PUBLIC_BASE_URL` | the bucket's public URL |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | optional until you want web push: `npx web-push generate-vapid-keys` for the pair, and a `mailto:` contact for the subject. Without all three, push is off and `/api/health` lists them under `missingOptionalConfig`. |
 | `LEGAL_ENTITY_NAME`, `LEGAL_ADDRESS`, `SUPPORT_EMAIL`, `GRIEVANCE_OFFICER_NAME`, `GRIEVANCE_EMAIL` | your company details (placeholders show until set) |
 
 4. Deploy. Then open `https://<your-app>.vercel.app/api/health`. It should return `"ok": true`; if not, `missingConfig` lists the settings still missing (names only).
 
 ## 4. Scheduled jobs: GitHub Actions
 
-Vercel's free plan only runs crons once a day, so reservation expiry and order closing run from `.github/workflows/cron.yml` every 5 minutes. Checkout also frees expired reservations by itself, so a delay here never blocks a sale.
+Vercel's free plan only runs crons once a day, so reservation expiry, drops, push notifications and order closing run from `.github/workflows/cron.yml` every 5 minutes. Checkout also frees expired reservations by itself, so a delay here never blocks a sale.
 
 In the GitHub repo → Settings → Secrets and variables → Actions:
 - Variable `CRON_BASE_URL` = `https://<your-app>.vercel.app`
