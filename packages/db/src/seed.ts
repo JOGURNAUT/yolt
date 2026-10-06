@@ -33,7 +33,19 @@ const inStock: Item[] = [
       "Black cargo pants with legs that zip off at the knee, so they turn into shorts. Loaded with hardware: D-ring straps at the waist, buckle-and-eyelet pockets on both thighs, a column of eyelets down the back and long strap tails that hang at the sides. Soft washed black cotton twill with a wide, relaxed leg. The hem is frayed on both legs; everything else is in good shape. Measured flat, one side.",
     pricePaise: 219900,
   },
-  { title: "Vintage Levi's 501 jeans", category: "jeans", brandDeclared: "Levi's", tagSize: "W32 L32", measurements: { basis: "FLAT", waistCm: 41, lengthCm: 104, inseamCm: 80 }, condition: "GOOD", flaws: "Small bleach spot near left back pocket (photo 5).", pricePaise: 129900 },
+  {
+    title: 'Evisu "Year of the Rooster" selvedge jeans, no. 002 of 380',
+    category: "jeans",
+    brandDeclared: "Evisu",
+    tagSize: "W31",
+    // 31 in waist, 40 in length (the seller gave rise and thigh too; those have no field yet, so they are in the description).
+    measurements: { basis: "AROUND", waistCm: 79, lengthCm: 102 },
+    condition: "LIKE_NEW",
+    noFlawsConfirmed: true,
+    description:
+      "Evisu's collectable \"Year of the Rooster\" jeans, made in limited numbers: only 380 pieces in the world, and this is no. 002. Signature 2008 regular-fit selvedge denim. The coin pocket carries the red Godhead print. The Kanji character for Rooster and the Katakana characters of Evisu are on the rear pockets, and motifs of a fierce rooster and kamon are embroidered on the black Daicock insert. As measured by the seller: waist 31 in, length 40 in, rise 12 in, thigh 12 in.",
+    pricePaise: 1450000,
+  },
   { title: "Oversized Carhartt workwear jacket, brown", category: "jackets", brandDeclared: "Carhartt", tagSize: "L", measurements: { basis: "FLAT", chestCm: 64, lengthCm: 74, sleeveCm: 62 }, condition: "LIKE_NEW", noFlawsConfirmed: true, pricePaise: 245000 },
   { title: "Y2K graphic baby tee", category: "tops", tagSize: "S", measurements: { basis: "FLAT", chestCm: 42, lengthCm: 50 }, condition: "GOOD", noFlawsConfirmed: true, pricePaise: 54900 },
   { title: "Nike Air Force 1 '07", category: "sneakers", brandDeclared: "Nike", tagSize: "UK 8", measurements: { footLengthCm: 27 }, condition: "FAIR", flaws: "Creasing on toe box, yellowing on sole edge.", pricePaise: 320000 },

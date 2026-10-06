@@ -40,8 +40,8 @@ test("product pages: available can be bought, sold out and coming soon can't", a
 });
 
 test("search finds pieces, tolerates typos, and filters by measurements", async ({ page }) => {
-  await page.goto("/search?q=levis");
-  await expect(page.getByRole("link", { name: /Vintage Levi's 501 jeans/ }).first()).toBeVisible();
+  await page.goto("/search?q=evisu");
+  await expect(page.getByRole("link", { name: /Evisu .Year of the Rooster. selvedge jeans/ }).first()).toBeVisible();
 
   await page.goto("/search?q=carhart"); // missing a "t"
   await expect(page.getByRole("link", { name: /Carhartt workwear jacket/ }).first()).toBeVisible();
