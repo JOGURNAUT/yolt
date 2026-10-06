@@ -91,8 +91,8 @@ export function GrailsRail({ items }: { items: CardItem[] }) {
   return (
     <aside aria-label="Grails picked by YOLT" className="hidden h-[348px] flex-col gap-6 lg:col-span-4 lg:flex">
       {items.slice(0, 2).map((g) => (
-        <Link key={g.id} href={`/p/${g.slug}`} className="card flex min-h-0 flex-1 gap-4 overflow-hidden rounded-[20px] p-3 text-foreground no-underline">
-          <div className="ph !h-[138px] !w-[110px] shrink-0 !rounded-xl">
+        <Link key={g.id} href={`/p/${g.slug}`} className="card flex min-h-0 flex-1 gap-4 overflow-hidden rounded-none p-3 text-foreground no-underline">
+          <div className="ph !h-[138px] !w-[110px] shrink-0 !rounded-none">
             <div className="shot">
               {g.coverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- switch to next/image once the media loader exists

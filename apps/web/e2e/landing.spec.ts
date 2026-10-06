@@ -68,6 +68,17 @@ test.describe("phone, 390 x 844", () => {
     await expect(slide(1)).toHaveAttribute("aria-current", "true");
   });
 
+  test("the carousel and its cards have square corners", async ({ page }) => {
+    await page.goto("/");
+    await expect(hero(page)).toBeVisible();
+    expect(await hero(page).evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe("0px");
+    // The brand slide's photo cards (placeholders when a piece has no photo) are square too.
+    const photos = hero(page).locator(".ph");
+    for (let i = 0; i < Math.min(await photos.count(), 3); i++) {
+      expect(await photos.nth(i).evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe("0px");
+    }
+  });
+
   test("hero autoplays every 6 seconds", async ({ page }) => {
     await page.goto("/");
     await expect(hero(page).getByRole("button", { name: /^Go to slide 2:/ })).toHaveAttribute("aria-current", "true", { timeout: 12_000 });

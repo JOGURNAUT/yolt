@@ -90,7 +90,7 @@ export function DropSlide({ drop, serverNow, signedIn, reminderOn, holdMinutes }
         </div>
         <div aria-hidden="true" className="ml-auto flex w-[26%] flex-col items-center justify-center gap-2 lg:flex-row">
           {drop.thumbs.map((t, i) => (
-            <GarmentImage key={i} src={t.coverUrl} alt={t.title} category={t.category} className="w-[58px] shrink-0 !rounded-[10px] lg:w-[30%]" />
+            <GarmentImage key={i} src={t.coverUrl} alt={t.title} category={t.category} className="w-[58px] shrink-0 !rounded-none lg:w-[30%]" />
           ))}
         </div>
       </div>
@@ -118,7 +118,7 @@ export function StoreSlide({ store, facts }: { store: SlideStore; facts: StoreFa
       <div aria-hidden="true" className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/45 to-transparent" />
       <div className="relative flex min-h-0 flex-1 flex-col items-start justify-between">
         <Sticker>Store spotlight</Sticker>
-        <div className="stagger flex max-w-none flex-col gap-2 self-stretch rounded-[18px] bg-white p-3 px-3.5 lg:max-w-[520px] lg:px-5 lg:py-4">
+        <div className="stagger flex max-w-none flex-col gap-2 self-stretch bg-white p-3 px-3.5 lg:max-w-[520px] lg:px-5 lg:py-4">
           <div className="flex items-center gap-2.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0D0D0C] text-white">
               {store.logoUrl ? (
@@ -172,7 +172,7 @@ export function EditSlide({ title, pieces }: { title: string; pieces: SlidePiece
         <div className="mt-auto flex items-end gap-2.5">
           {pieces.slice(0, 3).map((p) => (
             <Link key={p.id} href={`/p/${p.slug}`} aria-label={`${p.title}, ${formatINR(p.pricePaise)}`} className="relative w-24 shrink-0 lg:w-[120px]">
-              <GarmentImage src={p.coverUrl} alt={p.title} category={p.category} className="!rounded-[14px]" />
+              <GarmentImage src={p.coverUrl} alt={p.title} category={p.category} className="!rounded-none" />
               <span className="tagpos absolute left-1.5 top-2">
                 <span className="[&_.hangtag]:h-[22px] [&_.hangtag]:pl-[17px] [&_.hangtag]:pr-2 [&_.hangtag]:text-[11px]">
                   <HangTag>{formatINR(p.pricePaise)}</HangTag>
