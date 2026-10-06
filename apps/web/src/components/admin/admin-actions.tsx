@@ -27,36 +27,6 @@ const ERRORS: Record<string, string> = {
 };
 const message = (e?: string, field?: string) => (e === "INVALID" && field ? `Check the ${field} field.` : ERRORS[e ?? ""] ?? "Something went wrong.");
 
-/** Refund or reject a claim, with a reason for the audit log. */
-export function DecideClaim({ claimId }: { claimId: string }) {
-  const router = useRouter();
-  const [reason, setReason] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  async function decide(decision: "REFUND" | "REJECT") {
-    if (!window.confirm(decision === "REFUND" ? "Refund the buyer in full?" : "Reject this claim (no refund)?")) return;
-    setBusy(true);
-    const r = await post(`/api/admin/claims/${claimId}/decide`, { decision, reason });
-    setBusy(false);
-    if (r.ok) router.refresh();
-    else setError(message(r.data.error));
-  }
-  return (
-    <div className="space-y-2">
-      <textarea className="w-full rounded-md border border-line bg-background px-3 py-2 text-sm" placeholder="Reason for the decision (shown in the audit log)" value={reason} onChange={(e) => setReason(e.target.value)} />
-      <div className="flex gap-2">
-        <button type="button" disabled={busy} onClick={() => decide("REFUND")} className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:opacity-60">
-          Refund buyer
-        </button>
-        <button type="button" disabled={busy} onClick={() => decide("REJECT")} className="rounded-full border border-line px-4 py-2 text-sm disabled:opacity-60">
-          Reject claim
-        </button>
-      </div>
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
-    </div>
-  );
-}
-
 /** Verify KYC / suspend / reinstate, each asking for a reason. */
 export function SellerStatusActions({ sellerId, status, kycStatus, name }: { sellerId: string; status: string; kycStatus: string; name: string }) {
   const router = useRouter();
