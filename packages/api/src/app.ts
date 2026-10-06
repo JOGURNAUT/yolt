@@ -9,6 +9,7 @@ import {
   openDueDrops,
   queueDropReminders,
   createCheckout,
+  deliverNotifications,
   createSession,
   getBuyerOrder,
   getBuyerOrders,
@@ -42,6 +43,7 @@ import { dropRoutes } from "./routes/drops";
 import { trustRoutes } from "./routes/trust";
 import { homeRoutes, sellerApplicationRoutes } from "./routes/home";
 import { meRoutes } from "./routes/me";
+import { pushRoutes } from "./routes/push";
 import {
   DevShippingProvider,
   estimatedWeightGrams,
@@ -508,6 +510,7 @@ export function createApp(deps: AppDeps) {
   app.route("/home", homeRoutes({ db }));
   app.route("/seller-applications", sellerApplicationRoutes({ db, secrets: deps.authSecrets }));
   app.route("/me", meRoutes({ db, secureCookies }));
+  app.route("/push", pushRoutes({ db, push: deps.push, secrets: deps.authSecrets }));
   app.route("/", trustRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------
@@ -527,6 +530,13 @@ export function createApp(deps: AppDeps) {
     }
     const [reminders, opened, ended] = [await queueDropReminders(db), await openDueDrops(db), await endFinishedDrops(db)];
     return c.json({ ...reminders, ...opened, ...ended });
+  });
+
+  app.get("/cron/notifications", async (c) => {
+    if (!deps.cronSecret || c.req.header("authorization") !== `Bearer ${deps.cronSecret}`) {
+      return c.json({ error: "UNAUTHORIZED" }, 401);
+    }
+    return c.json(await deliverNotifications(db, deps.push, { limit: 100 }));
   });
 
   app.get("/cron/close-delivered", async (c) => {

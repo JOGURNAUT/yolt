@@ -9,6 +9,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/notifications",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/close-delivered",
       "schedule": "0 * * * *"
     }

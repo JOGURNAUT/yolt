@@ -68,7 +68,7 @@ export async function subscribePush(
       userId: input.userId,
       p256dh: input.p256dh,
       auth: input.auth,
-      userAgent: deviceLabel(input.userAgent),
+      ...(input.userAgent ? { userAgent: deviceLabel(input.userAgent) } : {}),
       revokedAt: null,
     };
     if (existing) {
