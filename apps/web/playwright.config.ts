@@ -27,7 +27,10 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"], browserName: "chromium" } },
   ],
   webServer: {
-    command: `pnpm exec next start --port ${E2E_PORT}`,
+    // Run next directly (the e2e script puts node_modules/.bin on PATH): a `pnpm exec` wrapper
+    // doesn't pass the stop signal on in CI, so the run finished but never exited.
+    command: `next start --port ${E2E_PORT}`,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
     // Wait for the port, not /api/health: global setup creates the database after the server starts.
     port: E2E_PORT,
     reuseExistingServer: !process.env.CI,
