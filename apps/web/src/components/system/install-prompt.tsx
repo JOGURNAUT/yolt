@@ -158,14 +158,12 @@ export function InstallCard() {
       <Image src="/icons/icon-192.png" alt="" width={44} height={44} className="size-11 shrink-0 rounded-[10px]" unoptimized />
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-1">
-          <h2 className="t-h3">Add YOLT to your home screen for drop reminders</h2>
-          {variant === "ios" ? (
+          <h2 className="t-h3">{variant === "ios" ? "Add YOLT to your home screen" : "Add YOLT to your home screen for drop reminders"}</h2>
+          {variant === "ios" && (
             <p className="t-small muted">
-              Tap <Share aria-hidden className="ic ic-16 inline-block align-[-3px]" strokeWidth={ICON_STROKE} /> <strong className="text-foreground">Share</strong>, then{" "}
-              <SquarePlus aria-hidden className="ic ic-16 inline-block align-[-3px]" strokeWidth={ICON_STROKE} /> <strong className="text-foreground">Add to Home Screen</strong>.
+              In Safari, tap <Share aria-hidden className="ic ic-16 inline-block align-[-3px]" strokeWidth={ICON_STROKE} /> <strong className="text-foreground">Share</strong>, then{" "}
+              <SquarePlus aria-hidden className="ic ic-16 inline-block align-[-3px]" strokeWidth={ICON_STROKE} /> <strong className="text-foreground">Add to Home Screen</strong>. Reminders work from there.
             </p>
-          ) : (
-            <p className="t-small muted">One tap, no app store. Opens like an app.</p>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -174,8 +172,8 @@ export function InstallCard() {
               Add to home screen
             </Button>
           )}
-          <Button size="md" variant={variant === "ios" ? "secondary" : "ghost"} onClick={dismiss}>
-            Not now
+          <Button size="md" variant="ghost" onClick={dismiss}>
+            {variant === "ios" ? "Got it" : "Not now"}
           </Button>
         </div>
       </div>

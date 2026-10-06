@@ -157,7 +157,7 @@ test("install card: not on arrival, after the order is confirmed, dismissible an
   await iosPage.goto(checkoutUrl);
   const iosCard = iosPage.getByRole("region", { name: "Add YOLT to your home screen" });
   await expect(iosCard).toBeVisible();
-  await expect(iosCard).toContainText("Tap");
+  await expect(iosCard).toContainText("In Safari, tap");
   await expect(iosCard).toContainText("Add to Home Screen");
   await expect(iosCard.getByRole("button", { name: "Add to home screen" })).toHaveCount(0);
   await noHorizontalScroll(iosPage);
