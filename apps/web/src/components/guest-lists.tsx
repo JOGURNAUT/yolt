@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { formatINR } from "@/lib/format";
+import { BagLine, StoreInitials } from "./bag/bag-line";
 import { GarmentImage } from "./garment-image";
 import { useShop } from "./shop-state";
 import { ButtonLink } from "./ui/button";
+import { EmptyState } from "./ui/empty-state";
 
 type Card = {
   id: string;
@@ -72,38 +74,47 @@ export function GuestSaved() {
 
 /** A guest's bag: shown grouped by store; checking out needs sign-in, which merges it into the account. */
 export function GuestBag() {
-  const { bagIds, removeFromBag } = useShop();
+  const { bagIds } = useShop();
   const cards = useCards(bagIds);
   if (cards === null) return <p className="text-sm text-muted">Loading…</p>;
-  if (cards.length === 0) return <p className="py-6 text-sm text-muted">Your bag is empty.</p>;
+  if (cards.length === 0)
+    return (
+      <EmptyState
+        tag="Empty"
+        title="Your bag is empty."
+        className="mx-auto w-full max-w-md"
+        action={
+          <div className="flex flex-col items-center gap-1">
+            <ButtonLink href="/search">Start exploring</ButtonLink>
+            <ButtonLink href="/drops" variant="ghost" size="sm" className="!h-11">
+              See upcoming drops
+            </ButtonLink>
+          </div>
+        }
+      >
+        Every piece here is one of one. Find one that deserves a second life.
+      </EmptyState>
+    );
   const stores = [...new Set(cards.map((c) => c.sellerHandle))];
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {stores.map((handle) => {
         const items = cards.filter((c) => c.sellerHandle === handle);
         return (
-          <section key={handle} className="space-y-2 rounded-lg border border-line bg-surface p-4">
-            <h2 className="font-semibold">{items[0]!.sellerName}</h2>
-            <ul className="divide-y divide-line text-sm">
+          <section key={handle} aria-label={items[0]!.sellerName} className="card flex flex-col gap-4 p-4 lg:p-5">
+            <Link href={`/s/${handle}`} className="flex min-h-11 items-center gap-2.5 no-underline">
+              <StoreInitials name={items[0]!.sellerName} />
+              <span className="t-h3 grow">{items[0]!.sellerName}</span>
+            </Link>
+            <ul className="flex flex-col gap-4">
               {items.map((c) => (
-                <li key={c.id} className="flex items-center justify-between gap-3 py-2">
-                  <Link href={`/p/${c.slug}`} className="hover:underline">
-                    {c.title}
-                    {c.tagSize && <span className="text-muted"> · {c.tagSize}</span>}
-                  </Link>
-                  <span className="flex items-center gap-3">
-                    {soldOut(c.status) ? <span className="text-muted">Sold out</span> : formatINR(c.pricePaise)}
-                    <button type="button" onClick={() => removeFromBag(c.id)} className="min-h-11 px-2 text-xs text-muted underline">
-                      Remove
-                    </button>
-                  </span>
-                </li>
+                <BagLine key={c.id} item={{ ...c, meta: c.tagSize ?? "", buyable: c.status === "AVAILABLE" }} />
               ))}
             </ul>
           </section>
         );
       })}
-      <ButtonLink href="/login?next=/bag" size="lg" block>
+      <ButtonLink href="/login?next=/bag&for=checkout" size="lg" block>
         Sign in to check out
       </ButtonLink>
     </div>
