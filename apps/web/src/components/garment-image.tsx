@@ -4,13 +4,26 @@ import { cx } from "@/components/ui/cx";
  * A 4:5 photo (`.ph`, board C8). Real photos come from sellers; until a listing has one, a labelled
  * placeholder.
  */
-export function GarmentImage({ src, alt, category, className }: { src: string | null; alt: string; category: string; className?: string }) {
+export function GarmentImage({
+  src,
+  alt,
+  category,
+  className,
+  priority = false,
+}: {
+  src: string | null;
+  alt: string;
+  category: string;
+  className?: string;
+  /** Load now instead of lazily: for the one big image at the top of a page. */
+  priority?: boolean;
+}) {
   if (src) {
     return (
       <div className={cx("ph", className)}>
         <div className="shot">
           {/* eslint-disable-next-line @next/next/no-img-element -- switch to next/image once the media loader exists */}
-          <img src={src} alt={alt} loading="lazy" />
+          <img src={src} alt={alt} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : undefined} />
         </div>
       </div>
     );
