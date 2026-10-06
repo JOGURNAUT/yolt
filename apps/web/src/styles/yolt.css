@@ -120,7 +120,8 @@
   .search { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border-radius: var(--r-md); background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--foreground); color: var(--muted); font: 500 15px/1 var(--font-body); }
   .search .ic { color: var(--foreground); }
   .search:focus-within { box-shadow: inset 0 0 0 2px var(--foreground); color: var(--foreground); }
-  .search input { flex-grow: 1; min-width: 0; height: 100%; border: 0; background: transparent; color: var(--foreground); font: inherit; outline: none; }
+  /* 16 px keeps iOS from zooming the page when the field is focused */
+  .search input { flex-grow: 1; min-width: 0; height: 100%; border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 16px; outline: none; }
   .search input::placeholder { color: var(--muted); opacity: 1; }
   .seg { display: inline-flex; padding: 3px; border-radius: var(--r-pill); background: var(--surface-2); }
   .seg button { height: 34px; min-width: 48px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--muted); font: 700 13px/1 var(--font-body); cursor: pointer; }
@@ -235,6 +236,7 @@
   .progress-seg.ink span { background: rgba(13,13,12,.16); }
   .progress-seg.ink span.done, .progress-seg.ink span i { background: #0D0D0C; }
   .band-dark { background: #0D0D0C; color: #FFFFFF; }
+  .band-dark :focus-visible { outline-color: #FFFFFF; }
 
   /* ---------- Style / category tile ---------- */
   .tile { position: relative; display: block; border-radius: var(--r-lg); overflow: hidden; aspect-ratio: 4 / 5; background: #E7E4DE; text-decoration: none !important; color: #0D0D0C; }

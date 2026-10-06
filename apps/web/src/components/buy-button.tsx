@@ -45,7 +45,7 @@ export function BuyButton({ listingId, pricePaise }: { listingId: string; priceP
   }
 
   return (
-    <div className="sticky bottom-0 -mx-4 space-y-2 border-t border-line bg-background px-4 py-3 md:static md:mx-0 md:border-0 md:p-0">
+    <div className="sticky bottom-[var(--bnav-h)] z-20 -mx-4 space-y-2 border-t border-line bg-background px-4 py-3 md:static md:mx-0 md:border-0 md:p-0">
       <button
         type="button"
         onClick={buy}

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ShoppingBag } from "lucide-react";
 import { useShop } from "./shop-state";
+import { ICON_STROKE } from "./ui/cx";
+import { IconLink } from "./ui/icon-button";
 
 /** Heart on product cards and pages. Works for guests (kept on this device). */
 export function SaveButton({ listingId, className = "" }: { listingId: string; className?: string }) {
@@ -64,8 +67,8 @@ export function AddToBagButton({ listingId }: { listingId: string }) {
 export function BagLink() {
   const { bagCount } = useShop();
   return (
-    <Link href="/bag" className="text-sm hover:underline" aria-label={`Bag, ${bagCount} ${bagCount === 1 ? "piece" : "pieces"}`}>
-      Bag{bagCount > 0 && <span className="ml-1 rounded-full bg-foreground px-1.5 text-xs text-background">{bagCount}</span>}
-    </Link>
+    <IconLink href="/bag" plain count={bagCount} label={`Bag, ${bagCount} ${bagCount === 1 ? "piece" : "pieces"}`}>
+      <ShoppingBag aria-hidden className="ic ic-24" strokeWidth={ICON_STROKE} />
+    </IconLink>
   );
 }
