@@ -26,7 +26,7 @@ export function Button({
   disabled,
   type = "button",
   ...props
-}: Style & { loading?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: Style & { loading?: boolean } & React.ComponentProps<"button">) {
   return (
     <button
       type={type}
