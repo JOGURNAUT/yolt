@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const { role, stale } = await requireAdmin();
   const counts = stale ? null : await getAdminDashboardCounts();
   return (
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
+    <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-4 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
       <AdminNav role={role} counts={{ sellers: counts?.new_applications ?? 0, reports: counts?.escalated_reports ?? 0, refunds: counts?.open_refunds ?? 0 }} />
       <div className="min-w-0 space-y-5">
         {stale ? (
