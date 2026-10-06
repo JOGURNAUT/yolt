@@ -87,14 +87,14 @@ test("Remind me asks with the reason first, then subscribes with the right shape
   await page.getByRole("button", { name: "Remind me" }).click();
   await expect(page.getByRole("button", { name: "Reminder set ✓" })).toBeVisible();
   await expect(prompt(page)).toBeVisible();
-  await expect(prompt(page).getByText("one ping 15 minutes before")).toBeVisible();
-  await expect(prompt(page).getByText("no offers")).toBeVisible();
+  await expect(prompt(page).getByText(/We.ll notify you at .* IST on /)).toBeVisible();
+  await expect(prompt(page).getByText("Only drops you choose, nothing else.")).toBeVisible();
   // The reason comes first: the browser has not been asked yet.
   expect(await page.evaluate(() => window.__push.asked)).toBe(0);
   await shot(page, "ask");
 
   const request = page.waitForRequest((r) => r.url().endsWith("/api/push/subscribe") && r.method() === "POST");
-  await prompt(page).getByRole("button", { name: "Turn on pings" }).click();
+  await prompt(page).getByRole("button", { name: "Turn on notifications" }).click();
   const body = (await request).postDataJSON();
   expect(body).toEqual({
     endpoint: "https://push.example.test/send/e2e-endpoint",
@@ -138,9 +138,9 @@ test("a blocked browser shows the blocked state once and creates nothing", async
   await stubPush(page, { answer: "denied" });
   await devSignIn(page, "Kabir (demo buyer)", `/d/${dropId}`);
   await page.getByRole("button", { name: "Remind me" }).click();
-  await prompt(page).getByRole("button", { name: "Turn on pings" }).click();
+  await prompt(page).getByRole("button", { name: "Turn on notifications" }).click();
   await expect(page.getByRole("region", { name: "Notifications are blocked" })).toBeVisible();
-  await expect(page.getByText("allow them in the site settings")).toBeVisible();
+  await expect(page.getByText("Allow them in your browser settings")).toBeVisible();
   await shot(page, "blocked");
   await page.getByRole("button", { name: "Got it" }).click();
   await expect(page.getByRole("region", { name: "Notifications are blocked" })).toHaveCount(0);

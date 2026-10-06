@@ -42,7 +42,7 @@ export function DropCountdown({ startsAt, serverNow, size = "sm", className }: {
 export function RemindButton({
   dropId,
   title,
-  whenText,
+  startsAt,
   reminderOn,
   signedIn,
   className,
@@ -50,7 +50,7 @@ export function RemindButton({
 }: {
   dropId: string;
   title: string;
-  whenText?: string;
+  startsAt?: string;
   reminderOn: boolean;
   signedIn: boolean;
   className?: string;
@@ -68,7 +68,7 @@ export function RemindButton({
     const res = await fetch(`/api/drops/${dropId}/reminder`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ on: next }) });
     if (!res.ok) setOn(!next);
     // TODO: showInstallHint("reminder") after the push prompt once useInstallPrompt lands with the PWA shell.
-    else if (next) void push.ask({ reason: "drop", title, whenText });
+    else if (next) void push.ask({ reason: "drop", title, startsAt });
   }
 
   return (

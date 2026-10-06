@@ -4,14 +4,15 @@ import { Bell, BellOff, Check, LoaderCircle } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cx, ICON_STROKE } from "@/components/ui/cx";
+import { Stamp } from "@/components/ui/stamp";
 import { enablePush, rememberPushPromptDismissed, shouldOfferPushPrompt } from "@/lib/client/push";
 
 export type PushAsk = {
   reason: "drop";
   /** The drop's name, as shown on the page. */
   title: string;
-  /** When it opens, e.g. "Sat 11 Oct, 7:00 PM". */
-  whenText?: string;
+  /** ISO time the drop opens; the card says when the ping will arrive (15 minutes before). */
+  startsAt?: string;
 };
 
 type Phase = "ask" | "working" | "blocked" | "done";
@@ -23,7 +24,7 @@ type Phase = "ask" | "working" | "blocked" | "done";
  * someone who is already subscribed or has blocked notifications.
  *
  *   const push = usePushPrompt();
- *   await push.ask({ reason: "drop", title, whenText });
+ *   await push.ask({ reason: "drop", title, startsAt });
  *   return <>{push.prompt}</>;
  */
 export function usePushPrompt() {
@@ -63,6 +64,15 @@ export function usePushPrompt() {
   return { ask, prompt };
 }
 
+const ist = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-IN", { ...o, timeZone: "Asia/Kolkata" });
+
+/** " at 6:45 pm IST on Sat 11 Oct": 15 minutes before the drop opens. */
+function pingTime(startsAt?: string) {
+  const at = startsAt ? new Date(new Date(startsAt).getTime() - 15 * 60_000) : null;
+  if (!at || Number.isNaN(at.getTime())) return " 15 minutes before it opens";
+  return ` at ${ist({ hour: "numeric", minute: "2-digit" }).format(at)} IST on ${ist({ weekday: "short", day: "numeric", month: "short" }).format(at)}`;
+}
+
 function PushPromptCard({ ask, phase, onTurnOn, onDismiss, onClose }: { ask: PushAsk; phase: Phase; onTurnOn: () => void; onDismiss: () => void; onClose: () => void }) {
   const blocked = phase === "blocked";
   const done = phase === "done";
@@ -71,8 +81,16 @@ function PushPromptCard({ ask, phase, onTurnOn, onDismiss, onClose }: { ask: Pus
   return (
     <section
       aria-labelledby="push-prompt-h"
-      className="card fixed inset-x-4 bottom-[calc(var(--bnav-h)+16px)] z-40 mx-auto flex max-w-md flex-col gap-3 p-4 shadow-lg"
+      className="card raised fixed inset-x-4 bottom-[calc(var(--bnav-h)+16px)] z-40 mx-auto flex max-w-md flex-col gap-3 p-4"
     >
+      {(phase === "ask" || phase === "working") && (
+        <span className="self-start">
+          <Stamp>
+            <Bell aria-hidden className="ic ic-14" strokeWidth={ICON_STROKE} />
+            Reminder set
+          </Stamp>
+        </span>
+      )}
       <div className="flex items-start gap-3">
         <span aria-hidden="true" className={cx("flex size-10 shrink-0 items-center justify-center rounded-full", done ? "bg-accent text-on-accent" : "bg-surface-2")}>
           <Icon className="ic ic-20" strokeWidth={ICON_STROKE} />
@@ -83,21 +101,21 @@ function PushPromptCard({ ask, phase, onTurnOn, onDismiss, onClose }: { ask: Pus
           </h2>
           <p className="t-small muted">
             {done
-              ? "We'll send one before it opens and one when it goes live."
+              ? "We'll notify you 15 minutes before it opens, and when it goes live."
               : blocked
-                ? "Your browser is blocking notifications for YOLT. To get pings, allow them in the site settings, then tap Remind me again."
-                : `We'll send one ping 15 minutes before${ask.whenText ? ` (${ask.whenText})` : ""} and one when it goes live. Nothing else, no offers.`}
+                ? "Notifications are blocked for YOLT in this browser. Allow them in your browser settings to get drop pings."
+                : `We'll notify you${pingTime(ask.startsAt)}. Only drops you choose, nothing else.`}
           </p>
         </div>
       </div>
       {phase === "ask" || phase === "working" ? (
         <div className="flex gap-2">
-          <button type="button" onClick={onDismiss} disabled={phase === "working"} className="btn btn-secondary min-h-11 flex-1">
+          <button type="button" onClick={onDismiss} disabled={phase === "working"} className="btn btn-ghost min-h-11 flex-1">
             Not now
           </button>
           <button type="button" onClick={onTurnOn} disabled={phase === "working"} aria-busy={phase === "working" || undefined} className="btn btn-primary min-h-11 flex-1">
             {phase === "working" && <LoaderCircle aria-hidden className="ic ic-16 spin" strokeWidth={ICON_STROKE} />}
-            Turn on pings
+            Turn on notifications
           </button>
         </div>
       ) : (

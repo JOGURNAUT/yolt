@@ -6,7 +6,7 @@ import { usePushPrompt } from "@/components/push-prompt";
 import { Button } from "@/components/ui/button";
 
 /** "Remind me" on a drop ticket. Guests are sent to sign in and brought back. */
-export function ReminderButton({ dropId, title, whenText, on, signedIn }: { dropId: string; title: string; whenText?: string; on: boolean; signedIn: boolean }) {
+export function ReminderButton({ dropId, title, startsAt, on, signedIn }: { dropId: string; title: string; startsAt?: string; on: boolean; signedIn: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [set, setSet] = useState(on);
@@ -22,7 +22,7 @@ export function ReminderButton({ dropId, title, whenText, on, signedIn }: { drop
     setBusy(false);
     if (!res.ok) setSet(!next);
     // TODO: showInstallHint("reminder") after the push prompt once useInstallPrompt lands with the PWA shell.
-    else if (next) void push.ask({ reason: "drop", title, whenText });
+    else if (next) void push.ask({ reason: "drop", title, startsAt });
   }
 
   return (
