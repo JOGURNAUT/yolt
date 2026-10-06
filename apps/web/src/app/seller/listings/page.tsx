@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { getSellerListings, getSellerTabCounts, SELLER_TABS, type SellerTab } from "@yolt/core";
-import { ListingActions } from "@/components/seller/listing-actions";
+import { ListingsTable } from "@/components/seller/listings-table";
+import { MarkSoldButton } from "@/components/seller/mark-sold";
 import { NewListingButton } from "@/components/seller/new-listing-button";
-import { ShareLinkButton } from "@/components/seller/share-link-button";
-import { GarmentImage } from "@/components/garment-image";
+import { PageHeader } from "@/components/seller/page-header";
+import { cx } from "@/components/ui/cx";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatINR } from "@/lib/format";
+import { formatDay } from "@/lib/store-format";
 import { db } from "@/lib/server/db";
 import { requireSeller } from "@/lib/server/session";
 
@@ -21,6 +24,15 @@ const TAB_LABELS: Record<SellerTab, string> = {
   withdrawn: "Withdrawn",
 };
 
+const EMPTY: Record<SellerTab, string> = {
+  live: "Nothing is live. Publish a draft to put it on your store.",
+  draft: "No drafts. Start a new listing to add one.",
+  reserved: "Nothing is reserved. Pieces show here while a buyer is paying.",
+  "coming-soon": "No pieces are waiting for a drop.",
+  sold: "Nothing sold yet.",
+  withdrawn: "Nothing withdrawn.",
+};
+
 export default async function SellerListingsPage({ searchParams }: PageProps<"/seller/listings">) {
   await connection();
   // Layouts and pages render concurrently, so each seller page checks the session itself.
@@ -28,57 +40,64 @@ export default async function SellerListingsPage({ searchParams }: PageProps<"/s
   const requested = (await searchParams).tab;
   const tab: SellerTab = typeof requested === "string" && requested in SELLER_TABS ? (requested as SellerTab) : "live";
   const sellerId = current.seller.id;
-  const [items, counts] = await Promise.all([getSellerListings(db, { sellerId, tab }), getSellerTabCounts(db, sellerId)]);
+  const [items, counts, live, reserved] = await Promise.all([
+    getSellerListings(db, { sellerId, tab }),
+    getSellerTabCounts(db, sellerId),
+    getSellerListings(db, { sellerId, tab: "live" }),
+    getSellerListings(db, { sellerId, tab: "reserved" }),
+  ]);
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  const rows = items.map((l) => ({
+    id: l.id,
+    title: l.title,
+    slug: l.slug,
+    status: l.status,
+    category: l.category,
+    tagSize: l.tagSize,
+    pricePaise: l.pricePaise,
+    coverUrl: l.coverUrl,
+    updated: formatDay(l.updatedAt),
+  }));
+  const soldCandidates = [
+    ...live.map((l) => ({ id: l.id, title: l.title ?? "Untitled", meta: [l.tagSize, l.pricePaise !== null ? formatINR(l.pricePaise) : null].filter(Boolean).join(" · ") || "Live", coverUrl: l.coverUrl })),
+    ...reserved.map((l) => ({ id: l.id, title: l.title ?? "Untitled", meta: "", coverUrl: l.coverUrl, locked: "Locked · a buyer is paying" })),
+  ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Listings</h1>
-        <div className="flex items-center gap-2">
-          <ShareLinkButton path={`/s/${current.seller.handle}`} sellerHandle={current.seller.handle} label="Copy store link" />
-          <NewListingButton />
-        </div>
-      </div>
+    <>
+      <PageHeader
+        title="Listings"
+        actions={
+          <>
+            <MarkSoldButton items={soldCandidates} />
+            <NewListingButton />
+          </>
+        }
+      />
 
-      <nav aria-label="Listing status" className="flex gap-2 overflow-x-auto pb-1">
+      <nav aria-label="Listing status" className="hscroll-bleed flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0 [scrollbar-width:none]">
         {(Object.keys(TAB_LABELS) as SellerTab[]).map((t) => (
           <Link
             key={t}
             href={t === "live" ? "/seller/listings" : `/seller/listings?tab=${t}`}
             aria-current={t === tab ? "page" : undefined}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-sm ${
-              t === tab ? "border-foreground bg-foreground text-background" : "border-line"
-            }`}
+            className={cx("pill !no-underline", t === tab && "is-active")}
           >
-            {TAB_LABELS[t]} <span className={t === tab ? "opacity-80" : "text-muted"}>{counts[t]}</span>
+            {TAB_LABELS[t]} <span className="n">{counts[t]}</span>
           </Link>
         ))}
       </nav>
 
-      {items.length === 0 ? (
-        <p className="py-10 text-center text-sm text-muted">
-          {tab === "draft" ? "No drafts. Start a new listing to add one." : `Nothing in ${TAB_LABELS[tab].toLowerCase()}.`}
-        </p>
+      {total === 0 ? (
+        <EmptyState tag="NEW" title="List your first piece" action={<NewListingButton label="Start a listing" />}>
+          Add photos and measurements, tick that you checked for flaws, and publish. Your draft saves as you go.
+        </EmptyState>
+      ) : rows.length === 0 ? (
+        <p className="t-small muted py-10 text-center">{EMPTY[tab]}</p>
       ) : (
-        <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
-          {items.map((l) => (
-            <li key={l.id} className="flex items-center gap-3 p-3">
-              <div className="w-14 shrink-0 overflow-hidden rounded">
-                <GarmentImage src={l.coverUrl} alt={l.title ?? "Untitled draft"} category={l.category ?? "draft"} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <Link href={`/seller/listings/${l.id}`} className="line-clamp-1 font-medium hover:underline">
-                  {l.title ?? "Untitled draft"}
-                </Link>
-                <p className="text-sm text-muted">
-                  {[l.tagSize, l.pricePaise !== null ? formatINR(l.pricePaise) : null].filter(Boolean).join(" · ") || "Not filled in yet"}
-                </p>
-              </div>
-              <ListingActions listingId={l.id} status={l.status} slug={l.slug} />
-            </li>
-          ))}
-        </ul>
+        <ListingsTable rows={rows} selectable={tab === "live"} />
       )}
-    </div>
+    </>
   );
 }

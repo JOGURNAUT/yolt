@@ -129,7 +129,7 @@ export default async function SellerHomePage() {
       />
 
       {totalListings === 0 && (
-        <EmptyState tag="NEW" title="List your first piece" action={<NewListingButton />}>
+        <EmptyState tag="NEW" title="List your first piece" action={<NewListingButton label="List your first piece" />}>
           Photos, measurements and honest flaws are all a buyer needs. Autosave keeps your draft as you go.
         </EmptyState>
       )}
