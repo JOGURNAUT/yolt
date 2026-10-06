@@ -8,7 +8,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json",
-    "media:setup": "node scripts/setup-media.mjs"
+    "media:setup": "node scripts/setup-media.mjs",
+    "demo:photos": "tsx src/seed-photos.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1141.0",
@@ -27,6 +28,7 @@
     "@types/web-push": "^3.6.4",
     "dotenv": "^17.0.0",
     "postgres": "^3.4.9",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"
   }

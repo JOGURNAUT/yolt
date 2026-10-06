@@ -21,6 +21,18 @@ const now = Date.now();
 type Item = Omit<typeof s.listings.$inferInsert, "sellerId" | "slug" | "title"> & { title: string };
 
 const inStock: Item[] = [
+  {
+    // First, so it is the newest piece and leads the store page. Photos: `pnpm demo:photos` (images/cargo-pants-*).
+    title: "Black zip-off cargo pants, strap detail",
+    category: "trousers",
+    tagSize: "W30",
+    measurements: { basis: "FLAT", waistCm: 38, hipCm: 54, lengthCm: 108, inseamCm: 78 },
+    condition: "GOOD",
+    flaws: "Loose threads along the hem of both legs (see the last photos).",
+    description:
+      "Black cargo pants with legs that zip off at the knee, so they turn into shorts. Loaded with hardware: D-ring straps at the waist, buckle-and-eyelet pockets on both thighs, a column of eyelets down the back and long strap tails that hang at the sides. Soft washed black cotton twill with a wide, relaxed leg. The hem is frayed on both legs; everything else is in good shape. Measured flat, one side.",
+    pricePaise: 219900,
+  },
   { title: "Vintage Levi's 501 jeans", category: "jeans", brandDeclared: "Levi's", tagSize: "W32 L32", measurements: { basis: "FLAT", waistCm: 41, lengthCm: 104, inseamCm: 80 }, condition: "GOOD", flaws: "Small bleach spot near left back pocket (photo 5).", pricePaise: 129900 },
   { title: "Oversized Carhartt workwear jacket, brown", category: "jackets", brandDeclared: "Carhartt", tagSize: "L", measurements: { basis: "FLAT", chestCm: 64, lengthCm: 74, sleeveCm: 62 }, condition: "LIKE_NEW", noFlawsConfirmed: true, pricePaise: 245000 },
   { title: "Y2K graphic baby tee", category: "tops", tagSize: "S", measurements: { basis: "FLAT", chestCm: 42, lengthCm: 50 }, condition: "GOOD", noFlawsConfirmed: true, pricePaise: 54900 },

@@ -14,3 +14,7 @@ playwright-report/
 
 # Agent worktrees
 .claude/worktrees/
+
+# Demo photos: third-party pictures for judging the UI locally. Never committed.
+/images/*
+!/images/README.md
