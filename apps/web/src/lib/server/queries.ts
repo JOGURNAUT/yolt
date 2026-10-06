@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, avg, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { connection } from "next/server";
-import { getHomeData, getInYourSizes, getPreferences } from "@yolt/core";
+import { CHECKOUT_HOLD_SECONDS, getHomeData, getInYourSizes, getPreferences, hasDropReminder } from "@yolt/core";
 import { asComplete, drops, follows, listingPhotos, listings, orderItems, reviews, sellers, users } from "@yolt/db";
 import { db } from "./db";
 
@@ -373,3 +373,13 @@ export async function getMyInYourSizes(userId: string) {
   await connection();
   return getInYourSizes(db, userId);
 }
+
+/** Which of these drops the buyer has asked to be reminded about. */
+export async function getReminderSet(userId: string | null, dropIds: string[]) {
+  if (!userId) return new Set<string>();
+  const on = await Promise.all(dropIds.map(async (dropId) => ((await hasDropReminder(db, { userId, dropId })) ? dropId : null)));
+  return new Set(on.filter((id): id is string => id !== null));
+}
+
+/** How long a claimed piece is held for payment, in minutes (said on live drop slides). */
+export const CLAIM_HOLD_MINUTES = CHECKOUT_HOLD_SECONDS / 60;
