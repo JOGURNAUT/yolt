@@ -12,7 +12,7 @@ export function ReminderButton({ dropId, on, signedIn }: { dropId: string; on: b
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
-    if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}`);
+    if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}&for=remind`);
     const next = !set;
     setSet(next);
     setBusy(true);

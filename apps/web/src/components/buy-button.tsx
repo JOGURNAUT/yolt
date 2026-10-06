@@ -42,7 +42,7 @@ export function BuyButton({
       }
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (res.status === 401) {
-        router.push(`/login?next=${encodeURIComponent(pathname)}`);
+        router.push(`/login?next=${encodeURIComponent(pathname)}&for=buy`);
         return;
       }
       setMessage(

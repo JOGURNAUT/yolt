@@ -30,7 +30,7 @@ export function FollowButton({
   const [busy, setBusy] = useState(false);
 
   async function toggle() {
-    if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}`);
+    if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}&for=follow`);
     setBusy(true);
     const res = state.following
       ? await fetch(`/api/follows/${sellerId}`, { method: "DELETE" })

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   description: "One-of-one secondhand fashion from independent Indian thrift stores. Real measurements, honest flaws, safe checkout.",
 };
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children, modal }: LayoutProps<"/">) {
   const [user, seller] = await Promise.all([getCurrentUser(), getCurrentSeller()]);
   const [isAdmin, saved, bag] = user
     ? await Promise.all([getAdminRole(db, user.userId).then((r) => r !== null), savedListingIds(db, user.userId), bagListingIds(db, user.userId)])
@@ -39,6 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           <main className="mx-auto w-full max-w-[1248px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-6">{children}</main>
           <Footer />
           <BottomNav />
+          {modal}
         </ShopStateProvider>
       </body>
     </html>
