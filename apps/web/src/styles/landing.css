@@ -13,6 +13,9 @@
   .hscroll-bleed { margin-inline: -16px; }
   @media (min-width: 1024px) { .hscroll-bleed { margin-inline: 0; } }
 
+  /* The hero carousel and everything in it (collage photos, store card, rail) has square corners. */
+  .hero-sq, .hero-sq .ph, .hero-sq .hero-stack { border-radius: 0; }
+
   /* Hero: the active segment fills from the left; the carousel sets the width as time passes. */
   .hero-seg i { width: 0; }
   .hero-ctl:focus-visible { outline-color: currentColor; }

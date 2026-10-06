@@ -98,7 +98,7 @@ export function HeroCarousel({ slides, className }: { slides: HeroSlideDef[]; cl
       aria-roledescription="carousel"
       aria-label="Featured"
       tabIndex={0}
-      className={cx("relative touch-pan-y rounded-[24px] outline-offset-[3px]", className)}
+      className={cx("hero-sq relative touch-pan-y outline-offset-[3px]", className)}
       onKeyDown={onKeyDown}
       onPointerEnter={(e) => e.pointerType === "mouse" && setHover(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHover(false)}
@@ -122,7 +122,7 @@ export function HeroCarousel({ slides, className }: { slides: HeroSlideDef[]; cl
         setTouching(false);
       }}
     >
-      <div className="hero-stack h-full rounded-[24px]">
+      <div className="hero-stack h-full">
         {slides.map((s, i) => (
           <div
             key={s.key}
@@ -196,7 +196,7 @@ export function HeroCarousel({ slides, className }: { slides: HeroSlideDef[]; cl
               <PauseIcon aria-hidden className="ic ic-16" fill="currentColor" stroke="none" />
             </button>
           </div>
-          <span aria-hidden="true" className="absolute inset-x-0 bottom-0 z-[3] hidden h-[3px] overflow-hidden rounded-b-[24px] lg:block">
+          <span aria-hidden="true" className="absolute inset-x-0 bottom-0 z-[3] hidden h-[3px] overflow-hidden lg:block">
             <i ref={(el) => void (bar.current = el)} className="block h-[3px] bg-accent" style={{ width: 0 }} />
           </span>
         </>
