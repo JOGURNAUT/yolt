@@ -2,21 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { formatINR } from "@/lib/format";
 import { useShop } from "./shop-state";
 import { Button } from "./ui/button";
 
 export function BagRemoveButton({ listingId }: { listingId: string }) {
   const { removeFromBag } = useShop();
   return (
-    <button type="button" onClick={() => removeFromBag(listingId)} className="min-h-11 px-2 text-xs text-muted underline">
+    <button type="button" onClick={() => removeFromBag(listingId)} className="btn btn-sm btn-ghost !h-11 !p-0">
       Remove
     </button>
   );
 }
 
 /** Checks out one store's buyable items through the normal reserve-then-pay flow. */
-export function BagCheckoutButton({ listingIds, storeName, totalPaise }: { listingIds: string[]; storeName: string; totalPaise: number }) {
+export function BagCheckoutButton({ listingIds, storeName }: { listingIds: string[]; storeName: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,14 +24,14 @@ export function BagCheckoutButton({ listingIds, storeName, totalPaise }: { listi
       <Button
         size="lg"
         block
-        disabled={busy}
+        loading={busy}
         onClick={async () => {
           setBusy(true);
           setError(null);
           const res = await fetch("/api/checkout", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ listingIds }) });
           const body = (await res.json().catch(() => ({}))) as { orderId?: string; error?: string };
-          setBusy(false);
           if (res.ok && body.orderId) return router.push(`/checkout/${body.orderId}`);
+          setBusy(false);
           setError(
             body.error === "UNAVAILABLE"
               ? "Someone just reserved one of these. Your bag has been updated; check the rest out again."
@@ -41,9 +40,13 @@ export function BagCheckoutButton({ listingIds, storeName, totalPaise }: { listi
           router.refresh();
         }}
       >
-        {busy ? "Reserving…" : `Check out ${storeName} · ${formatINR(totalPaise)}`}
+        Check out from {storeName}
       </Button>
-      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {error && (
+        <p role="alert" className="help err">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

@@ -29,14 +29,14 @@ test("guest save and bag merge at sign-in, then bag checkout and follow", async 
   await page.getByRole("link", { name: "Sign in to check out" }).click();
   await otpSignIn(page, "9000000011");
   await page.waitForURL(/\/bag$/);
-  await expect(page.getByRole("button", { name: /Check out Second Loop/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Check out from Second Loop/ })).toBeVisible();
   expect(await page.evaluate(() => [localStorage.getItem("yolt_saves"), localStorage.getItem("yolt_bag")])).toEqual([null, null]);
   await page.goto("/saved");
   await expect(page.locator(`a[href="${savedHref}"]`).first()).toBeVisible();
 
   // Bag checkout reserves the piece.
   await page.goto("/bag");
-  await page.getByRole("button", { name: /Check out Second Loop/ }).click();
+  await page.getByRole("button", { name: /Check out from Second Loop/ }).click();
   await page.waitForURL(/\/checkout\//);
   await expect(page.getByText("Reserved for you for")).toBeVisible();
 
