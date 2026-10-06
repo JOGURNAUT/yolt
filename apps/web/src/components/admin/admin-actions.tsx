@@ -10,23 +10,6 @@ import { AdminError, ReasonDialog } from "./admin-ui";
 
 type SellerAction = "VERIFY_KYC" | "SUSPEND" | "REINSTATE";
 
-async function post(path: string, body: unknown) {
-  const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  const data = (await res.json().catch(() => ({}))) as { error?: string; details?: { field?: string } };
-  return { ok: res.ok, data };
-}
-
-const ERRORS: Record<string, string> = {
-  REASON_REQUIRED: "Write a reason (at least 5 characters). It goes in the audit log.",
-  NOT_DECIDABLE: "This claim was already resolved.",
-  READ_ONLY_ROLE: "Your role is read-only.",
-  REAUTH_REQUIRED: "Sign in again to continue.",
-  HANDLE_TAKEN: "That store handle is taken.",
-  ALREADY_A_SELLER: "That phone number already has a store.",
-  NO_CHANGE: "Nothing to change.",
-};
-const message = (e?: string, field?: string) => (e === "INVALID" && field ? `Check the ${field} field.` : ERRORS[e ?? ""] ?? "Something went wrong.");
-
 /** Verify KYC / suspend / reinstate, each asking for a reason. */
 export function SellerStatusActions({ sellerId, status, kycStatus, name }: { sellerId: string; status: string; kycStatus: string; name: string }) {
   const router = useRouter();
@@ -108,28 +91,6 @@ export function OnboardSellerForm() {
         <AdminError failure={failure} />
         {created && <p role="status" className="t-small font-semibold">Created {created}. Mark KYC verified below once you have checked PAN and bank details.</p>}
       </div>
-    </form>
-  );
-}
-
-/** Record a refund issued in the payment provider's dashboard. */
-export function MarkRefundDone({ refundId }: { refundId: string }) {
-  const router = useRouter();
-  const [id, setId] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  return (
-    <form
-      className="flex gap-2"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        const r = await post(`/api/admin/refunds/${refundId}/succeeded`, { providerRefundId: id });
-        if (r.ok) router.refresh();
-        else setError(r.data.error === "INVALID" ? "Paste the provider's refund id." : message(r.data.error));
-      }}
-    >
-      <input className="w-44 rounded-md border border-line bg-background px-2 py-1 text-xs" placeholder="Provider refund id" value={id} onChange={(e) => setId(e.target.value)} />
-      <button type="submit" className="rounded-full border border-line px-3 py-1 text-xs">Mark refunded</button>
-      {error && <span role="alert" className="text-xs text-danger">{error}</span>}
     </form>
   );
 }
