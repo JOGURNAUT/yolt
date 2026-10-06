@@ -55,6 +55,7 @@ export function StoreSettingsForm({ initial }: { initial: Settings }) {
     state: initial.pickup.state ?? "",
     pincode: initial.pickup.pincode ?? "",
   });
+  const [pickupEdited, setPickupEdited] = useState(false);
   const [bio, setBio] = useState(initial.bio ?? "");
   const [days, setDays] = useState(initial.dispatchDays);
   const [state, setState] = useState<"saved" | "dirty" | "saving">("saved");
@@ -87,7 +88,8 @@ export function StoreSettingsForm({ initial }: { initial: Settings }) {
     if (Number.isNaN(feePaise) || (freePaise !== null && Number.isNaN(freePaise))) return setErrors(["Enter shipping amounts as numbers."]);
     setState("saving");
     setErrors([]);
-    const anyPickup = Object.values(pk).some((v) => v.trim());
+    // Only send the address when it was edited, so a half-filled one doesn't block saving the rest.
+    const anyPickup = pickupEdited;
     const res = await fetch("/api/seller/store", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -260,6 +262,7 @@ export function StoreSettingsForm({ initial }: { initial: Settings }) {
                   value={pk[k]}
                   onChange={(e) => {
                     setPk((p) => ({ ...p, [k]: e.target.value }));
+                    setPickupEdited(true);
                     touch();
                   }}
                 />
@@ -272,6 +275,7 @@ export function StoreSettingsForm({ initial }: { initial: Settings }) {
                 value={pk.state}
                 onChange={(e) => {
                   setPk((p) => ({ ...p, state: e.target.value }));
+                  setPickupEdited(true);
                   touch();
                 }}
               >

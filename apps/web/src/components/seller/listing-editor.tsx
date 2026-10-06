@@ -315,7 +315,7 @@ export function ListingEditor({
           </label>
         </Section>
 
-        <Section title="Price" hint="No size returns on YOLT, which is why accurate measurements matter. Buyers are refunded if an item isn't as described.">
+        <Section title="Pricing" hint="No size returns on YOLT, which is why accurate measurements matter. Buyers are refunded if an item isn't as described.">
           <Field label="Price" className="max-w-52">
             <div className="phone">
               <span className="cc">₹</span>
