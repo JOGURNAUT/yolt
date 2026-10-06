@@ -4,11 +4,12 @@ import { expect, test } from "./fixtures";
 // The store and product pages: gallery, reviews, the sticky bar, and the narrow-screen layout.
 test.beforeAll(async () => {
   reseed();
-  LEVIS = await slugOf("vintage-levis-501-jeans");
+  FLAWED = await slugOf("black-zip-off-cargo-pants-strap-detail");
   NIKE = await slugOf("nike-air-force-1-07");
 });
 
-let LEVIS = "";
+// An available piece with exactly one flaw line, so each flaw can be paired with one flaw photo.
+let FLAWED = "";
 let NIKE = "";
 
 /** Slugs get a random suffix on every seed, so look them up. */
@@ -22,13 +23,13 @@ test("both pages fit a 390 px screen, and the product page has its sticky bar", 
   await page.setViewportSize({ width: 390, height: 844 });
   const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 
-  for (const path of ["/s/secondloop", "/s/secondloop?status=sold-out", "/s/secondloop?status=coming-soon", LEVIS]) {
+  for (const path of ["/s/secondloop", "/s/secondloop?status=sold-out", "/s/secondloop?status=coming-soon", FLAWED]) {
     await page.goto(path);
     await expect(page.locator("main")).toBeVisible();
     expect(await overflow(), `${path} scrolls sideways`).toBeLessThanOrEqual(0);
   }
 
-  await page.goto(LEVIS);
+  await page.goto(FLAWED);
   const bar = page.getByRole("group", { name: "Actions" });
   await expect(bar.getByRole("button", { name: /^Buy now · ₹/ })).toBeVisible();
   await expect(bar.getByRole("button", { name: "Save" })).toBeVisible();
@@ -51,14 +52,14 @@ test("store reviews show three, then more on request", async ({ page }) => {
 
 test("gallery: thumbnails, flaw tag, flaw link and zoom", async ({ page }) => {
   await withDb(async (sql) => {
-    const [l] = await sql`SELECT id FROM listings WHERE slug LIKE 'vintage-levis-501-jeans-%'`;
+    const [l] = await sql`SELECT id FROM listings WHERE slug LIKE 'black-zip-off-cargo-pants-strap-detail-%'`;
     await sql`DELETE FROM listing_photos WHERE listing_id = ${l!.id}`;
     const rows = [["FRONT", "#dfe3e6"], ["BACK", "#d8dde1"], ["FLAW", "#d2dae0"]] as const;
     for (const [i, [kind, fill]] of rows.entries()) {
       await sql`INSERT INTO listing_photos (listing_id, url, kind, position) VALUES (${l!.id}, ${photo(fill)}, ${kind}, ${i})`;
     }
   });
-  await page.goto(LEVIS);
+  await page.goto(FLAWED);
   const thumbs = page.getByRole("group", { name: "Photos" }).filter({ has: page.getByRole("button", { name: /^Photo 1/ }) });
   await expect(thumbs.getByRole("button")).toHaveCount(3);
   await expect(page.getByText("1 / 3")).toBeVisible();
@@ -99,10 +100,10 @@ test("a product shows the protection line, brand note and delivery check states"
 });
 
 test("units switch between cm and in", async ({ page }) => {
-  await page.goto(LEVIS);
-  await expect(page.getByText("41 cm")).toBeVisible();
+  await page.goto(FLAWED);
+  await expect(page.getByText("108 cm")).toBeVisible();
   await page.getByRole("button", { name: "in", exact: true }).click();
-  await expect(page.getByText("16.1 in")).toBeVisible();
+  await expect(page.getByText("42.5 in")).toBeVisible(); // 108 cm
   await expect(page.getByText("Measured flat, one side.")).toBeVisible();
 });
 

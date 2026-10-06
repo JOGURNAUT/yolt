@@ -27,7 +27,7 @@ test.beforeAll(async ({ browser }) => {
   await withDb(async (sql) => {
     const slug = async (title: string) => (await sql<{ slug: string }[]>`SELECT slug FROM listings WHERE title ILIKE ${title}`)[0]!.slug;
     slugs = {
-      avail: await slug("Vintage Levi%"),
+      avail: await slug("Evisu%"),
       soon: await slug("Flannel%"),
       sold: (await sql<{ slug: string }[]>`SELECT slug FROM listings WHERE status = 'SOLD' LIMIT 1`)[0]!.slug,
       reserved: await slug("Nike Air%"),
