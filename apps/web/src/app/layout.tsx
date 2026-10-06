@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Archivo, DM_Mono, DM_Sans } from "next/font/google";
 import { envFlags } from "@/lib/env";
 import { bagListingIds, getAdminRole, savedListingIds } from "@yolt/core";
@@ -20,6 +20,19 @@ const dmMono = DM_Mono({ variable: "--font-dm-mono", subsets: ["latin"], weight:
 export const metadata: Metadata = {
   title: { default: "YOLT — thrift, without the DMs", template: "%s · YOLT" },
   description: "One-of-one secondhand fashion from independent Indian thrift stores. Real measurements, honest flaws, safe checkout.",
+  applicationName: "YOLT",
+  appleWebApp: { capable: true, title: "YOLT", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
+  other: { "mobile-web-app-capable": "yes", "apple-mobile-web-app-capable": "yes" },
+};
+
+// Browser and status-bar colour: the `background` token in light and dark. viewportFit lets the bottom nav use the safe area.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fafaf7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0a" },
+  ],
 };
 
 export default async function RootLayout({ children, modal }: LayoutProps<"/">) {

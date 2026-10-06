@@ -16,7 +16,11 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@yolt/api", "@yolt/core", "@yolt/db", "@yolt/shared"],
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Browsers must re-check the service worker (and what it imports) on every update check.
+      { source: "/:file(sw|sw-push).js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }] },
+    ];
   },
 };
 

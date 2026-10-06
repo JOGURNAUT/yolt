@@ -2,8 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { FIRST_TOUCH_COOKIE, SELLER_HANDLE_PATTERN, SHARE_REF_PARAM } from "@yolt/shared";
 import { appEnv } from "@/lib/env";
 
-/** Server-to-server routes, authenticated by signature or secret, that must bypass the staging gate. */
-const GATE_EXEMPT = [/^\/api\/webhooks\//, /^\/api\/cron\//, /^\/api\/health$/];
+/**
+ * Routes that must bypass the staging gate: server-to-server calls (authenticated by signature or
+ * secret) and the installable-app files, which browsers fetch without credentials (manifest, service
+ * worker and its imports, the offline page). Icons are static .png files the matcher already skips.
+ */
+const GATE_EXEMPT = [/^\/api\/webhooks\//, /^\/api\/cron\//, /^\/api\/health$/, /^\/manifest\.webmanifest$/, /^\/sw(-[a-z]+)?\.js$/, /^\/offline$/];
 
 function sameSecret(a: string, b: string) {
   if (a.length !== b.length) return false;
