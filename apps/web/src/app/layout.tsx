@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, DM_Mono, DM_Sans } from "next/font/google";
-import { envFlags } from "@/lib/env";
+import { appEnv, envFlags } from "@/lib/env";
+import { serviceWorkerEnabled } from "@/lib/pwa";
 import { bagListingIds, getAdminRole, savedListingIds } from "@yolt/core";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { ShopStateProvider } from "@/components/shop-state";
+import { ServiceWorkerRegister } from "@/components/system/service-worker-register";
 import { db } from "@/lib/server/db";
 import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
 import { formatIndianMobile } from "@yolt/shared";
@@ -47,6 +49,7 @@ export default async function RootLayout({ children, modal }: LayoutProps<"/">) 
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col pb-[var(--bnav-h)] font-sans">
+        <ServiceWorkerRegister enabled={serviceWorkerEnabled(appEnv(), process.env.NODE_ENV)} />
         <a href="#main" className="skip-link">
           Skip to content
         </a>
