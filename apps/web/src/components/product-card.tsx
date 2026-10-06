@@ -16,7 +16,19 @@ export type CardItem = Omit<ListingCard, "backUrl" | "soldAt"> & { backUrl?: str
  * desktop a hover that crossfades to the back photo and slides up an add bar. The whole card is one
  * link to the product page; phones have no hover, so nothing important hides behind it.
  */
-export function ProductCard({ item, showSeller = false }: { item: CardItem; showSeller?: boolean }) {
+export function ProductCard({
+  item,
+  showSeller = false,
+  sticker,
+  large = false,
+}: {
+  item: CardItem;
+  showSeller?: boolean;
+  /** A label for the sticker slot on pieces still for sale ("Trending", "1 of 1"). Sold and coming-soon pieces keep their own. */
+  sticker?: { label: string; tone?: "accent" | "ink" | "pink" | "paper" };
+  /** The bigger Grails treatment: larger corners, hang tag and title. */
+  large?: boolean;
+}) {
   const sold = item.status === "SOLD" || item.status === "SOLD_ELSEWHERE";
   const reserved = item.status === "RESERVED" || item.status === "PAYMENT_PENDING";
   const comingSoon = item.status === "SCHEDULED";
@@ -46,15 +58,20 @@ export function ProductCard({ item, showSeller = false }: { item: CardItem; show
   }
 
   return (
-    <Link href={`/p/${item.slug}`} className={`pc${sold ? " is-sold" : ""}`}>
+    <Link href={`/p/${item.slug}`} className={`pc${sold ? " is-sold" : ""}${large ? " is-large" : ""}`}>
       <div className="media">
         <CardPhoto src={item.coverUrl} backSrc={item.backUrl} alt={item.title} category={item.category} />
         <span className="tagpos">
-          <HangTag>{formatINR(item.pricePaise)}</HangTag>
+          <HangTag size={large ? "lg" : "md"}>{formatINR(item.pricePaise)}</HangTag>
         </span>
         {(sold || comingSoon) && (
           <span className="stk">
             <Sticker tone={sold ? "ink" : "accent"}>{sold ? "Sold out" : "Coming soon"}</Sticker>
+          </span>
+        )}
+        {!sold && !comingSoon && sticker && (
+          <span className="stk">
+            <Sticker tone={sticker.tone ?? "accent"}>{sticker.label}</Sticker>
           </span>
         )}
         <SaveButton listingId={item.id} />

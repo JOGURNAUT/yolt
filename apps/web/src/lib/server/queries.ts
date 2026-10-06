@@ -1,7 +1,8 @@
 import "server-only";
 import { and, asc, avg, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { connection } from "next/server";
-import { asComplete, drops, listingPhotos, listings, orderItems, reviews, sellers, users } from "@yolt/db";
+import { CHECKOUT_HOLD_SECONDS, getHomeData, getInYourSizes, getPreferences, hasDropReminder } from "@yolt/core";
+import { asComplete, drops, follows, listingPhotos, listings, orderItems, reviews, sellers, users } from "@yolt/db";
 import { db } from "./db";
 
 /** The three pills on store, search and category grids. */
@@ -207,3 +208,178 @@ export async function getDemoUsers() {
   await connection();
   return db.select({ id: users.id, name: users.name }).from(users).orderBy(asc(users.phone));
 }
+
+// ---------------------------------------------------------------------------
+// Landing and signed-in home
+// ---------------------------------------------------------------------------
+
+const IN_STOCK = ["AVAILABLE", "RESERVED", "PAYMENT_PENDING"] as const;
+
+/** Trending, Grails, edit, featured store and just-sold, in one call (the same as GET /api/home). */
+export async function getHome() {
+  await connection();
+  return getHomeData(db);
+}
+
+export type HomeData = Awaited<ReturnType<typeof getHome>>;
+
+export type DropTicketData = {
+  id: string;
+  title: string;
+  startsAt: Date;
+  /** LIVE, or SCHEDULED with the start time already passed (the opening is moments away). */
+  live: boolean;
+  sellerName: string;
+  pieces: number;
+  available: number;
+  maxHoldsPerBuyer: number;
+  thumbs: { coverUrl: string | null; title: string; category: string }[];
+};
+
+/** The next live or upcoming drops, soonest first, with a few piece photos each. */
+export async function getDropsStrip(limit = 3): Promise<{ drops: DropTicketData[]; serverNow: Date }> {
+  await connection();
+  const serverNow = new Date();
+  const rows = await db
+    .select({
+      id: drops.id,
+      title: drops.title,
+      startsAt: drops.startsAt,
+      status: drops.status,
+      maxHoldsPerBuyer: drops.maxHoldsPerBuyer,
+      sellerName: sellers.displayName,
+      pieces: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.drop_id = ${drops}.id)`,
+      available: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.drop_id = ${drops}.id AND l.status = 'AVAILABLE')`,
+    })
+    .from(drops)
+    .innerJoin(sellers, eq(sellers.id, drops.sellerId))
+    .where(and(inArray(drops.status, ["SCHEDULED", "LIVE"]), eq(sellers.status, "APPROVED")))
+    .orderBy(asc(drops.startsAt))
+    .limit(limit);
+  if (rows.length === 0) return { drops: [], serverNow };
+
+  const pieces = await db
+    .select({ dropId: listings.dropId, title: listings.title, category: listings.category, coverUrl: cardColumns.coverUrl })
+    .from(listings)
+    .where(inArray(listings.dropId, rows.map((r) => r.id)))
+    .orderBy(asc(listings.createdAt));
+  return {
+    serverNow,
+    drops: rows.map(({ status, ...d }) => ({
+      ...d,
+      live: status === "LIVE" || d.startsAt <= serverNow,
+      thumbs: pieces
+        .filter((p) => p.dropId === d.id)
+        .slice(0, 3)
+        .map((p) => ({ coverUrl: p.coverUrl, title: p.title ?? "Piece in this drop", category: p.category ?? "" })),
+    })),
+  };
+}
+
+/** Rating, review count and city for a store, for the spotlight slide. */
+export async function getStoreFacts(sellerId: string) {
+  const [row] = await db
+    .select({
+      city: sellers.pickupCity,
+      instagramVerified: sql<boolean>`${sellers.instagramVerifiedAt} IS NOT NULL`,
+      rating: sql<number | null>`(SELECT avg(r.rating)::float FROM ${reviews} r WHERE r.seller_id = ${sellers}.id)`,
+      reviewCount: sql<number>`(SELECT count(*)::int FROM ${reviews} r WHERE r.seller_id = ${sellers}.id)`,
+    })
+    .from(sellers)
+    .where(eq(sellers.id, sellerId));
+  return row ?? null;
+}
+
+export type StoreCardData = {
+  id: string;
+  handle: string;
+  displayName: string;
+  bio: string | null;
+  city: string | null;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  instagramVerified: boolean;
+  rating: number | null;
+  reviewCount: number;
+  thumbs: { coverUrl: string | null; category: string }[];
+};
+
+/** Approved stores with pieces in stock, the most stocked first, with their three newest pieces. */
+export async function getStoresToDiscover(limit = 6, exclude: string[] = []): Promise<StoreCardData[]> {
+  await connection();
+  const inStock = sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.seller_id = ${sellers}.id AND l.status IN ('AVAILABLE', 'RESERVED', 'PAYMENT_PENDING'))`;
+  const withStock = await db
+    .select({
+      id: sellers.id,
+      handle: sellers.handle,
+      displayName: sellers.displayName,
+      bio: sellers.bio,
+      city: sellers.pickupCity,
+      logoUrl: sellers.logoUrl,
+      bannerUrl: sellers.bannerUrl,
+      instagramVerified: sql<boolean>`${sellers.instagramVerifiedAt} IS NOT NULL`,
+      rating: sql<number | null>`(SELECT avg(r.rating)::float FROM ${reviews} r WHERE r.seller_id = ${sellers}.id)`,
+      reviewCount: sql<number>`(SELECT count(*)::int FROM ${reviews} r WHERE r.seller_id = ${sellers}.id)`,
+    })
+    .from(sellers)
+    .where(
+      and(
+        eq(sellers.status, "APPROVED"),
+        sql`${inStock} > 0`,
+        exclude.length ? sql`${sellers.id} NOT IN (${sql.join(exclude.map((id) => sql`${id}::uuid`), sql`, `)})` : undefined,
+      ),
+    )
+    .orderBy(desc(inStock), asc(sellers.handle))
+    .limit(limit);
+  if (withStock.length === 0) return [];
+
+  const ids = sql.join(withStock.map((s) => sql`${s.id}::uuid`), sql`, `);
+  const thumbs = await db.execute<{ seller_id: string; cover: string | null; category: string }>(sql`
+    SELECT seller_id, cover, category FROM (
+      SELECT l.seller_id, l.category,
+        (SELECT lp.url FROM listing_photos lp WHERE lp.listing_id = l.id ORDER BY lp.position LIMIT 1) AS cover,
+        row_number() OVER (PARTITION BY l.seller_id ORDER BY l.published_at DESC NULLS LAST, l.created_at DESC) AS rn
+      FROM listings l
+      WHERE l.seller_id IN (${ids}) AND l.status IN ('AVAILABLE', 'RESERVED', 'PAYMENT_PENDING')
+    ) t WHERE rn <= 3 ORDER BY seller_id, rn`);
+  return withStock.map((s) => ({
+    ...s,
+    thumbs: [...thumbs].filter((t) => t.seller_id === s.id).map((t) => ({ coverUrl: t.cover, category: t.category })),
+  }));
+}
+
+export async function getFollowedSellerIds(userId: string) {
+  const rows = await db.select({ id: follows.sellerId }).from(follows).where(eq(follows.userId, userId));
+  return rows.map((r) => r.id);
+}
+
+/** The newest in-stock pieces from stores the buyer follows. */
+export async function getNewFromFollowed(sellerIds: string[], limit = 12) {
+  if (sellerIds.length === 0) return [];
+  await connection();
+  const rows = await selectCards()
+    .where(and(inArray(listings.sellerId, sellerIds), inArray(listings.status, [...IN_STOCK]), eq(sellers.status, "APPROVED")))
+    .orderBy(sql`${listings.publishedAt} DESC NULLS LAST`, desc(listings.createdAt))
+    .limit(limit);
+  return rows.map(toCard);
+}
+
+/** Saved sizes, styles and budget, and the pieces in those sizes (the logic behind /api/me/in-your-sizes). */
+export async function getMyPreferences(userId: string) {
+  return getPreferences(db, userId);
+}
+
+export async function getMyInYourSizes(userId: string) {
+  await connection();
+  return getInYourSizes(db, userId);
+}
+
+/** Which of these drops the buyer has asked to be reminded about. */
+export async function getReminderSet(userId: string | null, dropIds: string[]) {
+  if (!userId) return new Set<string>();
+  const on = await Promise.all(dropIds.map(async (dropId) => ((await hasDropReminder(db, { userId, dropId })) ? dropId : null)));
+  return new Set(on.filter((id): id is string => id !== null));
+}
+
+/** How long a claimed piece is held for payment, in minutes (said on live drop slides). */
+export const CLAIM_HOLD_MINUTES = CHECKOUT_HOLD_SECONDS / 60;

@@ -22,6 +22,7 @@ type OtpResponse = {
   sentTo?: string;
   channel?: string;
   devCode?: string;
+  isNewUser?: boolean;
 };
 
 export function LoginForm({ next }: { next: string }) {
@@ -73,7 +74,8 @@ export function LoginForm({ next }: { next: string }) {
     });
     const body = (await res.json().catch(() => ({}))) as OtpResponse;
     if (res.ok) {
-      router.replace(next);
+      // A first sign-in lands on the optional welcome; anyone heading somewhere specific goes straight there.
+      router.replace(body.isNewUser && next === "/" ? "/welcome" : next);
       router.refresh();
       return;
     }

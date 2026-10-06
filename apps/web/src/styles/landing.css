@@ -1,0 +1,32 @@
+/* Landing page and home (boards Main, WebHome, HomeSignedIn). Builds on the foundations in yolt.css. */
+@layer components {
+  /* A touch pauses the ticker, like hover and focus do. */
+  .ticker:active .track { animation-play-state: paused; }
+
+  /* Grails cards: bigger corners and title (board Main, "Grails"). */
+  .pc.is-large .media, .pc.is-large .ph { border-radius: 20px; }
+  .pc.is-large .title { font-size: 16px; line-height: 22px; }
+  .pc.is-large .tagpos { left: 14px; top: 16px; }
+  .pc.is-large .stk { right: 14px; bottom: 16px; }
+
+  /* Horizontal scrollers on phones bleed to the screen edge; desktop lays them out as grids. */
+  .hscroll-bleed { margin-inline: -16px; }
+  @media (min-width: 1024px) { .hscroll-bleed { margin-inline: 0; } }
+
+  /* Hero: the active segment fills from the left; the carousel sets the width as time passes. */
+  .hero-seg i { width: 0; }
+  .hero-ctl:focus-visible { outline-color: currentColor; }
+
+  /* The tape rule on the fit slide runs past the slide padding. */
+  .tape-bleed { margin-inline: -18px; transform: rotate(-2deg); border-radius: 0; }
+  @media (min-width: 1024px) { .tape-bleed { margin-inline: -28px; } }
+
+  /* Reduced motion: slides change with a plain, shorter crossfade. */
+  @media (prefers-reduced-motion: reduce) {
+    .hero-stack .layer { transition-duration: 200ms !important; }
+  }
+}
+
+/* The ticker is the page's first row inside the container but spans the whole viewport. */
+.bleed-x { margin-inline: calc(50% - 50vw); }
+body { overflow-x: clip; }
