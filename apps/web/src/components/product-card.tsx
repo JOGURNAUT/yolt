@@ -85,10 +85,10 @@ export function ProductCard({
   );
 }
 
-/** Mobile 2-up with a 12 px gap, desktop 4-up with 24 (board C4). */
-export function ProductGrid({ items, showSeller }: { items: CardItem[]; showSeller?: boolean }) {
+/** Mobile 2-up with a 12 px gap, 4-up from 1024 px, and from 1280 px a flush shelf 5 and then 6 across (see styles/wide.css). */
+export function ProductGrid({ items, showSeller, beside = false }: { items: CardItem[]; showSeller?: boolean; /** Sits beside the search filter sidebar: runs flush to the right edge only. */ beside?: boolean }) {
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 lg:gap-x-6 lg:gap-y-8">
+    <div className={beside ? "shelf shelf-end" : "shelf"}>
       {items.map((item) => (
         <ProductCard key={item.id} item={item} showSeller={showSeller} />
       ))}

@@ -61,7 +61,7 @@ export function Explore({
   ].filter((g) => g.items.length > 0);
 
   return (
-    <div className="flex flex-col gap-8 lg:gap-12">
+    <div className="page-wide flex flex-col gap-8 lg:gap-12">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="t-display">Explore</h1>
         <Link href={`/search${searchParamsToQuery({ sort: "newest" })}`} className="btn btn-sm btn-ghost !px-0 !h-11">
@@ -70,7 +70,7 @@ export function Explore({
       </div>
 
       <section aria-labelledby="cat-h" className="flex flex-col gap-3">
-        <h2 id="cat-h" className="t-h2">
+        <h2 id="cat-h" className="t-h2 sec-title">
           Categories
         </h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 lg:gap-3">
@@ -89,7 +89,7 @@ export function Explore({
       </section>
 
       <section aria-labelledby="sty-h" className="flex flex-col gap-3">
-        <h2 id="sty-h" className="t-h2">
+        <h2 id="sty-h" className="t-h2 sec-title">
           Styles
         </h2>
         <div className="hscroll hscroll-bleed lg:!grid lg:grid-cols-8 lg:!overflow-visible lg:!px-0">
@@ -108,7 +108,7 @@ export function Explore({
         <section aria-labelledby="size-h" className="card overflow-hidden">
           <div className="tape !h-[26px] !rounded-none" aria-hidden="true" />
           <div className="flex flex-col gap-3 p-4 lg:p-6">
-            <h2 id="size-h" className="t-h2">
+            <h2 id="size-h" className="t-h2 sec-title">
               Shop by size
             </h2>
             {groups.map((g) => (
@@ -129,7 +129,7 @@ export function Explore({
 
       {stores.length > 0 && (
         <section id="stores" aria-labelledby="st-h" className="flex scroll-mt-24 flex-col gap-3">
-          <h2 id="st-h" className="t-h2">
+          <h2 id="st-h" className="t-h2 sec-title">
             Stores
           </h2>
           <div className="card divide-y divide-line lg:grid lg:grid-cols-2 lg:divide-y-0 lg:gap-px lg:overflow-hidden">

@@ -25,7 +25,7 @@ export function StoreCard({ store, following, signedIn }: { store: StoreCardData
         )}
       </div>
       <div className="flex flex-col gap-2.5 px-3.5 pb-3.5 lg:gap-3 lg:px-[18px] lg:pb-[18px]">
-        <span className="-mt-6 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#0D0D0C] text-white shadow-[0_0_0_3px_var(--surface)] lg:-mt-7 lg:h-14 lg:w-14">
+        <span className="relative -mt-6 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#0D0D0C] text-white shadow-[0_0_0_3px_var(--surface)] lg:-mt-7 lg:h-14 lg:w-14">
           {store.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- the store's own logo
             <img src={store.logoUrl} alt="" className="h-full w-full object-cover" />

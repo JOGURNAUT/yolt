@@ -84,7 +84,7 @@ export default async function SavedPage({ searchParams }: PageProps<"/saved">) {
       {stores.length > 0 ? (
         <>
           <p className="t-small muted">You&apos;ll hear about new drops from stores you follow.</p>
-          <ul className="grid gap-3 lg:grid-cols-2">
+          <ul className="grid gap-3 lg:grid-cols-2 min-[1600px]:grid-cols-3">
             {stores.map((s) => (
               <li key={s.id} className="card flex items-center gap-3 p-3.5">
                 <Link href={`/s/${s.handle}`} className="flex min-w-0 grow items-center gap-3 !no-underline" style={{ color: "inherit" }}>

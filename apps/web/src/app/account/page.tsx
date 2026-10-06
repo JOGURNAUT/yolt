@@ -63,7 +63,7 @@ export default async function AccountPage() {
           <span className="wordmark text-[22px]">{(name ?? "Y")[0]!.toUpperCase()}</span>
         </span>
         <div className="flex min-w-0 grow flex-col gap-0.5">
-          <span className="t-h1 break-words">{name ?? "Add your name"}</span>
+          <span className="t-h2 break-words">{name ?? "Add your name"}</span>
           <span className="t-small muted">{account?.phone ? `${formatIndianMobile(account.phone)} · signed in with WhatsApp` : "Signed in"}</span>
         </div>
         <NameEditor name={name} />

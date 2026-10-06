@@ -56,7 +56,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
   const isOwner = user?.userId === store.userId;
 
   return (
-    <div className="space-y-6">
+    <div className="page-wide space-y-6">
       <StoreHeader
         store={store}
         rating={reviewData}

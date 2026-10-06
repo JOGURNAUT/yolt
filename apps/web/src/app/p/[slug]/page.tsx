@@ -68,7 +68,7 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
 
   if (removed) {
     return (
-      <div className="space-y-12 pb-8">
+      <div className="page-wide space-y-12 pb-8">
         <div className="mx-auto flex max-w-md flex-col items-center gap-3.5 pt-8 text-center lg:pt-16">
           <span aria-hidden="true">
             <HangTag size="lg" ink className="-rotate-[8deg]">
@@ -88,8 +88,8 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
   }
 
   return (
-    <div className="space-y-10 pb-28 lg:space-y-14 lg:pb-8">
-      <div>
+    <div className="page-wide space-y-10 pb-28 lg:space-y-14 lg:pb-8">
+      <div className="mx-auto max-w-[1440px]">
         <nav aria-label="Breadcrumb" className="t-small muted mb-3 hidden lg:block">
           <Link href="/">Home</Link> / <Link href={`/s/${seller.handle}`}>{seller.displayName}</Link>
           {category && (

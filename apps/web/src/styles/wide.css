@@ -1,0 +1,69 @@
+/*
+ * Page widths. Text and form pages (login, checkout, account, orders, legal, preferences) keep the
+ * narrow 1248 px column from the layout (.page-shell). Browse pages put .page-wide on their root
+ * element, which lifts that cap: headings sit in fluid gutters and product shelves run to the edges
+ * of the screen from 1280 px, with a hairline between tiles. Below 1024 px nothing changes.
+ * Unlayered on purpose, so these win over the component utilities.
+ */
+:root {
+  --gut: clamp(16px, 3vw, 48px);
+  --wide-max: 2400px;
+}
+.page-shell { max-width: 1248px; }
+.page-shell:has(> .page-wide) { max-width: none; padding-inline: 0; }
+.page-wide { --rail-gut: var(--gut); width: 100%; max-width: var(--wide-max); margin-inline: auto; padding-inline: var(--gut); }
+/* Header and footer follow the same gutters, so their edges line up with the headings. */
+.site-wrap { width: 100%; max-width: var(--wide-max); margin-inline: auto; padding-inline: var(--gut); }
+.hscroll-bleed { margin-inline: calc(var(--rail-gut, 16px) * -1); }
+.page-wide .hscroll { padding-inline: var(--gut); scroll-padding-inline: var(--gut); }
+@media (min-width: 1024px) { .hscroll-bleed { margin-inline: 0; } .page-wide .hscroll { padding-inline: 0; } }
+
+/* A product grid: 2-up on phones, 3-up from 640, 4-up from 1024, then 5 and 6 across. */
+.shelf { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 12px; }
+@media (min-width: 640px) { .shelf { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .shelf { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px 24px; } }
+/* A single row of the same grid on desktop (a rail on phones): extra cards are hidden, not wrapped. */
+@media (min-width: 1024px) {
+  .shelf-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; overflow: visible; }
+  .shelf-row > :nth-child(n + 5) { display: none; }
+}
+
+@media (min-width: 1280px) {
+  .shelf, .shelf-row { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin-inline: calc(var(--gut) * -1); border-top: 1px solid var(--line); }
+  .shelf-row > :nth-child(5) { display: block; }
+  .shelf > *, .shelf-row > * { min-width: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  /* The card inside: a flush photo, text inset, the price tag at the bottom left so the top left stays free. */
+  .shelf .pc, .shelf-row .pc { padding-bottom: 18px; gap: 6px; }
+  .shelf .pc .media, .shelf .pc .ph, .shelf-row .pc .media, .shelf-row .pc .ph { border-radius: 0; margin-bottom: 4px; }
+  .shelf .pc > :not(.media), .shelf-row .pc > :not(.media) { margin-inline: 14px; }
+  .shelf .pc .tagpos, .shelf-row .pc .tagpos { top: auto; bottom: 14px; left: 14px; }
+  .shelf .pc .stk, .shelf-row .pc .stk { bottom: 14px; right: 14px; }
+  .shelf .pc:hover, .shelf-row .pc:hover { transform: none; }
+  .shelf .pc.is-large .title, .shelf-row .pc.is-large .title { font-size: 14px; line-height: 19px; }
+  .page-wide .sec-title { font-size: clamp(28px, 2.5vw, 48px); line-height: 1.05; }
+}
+@media (min-width: 2200px) {
+  .shelf, .shelf-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .shelf-row > :nth-child(6) { display: block; }
+}
+
+/* A section heading's "See all": a text link on phones, an outline button on desktop. */
+@media (min-width: 1024px) {
+  .sec-link { min-height: 44px; padding: 0 20px; border: 1.5px solid var(--foreground); border-radius: var(--r-pill); align-items: center; text-decoration: none !important; transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+  .sec-link:hover { background: var(--foreground); color: var(--background); }
+}
+
+/* Beside the search sidebar: flush to the right edge only, one column fewer until there is room. */
+@media (min-width: 1280px) {
+  .shelf-end { margin-left: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); border-left: 1px solid var(--line); }
+}
+@media (min-width: 1600px) { .shelf-end { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (min-width: 2200px) { .shelf-end { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
+/* The landing hero and its rail run edge to edge from 1280 px and grow with the screen. */
+@media (min-width: 1280px) {
+  .hero-bleed { --hero-h: clamp(400px, 29vw, 600px); margin-inline: calc(var(--gut) * -1); gap: 0; }
+  .hero-bleed > * { height: var(--hero-h); border-radius: 0; }
+  .hero-bleed aside { gap: 0; }
+  .hero-bleed aside .card { border-radius: 0; }
+}

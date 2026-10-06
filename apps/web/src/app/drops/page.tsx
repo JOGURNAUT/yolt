@@ -15,13 +15,13 @@ export default async function DropsPage() {
 
   const group = (title: string, children: React.ReactNode) => (
     <section aria-label={title} className="flex flex-col gap-3">
-      <h2 className="t-h2">{title}</h2>
-      <div className="grid gap-3 lg:grid-cols-2 lg:gap-5">{children}</div>
+      <h2 className="t-h2 sec-title">{title}</h2>
+      <div className="grid gap-3 lg:grid-cols-2 lg:gap-5 min-[1600px]:grid-cols-3">{children}</div>
     </section>
   );
 
   return (
-    <div className="flex flex-col gap-6 lg:gap-8">
+    <div className="page-wide flex flex-col gap-6 lg:gap-8">
       <div className="flex flex-col gap-1.5">
         <h1 className="t-display">Drops</h1>
         <p className="t-small muted lg:t-body">Drops open on our clock. First to claim gets 5 minutes to pay.</p>

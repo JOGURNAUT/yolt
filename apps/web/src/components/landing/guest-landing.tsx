@@ -9,6 +9,7 @@ import {
   GrailsRail,
   GrailsSection,
   JustFoundAHome,
+  ProductRow,
   Section,
   SectionHead,
   SellerBand,
@@ -61,11 +62,11 @@ export async function GuestLanding() {
 
   const grails = home.grails;
   return (
-    <>
+    <div className="page-wide">
       <h1 className="sr-only">YOLT: thrift without the DMs</h1>
       <AnnouncementTicker items={ticker} className="bleed-x -mt-4 mb-1 lg:-mt-6 lg:mb-3" />
 
-      <div className="grid gap-6 lg:grid-cols-12">
+      <div className="hero-bleed grid gap-6 lg:grid-cols-12">
         <HeroCarousel slides={slides} className={`h-[330px] lg:h-[348px] ${grails.length > 0 ? "lg:col-span-8" : "lg:col-span-12"}`} />
         {grails.length > 0 && <GrailsRail items={grails} />}
       </div>
@@ -75,13 +76,13 @@ export async function GuestLanding() {
       {home.edit && (
         <Section id="edit" labelledBy="edit-h">
           <SectionHead id="edit-h" title={home.edit.title} caption="The edit · picked by YOLT" href="/search?sort=newest" />
-          <div className="hscroll hscroll-bleed lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:px-0">
+          <ProductRow>
             {home.edit.items.map((item) => (
               <div key={item.id} className="w-[164px] lg:w-auto">
                 <ProductCard item={item} showSeller />
               </div>
             ))}
-          </div>
+          </ProductRow>
         </Section>
       )}
 
@@ -105,6 +106,6 @@ export async function GuestLanding() {
       <StoresToDiscover stores={stores} followed={new Set()} signedIn={false} />
       <JustFoundAHome items={home.justSold} />
       <SellerBand />
-    </>
+    </div>
   );
 }
