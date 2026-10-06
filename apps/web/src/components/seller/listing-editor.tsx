@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, CircleDashed } from "lucide-react";
 import {
   CATEGORIES,
   CONDITION_INFO,
@@ -13,11 +14,17 @@ import {
   type MeasurementKey,
   type Measurements,
 } from "@yolt/shared";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { cx, ICON_STROKE } from "@/components/ui/cx";
+import { HangTag } from "@/components/ui/hang-tag";
+import { formatINR, formatIST } from "@/lib/format";
+import { ListingStatusActions } from "./listing-actions";
 import { PhotoManager, type Photo } from "./photo-manager";
 
 type Listing = {
   id: string;
   status: string;
+  slug: string;
   title: string | null;
   description: string | null;
   category: string | null;
@@ -28,9 +35,10 @@ type Listing = {
   flaws: string | null;
   noFlawsConfirmed: boolean;
   pricePaise: number | null;
+  publishedAt: Date | string | null;
 };
 
-type Form = Omit<Listing, "id" | "status" | "pricePaise"> & { price: string };
+type Form = Omit<Listing, "id" | "status" | "slug" | "pricePaise" | "publishedAt"> & { price: string };
 
 const toForm = (l: Listing): Form => ({
   title: l.title,
@@ -60,9 +68,11 @@ type SaveState = "saved" | "pending" | "saving" | "error";
 export function ListingEditor({
   initial,
   kycVerified,
+  storeName,
 }: {
   initial: { listing: Listing; photos: Photo[] };
   kycVerified: boolean;
+  storeName: string;
 }) {
   const router = useRouter();
   const live = initial.listing.status === "AVAILABLE";
@@ -71,7 +81,9 @@ export function ListingEditor({
   const [save, setSave] = useState<SaveState>("saved");
   const [serverError, setServerError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  const [drawer, setDrawer] = useState(false);
   const lastSaved = useRef(JSON.stringify(toPatch(toForm(initial.listing))));
+  const listId = useId();
 
   const category = getCategory(form.category);
   const readiness = useMemo(
@@ -183,18 +195,27 @@ export function ListingEditor({
   }
 
   const saveLabel = { saved: live ? "All changes saved" : "Saved", pending: live ? "Unsaved changes" : "Editing…", saving: "Saving…", error: "Not saved" }[save];
+  const left = readiness.missing.length;
+  const heading = readiness.ready ? "Ready to publish" : "Before you publish";
+  const price = pricePaise(form.price);
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <div className="space-y-8">
-        <header className="flex items-center justify-between">
-          <h1 className="text-xl font-bold">{live ? "Edit live listing" : form.title?.trim() || "New listing"}</h1>
-          <span role="status" aria-live="polite" className={`text-sm ${save === "error" ? "text-danger" : "text-muted"}`}>
+    <div className="grid items-start gap-5 pb-44 lg:grid-cols-[minmax(0,1fr)_320px] lg:pb-0">
+      <div className="space-y-4">
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="t-h1 min-w-0 grow">{live ? "Edit live listing" : form.title?.trim() || "New listing"}</h1>
+          <span role="status" aria-live="polite" className={cx("t-small", save === "error" ? "font-bold text-danger" : "muted")}>
             {saveLabel}
           </span>
         </header>
 
-        <Section title="Photos" hint="Real photos of this exact piece. Show the front, back, the label, and every flaw up close.">
+        {live && (
+          <p className="t-small rounded-xl bg-surface-2 p-3">
+            <strong>This item is live, so it must stay complete.</strong> Changes to price, measurements or flaws show on your store as soon as you save them.
+          </p>
+        )}
+
+        <Section title="Photos of this exact piece" hint="Show the front, back, the label, and every flaw up close.">
           <PhotoManager
             listingId={initial.listing.id}
             photos={photos}
@@ -206,11 +227,11 @@ export function ListingEditor({
 
         <Section title="Basics">
           <Field label="Title" hint="What a buyer would search for, e.g. “Vintage Levi's 501 jeans”.">
-            <input className={input} value={form.title ?? ""} maxLength={120} onChange={(e) => set("title", e.target.value)} />
+            <input className="input" value={form.title ?? ""} maxLength={120} onChange={(e) => set("title", e.target.value)} />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3.5 sm:grid-cols-2">
             <Field label="Category">
-              <select className={input} value={form.category ?? ""} onChange={(e) => changeCategory(e.target.value || null)}>
+              <select className="input" value={form.category ?? ""} onChange={(e) => changeCategory(e.target.value || null)}>
                 <option value="">Choose…</option>
                 {CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -219,41 +240,36 @@ export function ListingEditor({
                 ))}
               </select>
             </Field>
-            <Field label="Brand (optional)" hint={category?.authSensitive ? "Buyers will see this as declared by you, not authenticated." : undefined}>
-              <input className={input} value={form.brandDeclared ?? ""} maxLength={60} onChange={(e) => set("brandDeclared", e.target.value)} />
+            <Field label="Brand (optional)" hint={category?.authSensitive ? "Buyers will see this as declared by you, not authenticated." : "Shown as “declared by seller”."}>
+              <input className="input" value={form.brandDeclared ?? ""} maxLength={60} onChange={(e) => set("brandDeclared", e.target.value)} />
             </Field>
           </div>
           {category && category.group !== "ACCESSORY" && category.group !== "BAG" && (
             <Field label="Size on the tag" hint="Exactly as printed, e.g. “M”, “W32 L32”, “UK 8”.">
-              <input className={input} value={form.tagSize ?? ""} maxLength={30} onChange={(e) => set("tagSize", e.target.value)} />
+              <input className="input" value={form.tagSize ?? ""} maxLength={30} onChange={(e) => set("tagSize", e.target.value)} />
             </Field>
           )}
         </Section>
 
         {category && category.measurements.length > 0 && (
-          <Section title="Measurements" hint="Lay the item flat and measure in centimetres. Buyers compare these with their own clothes.">
+          <Section title="Size & measurements" hint="Lay the item flat and measure in centimetres. Buyers compare these with their own clothes.">
             {category.measurements.some((k) => WIDTH_MEASUREMENTS.includes(k)) && (
-              <fieldset className="flex flex-wrap gap-4 text-sm">
-                <legend className="mb-2 font-medium">Chest, waist and hip were measured…</legend>
+              <fieldset className="m-0 flex min-w-0 flex-wrap gap-x-6 border-0 p-0">
+                <legend className="t-small mb-1 p-0 font-bold">Chest, waist and hip were measured…</legend>
                 {(["FLAT", "AROUND"] as const).map((b) => (
-                  <label key={b} className="flex items-center gap-2">
+                  <label key={b} className="tick">
                     <input type="radio" name="basis" checked={form.measurements.basis === b} onChange={() => setMeasurement("basis", b)} />
                     {b === "FLAT" ? "Flat, across one side" : "All the way around"}
                   </label>
                 ))}
               </fieldset>
             )}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
               {category.measurements.map((key) => (
                 <Field key={key} label={`${MEASUREMENT_LABELS[key]}${category.requiredMeasurements.includes(key) ? "" : " (optional)"}`}>
                   <div className="relative">
-                    <input
-                      className={`${input} pr-10`}
-                      inputMode="decimal"
-                      defaultValue={form.measurements[key] ?? ""}
-                      onChange={(e) => setMeasurement(key, e.target.value)}
-                    />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">cm</span>
+                    <input className="input !pr-11" inputMode="decimal" defaultValue={form.measurements[key] ?? ""} onChange={(e) => setMeasurement(key, e.target.value)} />
+                    <span className="t-small muted pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2">cm</span>
                   </div>
                 </Field>
               ))}
@@ -261,29 +277,32 @@ export function ListingEditor({
           </Section>
         )}
 
-        <Section title="Condition and flaws">
-          <div className="grid gap-2 sm:grid-cols-2">
+        <Section title="Condition">
+          <div role="radiogroup" aria-label="Condition" className="grid gap-2.5 sm:grid-cols-2">
             {CONDITIONS.map((c) => (
-              <label
-                key={c}
-                className={`cursor-pointer rounded-lg border p-3 text-sm ${form.condition === c ? "border-foreground" : "border-line"}`}
-              >
-                <input type="radio" name="condition" className="sr-only" checked={form.condition === c} onChange={() => set("condition", c)} />
-                <span className="font-medium">{CONDITION_INFO[c].label}</span>
-                <span className="block text-muted">{CONDITION_INFO[c].meaning}</span>
+              <label key={c} className="choice">
+                <input type="radio" name="condition" checked={form.condition === c} onChange={() => set("condition", c)} />
+                <span className="radio" aria-hidden="true" />
+                <span className="flex flex-col gap-0.5">
+                  <span className="t-small font-bold">{CONDITION_INFO[c].label}</span>
+                  <span className="t-small muted">{CONDITION_INFO[c].meaning}</span>
+                </span>
               </label>
             ))}
           </div>
+        </Section>
+
+        <Section title="Flaws">
           <Field label="Flaws" hint="Stains, holes, pulls, fading, missing buttons, alterations. Add a close-up photo of each.">
             <textarea
-              className={`${input} min-h-24`}
+              className="input !h-auto min-h-24 !py-3 !leading-[1.4]"
               value={form.flaws ?? ""}
               maxLength={1000}
               disabled={form.noFlawsConfirmed}
               onChange={(e) => set("flaws", e.target.value)}
             />
           </Field>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="tick">
             <input
               type="checkbox"
               checked={form.noFlawsConfirmed}
@@ -296,80 +315,135 @@ export function ListingEditor({
           </label>
         </Section>
 
-        <Section title="Price" hint="No size returns on YOLT, which is why accurate measurements matter. Buyers are refunded if an item isn't as described.">
-          <Field label="Price">
-            <div className="relative max-w-48">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">₹</span>
-              <input className={`${input} pl-7`} inputMode="numeric" value={form.price} onChange={(e) => set("price", e.target.value)} />
+        <Section title="Pricing" hint="No size returns on YOLT, which is why accurate measurements matter. Buyers are refunded if an item isn't as described.">
+          <Field label="Price" className="max-w-52">
+            <div className="phone">
+              <span className="cc">₹</span>
+              <input inputMode="numeric" value={form.price} onChange={(e) => set("price", e.target.value)} />
             </div>
           </Field>
+          <p className="t-small muted">
+            {price !== null && price > 0 ? `You receive ${formatINR(price)}. ` : ""}Commission ₹0 · Pilot: no commission. The buyer pays shipping separately.
+          </p>
           <Field label="Description (optional)" hint="Fit notes, styling, story of the piece.">
-            <textarea className={`${input} min-h-20`} value={form.description ?? ""} maxLength={2000} onChange={(e) => set("description", e.target.value)} />
+            <textarea className="input !h-auto min-h-20 !py-3 !leading-[1.4]" value={form.description ?? ""} maxLength={2000} onChange={(e) => set("description", e.target.value)} />
           </Field>
         </Section>
+
+        {live && (
+          <Section title="This listing">
+            <p className="t-small muted">{initial.listing.publishedAt ? `Live on your store since ${formatIST(initial.listing.publishedAt)}.` : "Live on your store."}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <ButtonLink href={`/p/${initial.listing.slug}`} variant="secondary" className="!h-11">
+                View on your store
+              </ButtonLink>
+              <ListingStatusActions listingId={initial.listing.id} title={form.title?.trim() || "this listing"} onDone={() => router.push("/seller/listings")} />
+            </div>
+          </Section>
+        )}
       </div>
 
-      <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-        <div className="rounded-lg border border-line bg-surface p-4">
-          <h2 className="font-semibold">{readiness.ready ? "Ready to publish" : "Before you publish"}</h2>
+      <aside aria-label="Publishing" className="space-y-4 lg:sticky lg:top-24">
+        <section aria-labelledby={`${listId}-h`} className={cx("publish", live && "is-live")}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 id={`${listId}-h`} className="t-h3 !normal-case lg:!text-lg">
+              {live ? (readiness.ready ? "Live on your store" : "Keep it complete") : heading}
+            </h2>
+            {!readiness.ready && (
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost !h-11 !px-0 lg:hidden"
+                aria-expanded={drawer}
+                aria-controls={`${listId}-list`}
+                onClick={() => setDrawer((d) => !d)}
+              >
+                {left} {left === 1 ? "thing" : "things"} left
+                {drawer ? <ChevronDown aria-hidden className="ic ic-16" strokeWidth={ICON_STROKE} /> : <ChevronUp aria-hidden className="ic ic-16" strokeWidth={ICON_STROKE} />}
+              </button>
+            )}
+          </div>
           {readiness.ready ? (
-            <p className="mt-1 text-sm text-muted">Everything buyers need is here.</p>
+            <p className="t-small muted hidden lg:block">Everything buyers need is here.</p>
           ) : (
-            <ul className="mt-2 space-y-1.5 text-sm">
+            <ul id={`${listId}-list`} className={cx("m-0 flex list-none flex-col gap-2.5 p-0", !drawer && "hidden lg:flex")}>
               {readiness.missing.map((m, i) => (
-                <li key={i} className="flex gap-2">
-                  <span aria-hidden="true" className="text-muted">○</span>
-                  {m.message}
+                <li key={i} className="t-small flex items-start gap-2.5">
+                  <CircleDashed aria-hidden className="ic ic-16 mt-0.5" strokeWidth={ICON_STROKE} />
+                  <span>{m.message}</span>
                 </li>
               ))}
             </ul>
           )}
-          {!kycVerified && (
-            <p className="mt-3 text-sm text-danger">Finish PAN and bank verification before your first listing can go live.</p>
+          {!kycVerified && !live && <p className="t-small text-danger">Finish PAN and bank verification before your first listing can go live.</p>}
+          {serverError && (
+            <p role="alert" className="t-small rounded-xl p-3 font-semibold text-danger shadow-[inset_0_0_0_1.5px_var(--danger)]">
+              {serverError}
+            </p>
           )}
-        </div>
+          {live ? (
+            <Button size="lg" block onClick={() => void persist()} disabled={save === "saved" || save === "saving"}>
+              Save changes
+            </Button>
+          ) : (
+            <Button size="lg" block onClick={publish} loading={publishing} disabled={!readiness.ready || !kycVerified}>
+              {initial.listing.status === "WITHDRAWN" ? "Relist" : readiness.ready ? "Publish" : `Publish · ${left} ${left === 1 ? "thing" : "things"} left`}
+            </Button>
+          )}
+          <p className="help hidden lg:block">{live ? "Edits show buyers right away." : "Items are checked against this list before going live. Your draft saves as you go."}</p>
+        </section>
 
-        {serverError && (
-          <p role="alert" className="rounded-md border border-danger p-3 text-sm text-danger">
-            {serverError}
-          </p>
-        )}
-
-        {live ? (
-          <button type="button" onClick={() => void persist()} disabled={save === "saved" || save === "saving"} className={primary}>
-            Save changes
-          </button>
-        ) : (
-          <button type="button" onClick={publish} disabled={!readiness.ready || !kycVerified || publishing} className={primary}>
-            {publishing ? "Publishing…" : initial.listing.status === "WITHDRAWN" ? "Relist" : "Publish"}
-          </button>
-        )}
+        <section aria-label="Buyer preview" className="card hidden flex-col gap-2.5 p-4 lg:flex">
+          <span className="t-caption muted">BUYER PREVIEW</span>
+          <div className="pc pointer-events-none">
+            <div className="media">
+              <div className="ph">
+                <div className="shot">
+                  {photos[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- seller preview of their own upload
+                    <img src={photos[0].url} alt="" />
+                  ) : (
+                    <span className="t-caption muted uppercase">Add a front photo</span>
+                  )}
+                </div>
+              </div>
+              {price !== null && price > 0 && (
+                <span className="tagpos">
+                  <HangTag>{formatINR(price)}</HangTag>
+                </span>
+              )}
+            </div>
+            <span className="title">{form.title?.trim() || "Your title"}</span>
+            <span className="meta">
+              {[form.tagSize, form.condition ? CONDITION_INFO[form.condition as keyof typeof CONDITION_INFO]?.label : null, storeName].filter(Boolean).join(" · ")}
+            </span>
+          </div>
+        </section>
       </aside>
     </div>
   );
 }
 
-const input = "w-full rounded-md border border-line bg-background px-3 py-2 text-base disabled:opacity-50";
-const primary = "w-full rounded-full bg-foreground py-3 font-semibold text-background disabled:opacity-40";
-
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  const id = useId();
   return (
-    <section className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {hint && <p className="text-sm text-muted">{hint}</p>}
+    <section aria-labelledby={id} className="sec">
+      <div className="space-y-1">
+        <h2 id={id} className="t-h2">
+          {title}
+        </h2>
+        {hint && <p className="t-small muted">{hint}</p>}
       </div>
       {children}
     </section>
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, className, children }: { label: string; hint?: string; className?: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1">
-      <span className="text-sm font-medium">{label}</span>
+    <label className={cx("field", className)}>
+      <span>{label}</span>
       {children}
-      {hint && <span className="block text-xs text-muted">{hint}</span>}
+      {hint && <span className="help">{hint}</span>}
     </label>
   );
 }

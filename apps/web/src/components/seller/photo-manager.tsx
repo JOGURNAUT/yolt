@@ -1,7 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Camera, LoaderCircle } from "lucide-react";
 import { MAX_PHOTOS, PHOTO_KIND_LABELS, type PhotoKind } from "@yolt/shared";
+import { cx, ICON_STROKE } from "@/components/ui/cx";
+import { Sticker } from "@/components/ui/sticker";
 import { shrinkForUpload } from "@/lib/client/image";
 
 export type Photo = { id: string; url: string; kind: string; position: number };
@@ -13,6 +16,10 @@ const UPLOAD_ERRORS: Record<string, string> = {
   NOT_EDITABLE: "This item can't be edited right now.",
 };
 
+/**
+ * PhotoSlots (board C6): guided slots for Front, Back, Label / size tag and, once flaws are described,
+ * a Flaw close-up; every upload gets a type label, the first is the Cover. Up to 12 photos.
+ */
 export function PhotoManager({
   listingId,
   photos,
@@ -82,6 +89,8 @@ export function PhotoManager({
     if (res.ok) onChange(ordered.map((p, i) => ({ ...p, position: i })));
   }
 
+  const label = (kind: string) => PHOTO_KIND_LABELS[kind as PhotoKind] ?? kind;
+
   return (
     <div className="space-y-3">
       <input
@@ -98,23 +107,27 @@ export function PhotoManager({
         }}
       />
 
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-6">
         {photos.map((p, i) => (
-          <figure key={p.id} className="space-y-1">
-            <div className="relative overflow-hidden rounded-md border border-line">
+          <figure key={p.id} className="m-0 flex flex-col gap-1">
+            <div className="slot !p-0">
               {/* eslint-disable-next-line @next/next/no-img-element -- seller preview of their own upload */}
-              <img src={p.url} alt={PHOTO_KIND_LABELS[p.kind as PhotoKind] ?? p.kind} className="aspect-[4/5] w-full object-cover" />
-              {i === 0 && <span className="absolute left-1 top-1 rounded bg-surface px-1.5 text-[10px] font-medium">Cover</span>}
+              <img src={p.url} alt={label(p.kind)} className="size-full object-cover" />
+              {i === 0 && (
+                <Sticker tone="ink" className="!absolute !left-1.5 !top-2 !h-5 !text-[9px]">
+                  Cover
+                </Sticker>
+              )}
             </div>
-            <figcaption className="flex items-center justify-between text-xs">
-              <span>{PHOTO_KIND_LABELS[p.kind as PhotoKind] ?? p.kind}</span>
-              <span className="flex gap-2">
+            <figcaption className="t-caption flex flex-col !font-semibold">
+              <span>{label(p.kind)}</span>
+              <span className="flex flex-wrap items-center gap-x-1">
                 {i !== 0 && (
-                  <button type="button" onClick={() => makeCover(p)} className="text-muted hover:underline">
-                    Cover
+                  <button type="button" onClick={() => makeCover(p)} className="muted -ml-1 min-h-11 px-1 !font-semibold underline">
+                    Make cover
                   </button>
                 )}
-                <button type="button" onClick={() => remove(p)} className="text-danger hover:underline" aria-label={`Remove ${PHOTO_KIND_LABELS[p.kind as PhotoKind] ?? "photo"}`}>
+                <button type="button" onClick={() => remove(p)} className="-ml-1 min-h-11 px-1 !font-semibold text-danger underline" aria-label={`Remove ${label(p.kind)}`}>
                   Remove
                 </button>
               </span>
@@ -123,36 +136,38 @@ export function PhotoManager({
         ))}
 
         {missingGuided.map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            onClick={() => pick(kind)}
-            disabled={uploading !== null}
-            className="flex aspect-[4/5] flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-line p-2 text-center text-xs hover:border-foreground disabled:opacity-50"
-          >
-            <span className="text-lg" aria-hidden="true">+</span>
-            {uploading === kind ? "Uploading…" : `Add ${PHOTO_KIND_LABELS[kind].toLowerCase()}`}
-          </button>
+          <div key={kind} className="flex flex-col gap-1">
+            <button type="button" onClick={() => pick(kind)} disabled={uploading !== null} className={cx("slot is-required")}>
+              {uploading === kind ? <LoaderCircle aria-hidden className="ic motion-safe:animate-spin" strokeWidth={ICON_STROKE} /> : <Camera aria-hidden className="ic ic-24" strokeWidth={ICON_STROKE} />}
+              {uploading === kind ? "Uploading…" : `Add ${PHOTO_KIND_LABELS[kind].toLowerCase()}`}
+            </button>
+            <span className="t-caption muted">Required</span>
+          </div>
         ))}
       </div>
 
       {photos.length < MAX_PHOTOS && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-muted">Add another:</span>
-          <select className="rounded-md border border-line bg-background px-2 py-1" value={extraKind} onChange={(e) => setExtraKind(e.target.value as PhotoKind)}>
-            {(["DETAIL", "FLAW", "BACK", "LABEL", "PROOF_OF_PURCHASE"] as const).map((k) => (
-              <option key={k} value={k}>
-                {PHOTO_KIND_LABELS[k]}
-              </option>
-            ))}
-          </select>
-          <button type="button" onClick={() => pick(extraKind)} disabled={uploading !== null} className="rounded-full border border-line px-3 py-1 hover:border-foreground disabled:opacity-50">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="t-small flex items-center gap-2 font-semibold">
+            Add another:
+            <select className="input !h-11 !w-auto" value={extraKind} onChange={(e) => setExtraKind(e.target.value as PhotoKind)}>
+              {(["DETAIL", "FLAW", "BACK", "LABEL", "PROOF_OF_PURCHASE"] as const).map((k) => (
+                <option key={k} value={k}>
+                  {PHOTO_KIND_LABELS[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="button" onClick={() => pick(extraKind)} disabled={uploading !== null} className="btn btn-sm btn-secondary !h-11">
             {uploading && !missingGuided.includes(uploading) ? "Uploading…" : "Choose photo"}
           </button>
         </div>
       )}
 
-      <p role="alert" aria-live="polite" className="text-sm text-danger">
+      <p className="help">
+        {photos.length} of {MAX_PHOTOS} · Location data is removed from your photos
+      </p>
+      <p role="alert" aria-live="polite" className="t-small font-semibold text-danger">
         {error}
       </p>
     </div>
