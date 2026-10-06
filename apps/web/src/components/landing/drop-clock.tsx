@@ -67,7 +67,6 @@ export function RemindButton({
     setOn(next);
     const res = await fetch(`/api/drops/${dropId}/reminder`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ on: next }) });
     if (!res.ok) setOn(!next);
-    // TODO: showInstallHint("reminder") after the push prompt once useInstallPrompt lands with the PWA shell.
     else if (next) void push.ask({ reason: "drop", title, startsAt });
   }
 

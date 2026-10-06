@@ -47,7 +47,7 @@ async function stubPush(page: Page, stub: Stub = {}) {
     };
     Object.defineProperty(navigator, "serviceWorker", {
       configurable: true,
-      value: { getRegistration: async () => registration, ready: Promise.resolve(registration), addEventListener() {}, removeEventListener() {} },
+      value: { getRegistration: async () => registration, getRegistrations: async () => [], ready: Promise.resolve(registration), addEventListener() {}, removeEventListener() {} },
     });
     Object.defineProperty(Notification, "permission", { configurable: true, get: () => permission });
     Notification.requestPermission = async () => {
@@ -194,4 +194,25 @@ test("without a service worker nothing is offered", async ({ page }) => {
   await page.goto("/account");
   await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
   await expect(page.getByRole("switch")).toHaveCount(0);
+});
+
+test.describe("after the push prompt, the install card may follow", () => {
+  // iPhone Safari has no install event: it always gets the Share steps, which makes this deterministic.
+  test.use({ userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1" });
+
+  test("never together with the push prompt, and only once that is answered", async ({ page }) => {
+    await stubPush(page);
+    await devSignIn(page, "Kabir (demo buyer)", `/d/${dropId}`);
+    const install = page.getByRole("region", { name: "Add YOLT to your home screen" });
+    await expect(install).toHaveCount(0); // never on arrival
+
+    await page.getByRole("button", { name: "Remind me" }).click();
+    await expect(prompt(page)).toBeVisible();
+    await expect(install).toHaveCount(0); // not while the push card is up
+
+    await prompt(page).getByRole("button", { name: "Not now" }).click();
+    await expect(prompt(page)).toHaveCount(0);
+    await expect(install).toBeVisible();
+    await expect(install).toContainText("In Safari, tap");
+  });
 });

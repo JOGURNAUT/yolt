@@ -3,6 +3,7 @@
 import { Bell, BellOff, Check, LoaderCircle } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useInstallPrompt } from "@/components/system/install-prompt";
 import { cx, ICON_STROKE } from "@/components/ui/cx";
 import { Stamp } from "@/components/ui/stamp";
 import { enablePush, rememberPushPromptDismissed, shouldOfferPushPrompt } from "@/lib/client/push";
@@ -23,6 +24,9 @@ type Phase = "ask" | "working" | "blocked" | "done";
  * asked on arrival; "Not now" is remembered, so it never comes back, and neither does it for
  * someone who is already subscribed or has blocked notifications.
  *
+ * Once this is out of the way (answered, dismissed, or never needed) the install card may offer
+ * "Add to home screen" for drop reminders. The two cards never show together.
+ *
  *   const push = usePushPrompt();
  *   await push.ask({ reason: "drop", title, startsAt });
  *   return <>{push.prompt}</>;
@@ -30,15 +34,21 @@ type Phase = "ask" | "working" | "blocked" | "done";
 export function usePushPrompt() {
   const [state, setState] = useState<{ ask: PushAsk; phase: Phase } | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { showInstallHint } = useInstallPrompt();
 
-  const ask = useCallback(async (input: PushAsk) => {
-    if (await shouldOfferPushPrompt()) setState({ ask: input, phase: "ask" });
-  }, []);
+  const ask = useCallback(
+    async (input: PushAsk) => {
+      if (await shouldOfferPushPrompt()) setState({ ask: input, phase: "ask" });
+      else showInstallHint("reminder"); // already subscribed, blocked, said Not now, or push isn't available here
+    },
+    [showInstallHint],
+  );
 
   const close = useCallback(() => {
     clearTimeout(closeTimer.current);
     setState(null);
-  }, []);
+    showInstallHint("reminder");
+  }, [showInstallHint]);
 
   const dismiss = useCallback(() => {
     rememberPushPromptDismissed();
