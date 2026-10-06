@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/shell/bottom-nav";
 import { Footer } from "@/components/shell/footer";
 import { Header } from "@/components/shell/header";
 import { ShopStateProvider } from "@/components/shop-state";
+import { SystemProviders } from "@/components/system/system-providers";
 import { ServiceWorkerRegister } from "@/components/system/service-worker-register";
 import { db } from "@/lib/server/db";
 import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
@@ -53,18 +54,20 @@ export default async function RootLayout({ children, modal }: LayoutProps<"/">) 
         <a href="#main" className="skip-link">
           Skip to content
         </a>
-        <ShopStateProvider signedIn={user !== null} initialSaved={saved} initialBag={bag}>
-          <Header
-            phone={user?.phone ? formatIndianMobile(user.phone) : null}
-            isSeller={seller !== null}
-            isAdmin={isAdmin}
-            devLogin={envFlags().devLogin}
-          />
-          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1248px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-6">{children}</main>
-          <Footer />
-          <BottomNav />
-          {modal}
-        </ShopStateProvider>
+        <SystemProviders>
+          <ShopStateProvider signedIn={user !== null} initialSaved={saved} initialBag={bag}>
+            <Header
+              phone={user?.phone ? formatIndianMobile(user.phone) : null}
+              isSeller={seller !== null}
+              isAdmin={isAdmin}
+              devLogin={envFlags().devLogin}
+            />
+            <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1248px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-6">{children}</main>
+            <Footer />
+            <BottomNav />
+            {modal}
+          </ShopStateProvider>
+        </SystemProviders>
       </body>
     </html>
   );

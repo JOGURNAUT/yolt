@@ -10,6 +10,7 @@ import { HoldTimer } from "./checkout/hold-timer";
 import { PaymentStatus } from "./checkout/payment-status";
 import { PriceSummary } from "./checkout/price-summary";
 import { SnapshotLine } from "./checkout/snapshot-line";
+import { useInstallPrompt } from "./system/install-prompt";
 import { SessionExpired } from "./system/session-expired";
 import { ProtectionNote } from "./product/detail-blocks";
 import { Button, ButtonLink } from "./ui/button";
@@ -45,6 +46,7 @@ export function CheckoutView({ orderId, sandbox, context }: { orderId: string; s
   const [eta, setEta] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const now = useNow();
+  const { showInstallHint } = useInstallPrompt();
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
@@ -65,6 +67,12 @@ export function CheckoutView({ orderId, sandbox, context }: { orderId: string; s
     const t = setInterval(load, 2000);
     return () => clearInterval(t);
   }, [paying, load]);
+
+  // After an order, offer the home-screen card (once per cool-down, and only where install works).
+  const confirmed = order?.status === "CONFIRMED";
+  useEffect(() => {
+    if (confirmed) showInstallHint("order");
+  }, [confirmed, showInstallHint]);
 
   if (error === SIGNED_OUT) return <SessionExpired next={`/checkout/${orderId}`} />;
   if (error) return <p className="py-10 text-center text-muted">{error}</p>;
