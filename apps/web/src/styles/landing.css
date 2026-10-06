@@ -31,5 +31,6 @@
 }
 
 /* The ticker is the page's first row inside the container but spans the whole viewport. */
-.bleed-x { margin-inline: calc(50% - 50vw); }
+/* Reaches the edges by undoing the page gutter, not by measuring the viewport, so it stays right at any browser or CSS zoom and next to a scrollbar. */
+.bleed-x { margin-inline: calc(var(--gut, 16px) * -1); }
 body { overflow-x: clip; }
