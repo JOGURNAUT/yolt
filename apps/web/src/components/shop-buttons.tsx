@@ -1,16 +1,25 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ShoppingBag } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 import { useShop } from "./shop-state";
-import { ICON_STROKE } from "./ui/cx";
+import { Button, ButtonLink } from "./ui/button";
+import { cx, ICON_STROKE } from "./ui/cx";
 import { IconLink } from "./ui/icon-button";
 
-/** Heart on product cards and pages. Works for guests (kept on this device). */
+const SPARK = "M12 2 C12 8 16 12 22 12 C16 12 12 16 12 22 C12 16 8 12 2 12 C8 12 12 8 12 2 Z";
+const SPARKS = [
+  ["s1", "--accent-2"],
+  ["s2", "--accent"],
+  ["s3", "--accent-2"],
+] as const;
+
+/** Heart on product cards and pages (board C4). Works for guests (kept on this device). */
 export function SaveButton({ listingId, className = "" }: { listingId: string; className?: string }) {
   const { isSaved, toggleSave } = useShop();
   const saved = isSaved(listingId);
+  const [pop, setPop] = useState(false);
   return (
     <button
       type="button"
@@ -19,13 +28,19 @@ export function SaveButton({ listingId, className = "" }: { listingId: string; c
       onClick={(e) => {
         e.preventDefault(); // cards are links
         e.stopPropagation();
+        setPop(!saved); // the pop and sparkle play when saving, not when removing
         void toggleSave(listingId);
       }}
-      className={`flex size-9 items-center justify-center rounded-full bg-surface text-lg shadow-sm ${className}`}
+      className={cx("heart", saved && "is-saved", pop && saved && "pop", className)}
     >
-      <span aria-hidden="true" className={saved ? "text-danger" : "text-muted"}>
-        {saved ? "♥" : "♡"}
+      <span className="dot">
+        <Heart aria-hidden className="ic ic-16" strokeWidth={ICON_STROKE} />
       </span>
+      {SPARKS.map(([cls, color]) => (
+        <svg key={cls} className={`spark ${cls}`} viewBox="0 0 24 24" aria-hidden="true" style={{ fill: `var(${color})` }}>
+          <path d={SPARK} />
+        </svg>
+      ))}
     </button>
   );
 }
@@ -41,25 +56,55 @@ export function AddToBagButton({ listingId }: { listingId: string }) {
   const [error, setError] = useState<string | null>(null);
   if (inBag(listingId)) {
     return (
-      <Link href="/bag" className="block w-full rounded-full border border-foreground py-3 text-center font-semibold">
+      <ButtonLink href="/bag" variant="secondary" size="lg" block>
         In your bag · View bag
-      </Link>
+      </ButtonLink>
     );
   }
   return (
     <div className="space-y-1">
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="lg"
+        block
         onClick={async () => {
           const r = await addToBag(listingId);
           setError(r.ok ? null : (BAG_ERRORS[r.error ?? ""] ?? "Couldn't add to bag."));
         }}
-        className="w-full rounded-full border border-foreground py-3 font-semibold"
       >
         Add to bag
-      </button>
+      </Button>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
+  );
+}
+
+/**
+ * The card's hover bar (board C4): a pointer-only shortcut for Add to bag, or Find similar on sold
+ * pieces. Phones never show it, and it stays out of the accessibility tree and tab order because
+ * the product page it sits on top of has the real buttons.
+ */
+export function CardAction({ listingId, category, mode }: { listingId: string; category: string; mode: "add" | "similar" }) {
+  const router = useRouter();
+  const { inBag, addToBag } = useShop();
+  const label = mode === "similar" ? "Find similar" : inBag(listingId) ? "In your bag" : "Add to bag";
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-hidden="true"
+      className="add"
+      onClick={(e) => {
+        e.preventDefault(); // cards are links
+        e.stopPropagation();
+        if (mode === "similar") router.push(`/search?cat=${category}`);
+        else if (inBag(listingId)) router.push("/bag");
+        else void addToBag(listingId);
+      }}
+    >
+      {mode === "add" && <ShoppingBag aria-hidden className="ic ic-16" strokeWidth={ICON_STROKE} />}
+      {label}
+    </button>
   );
 }
 
