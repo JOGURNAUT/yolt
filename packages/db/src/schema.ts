@@ -652,7 +652,7 @@ export const notificationDeliveries = pgTable(
     userId: uuid("user_id").notNull().references(() => users.id),
     dedupeKey: text("dedupe_key").notNull(),
     kind: text("kind").notNull(),
-    payload: jsonb("payload").$type<{ title: string; body: string; url: string; tag?: string }>().notNull(),
+    payload: jsonb("payload").$type<{ title: string; body: string; url: string; tag?: string; ttlSeconds?: number }>().notNull(),
     status: text("status", { enum: ["PENDING", "SENDING", "SENT", "SKIPPED", "FAILED"] }).notNull().default("PENDING"),
     attempts: integer("attempts").notNull().default(0),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
