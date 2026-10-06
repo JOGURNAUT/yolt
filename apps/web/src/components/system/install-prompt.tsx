@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Share, SquarePlus } from "lucide-react";
 import { Button } from "../ui/button";
 import { ICON_STROKE } from "../ui/cx";
+import { INSTALL_EVENT_KEY } from "@/lib/pwa";
 import { useToast } from "../ui/toast-provider";
 
 /**
@@ -95,6 +96,9 @@ export function InstallPromptProvider({ children }: { children: React.ReactNode 
       setVariant(null);
       toast("YOLT is on your home screen.", { tone: "success" });
     };
+    // The event may have fired before this mounted (see INSTALL_CAPTURE_SCRIPT in the layout).
+    const early = (window as unknown as Record<string, unknown>)[INSTALL_EVENT_KEY];
+    if (early) onPrompt(early as Event);
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
     return () => {
@@ -156,12 +160,9 @@ export function InstallCard() {
         <div className="flex flex-col gap-1">
           <h2 className="t-h3">Add YOLT to your home screen for drop reminders</h2>
           {variant === "ios" ? (
-            <p className="t-small muted flex flex-wrap items-center gap-x-1.5">
-              Tap
-              <Share aria-hidden className="ic ic-16 inline" strokeWidth={ICON_STROKE} />
-              <strong className="text-foreground">Share</strong>, then
-              <SquarePlus aria-hidden className="ic ic-16 inline" strokeWidth={ICON_STROKE} />
-              <strong className="text-foreground">Add to Home Screen</strong>.
+            <p className="t-small muted">
+              Tap <Share aria-hidden className="ic ic-16 inline-block align-[-3px]" strokeWidth={ICON_STROKE} /> <strong className="text-foreground">Share</strong>, then{" "}
+              <SquarePlus aria-hidden className="ic ic-16 inline-block align-[-3px]" strokeWidth={ICON_STROKE} /> <strong className="text-foreground">Add to Home Screen</strong>.
             </p>
           ) : (
             <p className="t-small muted">One tap, no app store. Opens like an app.</p>

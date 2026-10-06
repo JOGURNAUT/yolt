@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, DM_Mono, DM_Sans } from "next/font/google";
 import { appEnv, envFlags } from "@/lib/env";
-import { serviceWorkerEnabled } from "@/lib/pwa";
+import { INSTALL_CAPTURE_SCRIPT, serviceWorkerEnabled } from "@/lib/pwa";
 import { bagListingIds, getAdminRole, savedListingIds } from "@yolt/core";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { Footer } from "@/components/shell/footer";
@@ -48,6 +48,7 @@ export default async function RootLayout({ children, modal }: LayoutProps<"/">) 
       <head>
         {/* Applies a saved light/dark choice before first paint, so there is no flash of the other theme. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: INSTALL_CAPTURE_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col pb-[var(--bnav-h)] font-sans">
         <ServiceWorkerRegister enabled={serviceWorkerEnabled(appEnv(), process.env.NODE_ENV)} />

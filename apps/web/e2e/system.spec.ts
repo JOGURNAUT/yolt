@@ -125,6 +125,8 @@ test("install card: not on arrival, after the order is confirmed, dismissible an
   await fireInstallEvent();
   await page.waitForTimeout(300);
   await expect(card).toHaveCount(0);
+  // The head script keeps the event for the card, in case Chrome fires it before hydration.
+  expect(await page.evaluate(() => "__yoltInstallEvent" in window)).toBe(true);
 
   await placeOrder(page);
   await expect(page.getByRole("heading", { name: /Order confirmed/ })).toBeVisible();
