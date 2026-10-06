@@ -10,7 +10,7 @@ test.beforeAll(async () => {
 });
 
 const hero = (page: Page) => page.getByRole("region", { name: "Featured" });
-const slideCount = (page: Page) => hero(page).getByRole("button", { name: /^Go to slide/ }).count();
+const slides = (page: Page) => hero(page).getByRole("button", { name: /^Go to slide/ });
 
 test.describe("phone, 390 x 844", () => {
   test.use({ viewport: { width: 390, height: 844 } });
@@ -44,7 +44,8 @@ test.describe("phone, 390 x 844", () => {
 
   test("hero: segments move between slides, the arrow keys too, and pause holds the slide", async ({ page }) => {
     await page.goto("/");
-    expect(await slideCount(page)).toBe(5); // brand, drop, store, seller-or-edit, fit
+    // brand, drop, store, seller-or-edit, fit. Web-first, because the carousel is still hydrating when the page loads.
+    await expect(slides(page)).toHaveCount(5);
     const slide = (n: number) => hero(page).getByRole("button", { name: new RegExp(`^Go to slide ${n}:`) });
     await expect(slide(1)).toHaveAttribute("aria-current", "true");
 
