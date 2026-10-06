@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeSelect } from "@/components/ui/theme-toggle";
 import { NAV_LINKS } from "./header";
 
 const HELP_LINKS = [
@@ -23,7 +24,10 @@ export function Footer() {
           <FooterLinks title="Shop" links={NAV_LINKS} />
           <FooterLinks title="Help" links={HELP_LINKS} />
         </div>
-        <p className="mt-10 border-t border-white/15 pt-5 text-xs text-[#D9D8D2]">Made in India</p>
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-white/15 pt-5">
+          <p className="text-xs text-[#D9D8D2]">Made in India</p>
+          <ThemeSelect />
+        </div>
       </div>
     </footer>
   );
