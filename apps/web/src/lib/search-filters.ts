@@ -10,6 +10,12 @@ export const searchHref = (p: Partial<SearchParams>) => `/search${searchParamsTo
 const range = (r?: { min?: number; max?: number }) =>
   r?.min !== undefined && r?.max !== undefined ? `${r.min}–${r.max}` : r?.min !== undefined ? `${r.min}+` : `up to ${r?.max}`;
 
+const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+function priceLabel(r: { min?: number; max?: number }) {
+  if (r.min !== undefined && r.max !== undefined) return `${rupees(r.min)}–${rupees(r.max)}`;
+  return r.min !== undefined ? `${rupees(r.min)}+` : `Under ${rupees(r.max!)}`;
+}
+
 export type FilterChipData = { label: string; href: string; /** The same search with this one filter taken off. */ without: SearchParams };
 
 /** One chip per active filter. Each one links to the same search without just that filter. */
@@ -22,7 +28,7 @@ export function activeFilters(p: SearchParams): FilterChipData[] {
   for (const c of p.categories) add(getCategory(c)?.label ?? c, { categories: p.categories.filter((x) => x !== c) });
   for (const s of p.sizes) add(`Size ${s}`, { sizes: p.sizes.filter((x) => x !== s) });
   for (const c of p.conditions) add(CONDITION_INFO[c].label, { conditions: p.conditions.filter((x) => x !== c) });
-  if (p.price.min !== undefined || p.price.max !== undefined) add(`₹${range(p.price)}`, { price: {} });
+  if (p.price.min !== undefined || p.price.max !== undefined) add(priceLabel(p.price), { price: {} });
   for (const [k, r] of Object.entries(p.measurements) as [keyof typeof MEASURE_LABELS, { min?: number; max?: number }][]) {
     const rest = { ...p.measurements };
     delete rest[k];

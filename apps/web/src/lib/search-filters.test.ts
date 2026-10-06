@@ -6,7 +6,7 @@ describe("activeFilters", () => {
   it("makes one chip per filter, each linking to the search without it", () => {
     const p = parseSearchParams({ q: "denim", cat: "jeans,jackets", price: "-2500", waist: "78-84", cond: "GOOD" });
     const chips = activeFilters(p);
-    expect(chips.map((c) => c.label)).toEqual(["Jeans", "Jackets & coats", "Good", "₹up to 2500", "Waist 78–84 cm"]);
+    expect(chips.map((c) => c.label)).toEqual(["Jeans", "Jackets & coats", "Good", "Under ₹2,500", "Waist 78–84 cm"]);
     expect(chips[0]!.href).toBe("/search?q=denim&cat=jackets&cond=GOOD&price=-2500&waist=78-84");
     expect(chips[3]!.href).not.toContain("price=");
   });
