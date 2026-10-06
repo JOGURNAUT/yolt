@@ -296,12 +296,14 @@ export function CheckoutView({ orderId, sandbox, context }: { orderId: string; s
                   {payError}
                 </p>
               )}
-              <button type="button" onClick={cancel} className="btn btn-ghost btn-sm !h-11 self-center !p-0">
-                Leave checkout and release the item
-              </button>
             </div>
           )}
         </div>
+      )}
+      {!paying && (
+        <button type="button" onClick={cancel} className="btn btn-ghost btn-sm !h-11 self-center !p-0">
+          Leave checkout and release the item
+        </button>
       )}
       <Link href="/search" className="t-small block text-center underline">
         Keep browsing
