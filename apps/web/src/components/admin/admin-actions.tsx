@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { INDIAN_STATES } from "@yolt/shared";
+import { Button } from "@/components/ui/button";
+import { cx } from "@/components/ui/cx";
+import { adminRequest, type AdminResult } from "./admin-api";
+import { AdminError, ReasonDialog } from "./admin-ui";
+
+type SellerAction = "VERIFY_KYC" | "SUSPEND" | "REINSTATE";
 
 async function post(path: string, body: unknown) {
   const res = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -52,33 +58,37 @@ export function DecideClaim({ claimId }: { claimId: string }) {
 }
 
 /** Verify KYC / suspend / reinstate, each asking for a reason. */
-export function SellerStatusActions({ sellerId, status, kycStatus }: { sellerId: string; status: string; kycStatus: string }) {
+export function SellerStatusActions({ sellerId, status, kycStatus, name }: { sellerId: string; status: string; kycStatus: string; name: string }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  async function act(action: "VERIFY_KYC" | "SUSPEND" | "REINSTATE", prompt: string) {
-    const reason = window.prompt(prompt);
-    if (reason === null) return;
-    const r = await post(`/api/admin/sellers/${sellerId}/status`, { action, reason });
-    if (r.ok) router.refresh();
-    else setError(message(r.data.error));
-  }
+  const [action, setAction] = useState<SellerAction | null>(null);
+  const copy = {
+    VERIFY_KYC: { title: `Mark ${name} KYC verified`, intro: "Only after you've checked their PAN and bank details. Once verified they can publish pieces.", confirm: "Mark KYC verified", tone: "primary" as const },
+    SUSPEND: { title: `Suspend ${name}`, intro: "Their pieces disappear from YOLT and can't be bought until you reinstate them.", confirm: "Suspend store", tone: "danger" as const },
+    REINSTATE: { title: `Reinstate ${name}`, intro: "Their store and pieces come back.", confirm: "Reinstate store", tone: "primary" as const },
+  };
+  const open = (a: SellerAction, label: string, extra?: string) => (
+    <Button variant="secondary" size="sm" className={cx("!h-11 lg:!h-10", extra)} onClick={() => setAction(a)}>
+      {label}
+      <span className="sr-only"> for {name}</span>
+    </Button>
+  );
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
-      {kycStatus !== "VERIFIED" && (
-        <button type="button" onClick={() => act("VERIFY_KYC", "How did you verify PAN and bank?")} className="rounded-full border border-line px-3 py-1">
-          Mark KYC verified
-        </button>
-      )}
-      {status === "APPROVED" ? (
-        <button type="button" onClick={() => act("SUSPEND", "Why suspend this store? Its items disappear and can't be bought.")} className="rounded-full border border-danger px-3 py-1 text-danger">
-          Suspend
-        </button>
-      ) : (
-        <button type="button" onClick={() => act("REINSTATE", "Why reinstate this store?")} className="rounded-full border border-line px-3 py-1">
-          Reinstate
-        </button>
-      )}
-      {error && <span role="alert" className="text-danger">{error}</span>}
+    <div className="flex flex-wrap items-center gap-2">
+      {kycStatus !== "VERIFIED" && open("VERIFY_KYC", "Mark KYC verified")}
+      {status === "APPROVED" ? open("SUSPEND", "Suspend", "!text-danger") : open("REINSTATE", "Reinstate")}
+      <ReasonDialog
+        open={action !== null}
+        onClose={() => setAction(null)}
+        title={action ? copy[action].title : ""}
+        intro={action ? copy[action].intro : undefined}
+        confirmLabel={action ? copy[action].confirm : "Confirm"}
+        tone={action ? copy[action].tone : "primary"}
+        onSubmit={async (reason) => {
+          const r = await adminRequest("POST", `/api/admin/sellers/${sellerId}/status`, { action, reason });
+          if (r.ok) router.refresh();
+          return r;
+        }}
+      />
     </div>
   );
 }
@@ -86,43 +96,47 @@ export function SellerStatusActions({ sellerId, status, kycStatus }: { sellerId:
 /** Pilot onboarding of an invited store. */
 export function OnboardSellerForm() {
   const router = useRouter();
-  const [form, setForm] = useState({ phone: "", handle: "", displayName: "", instagramHandle: "", pickupPincode: "", pickupState: "" });
+  const blank = { phone: "", handle: "", displayName: "", instagramHandle: "", pickupPincode: "", pickupState: "" };
+  const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const field = "w-full rounded-md border border-line bg-background px-2 py-1.5 text-sm";
+  const [failure, setFailure] = useState<Extract<AdminResult, { ok: false }> | null>(null);
+  const [created, setCreated] = useState<string | null>(null);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm({ ...form, [k]: e.target.value });
   return (
     <form
-      className="grid gap-3 rounded-lg border border-line bg-surface p-4 sm:grid-cols-2"
+      className="grid gap-4 sm:grid-cols-2"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
-        setError(null);
-        const r = await post("/api/admin/sellers", form);
+        setFailure(null);
+        setCreated(null);
+        const r = await adminRequest("POST", "/api/admin/sellers", form);
         setBusy(false);
         if (r.ok) {
-          setForm({ phone: "", handle: "", displayName: "", instagramHandle: "", pickupPincode: "", pickupState: "" });
+          setCreated(form.displayName);
+          setForm(blank);
           router.refresh();
-        } else setError(message(r.data.error, r.data.details?.field));
+        } else setFailure(r);
       }}
     >
-      <label className="space-y-1 text-sm">Owner&apos;s mobile<input className={field} required value={form.phone} onChange={set("phone")} /></label>
-      <label className="space-y-1 text-sm">Store name<input className={field} required value={form.displayName} onChange={set("displayName")} /></label>
-      <label className="space-y-1 text-sm">Handle (yolt.in/s/…)<input className={field} required value={form.handle} onChange={set("handle")} /></label>
-      <label className="space-y-1 text-sm">Instagram (optional)<input className={field} value={form.instagramHandle} onChange={set("instagramHandle")} /></label>
-      <label className="space-y-1 text-sm">Pickup pincode<input className={field} required inputMode="numeric" value={form.pickupPincode} onChange={set("pickupPincode")} /></label>
-      <label className="space-y-1 text-sm">
+      <label className="field">Owner&apos;s mobile<input className="input" required inputMode="tel" autoComplete="off" value={form.phone} onChange={set("phone")} /></label>
+      <label className="field">Store name<input className="input" required value={form.displayName} onChange={set("displayName")} /></label>
+      <label className="field">Handle (yolt.in/s/…)<input className="input" required autoCapitalize="none" value={form.handle} onChange={set("handle")} /></label>
+      <label className="field">Instagram (optional)<input className="input" autoCapitalize="none" value={form.instagramHandle} onChange={set("instagramHandle")} /></label>
+      <label className="field">Pickup pincode<input className="input" required inputMode="numeric" value={form.pickupPincode} onChange={set("pickupPincode")} /></label>
+      <label className="field">
         Pickup state
-        <select className={field} required value={form.pickupState} onChange={set("pickupState")}>
+        <select className="input" required value={form.pickupState} onChange={set("pickupState")}>
           <option value="">Choose…</option>
           {INDIAN_STATES.map((s) => <option key={s}>{s}</option>)}
         </select>
       </label>
-      <div className="sm:col-span-2">
-        <button type="submit" disabled={busy} className="rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background disabled:opacity-60">
-          {busy ? "Creating…" : "Create store (KYC pending)"}
-        </button>
-        {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+      <div className="flex flex-col gap-2 sm:col-span-2">
+        <div>
+          <Button type="submit" size="lg" loading={busy}>Create store (KYC pending)</Button>
+        </div>
+        <AdminError failure={failure} />
+        {created && <p role="status" className="t-small font-semibold">Created {created}. Mark KYC verified below once you have checked PAN and bank details.</p>}
       </div>
     </form>
   );
