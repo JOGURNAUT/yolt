@@ -19,7 +19,7 @@ import { randomBytes } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { createDb, listingPhotos, listings, sellers } from "@yolt/db";
 import { PHOTO_KIND_LABELS, type PhotoKind } from "@yolt/shared";
 import { InvalidImageError, processPhoto } from "./media/process";
@@ -37,7 +37,8 @@ const option = (name: string, fallback: string) => {
 const dry = flag("dry");
 const sequential = flag("sequential");
 const perPiece = Math.max(1, Number(option("per", "1")) || 1);
-const storeHandle = option("store", "secondloop");
+/** One store's pieces, or (the default) every demo store's: a photo is matched against all of them. */
+const storeHandle = option("store", "");
 const dir = option("dir", join(root, "images"));
 
 const url = process.env.DATABASE_URL;
@@ -94,12 +95,16 @@ try {
     process.exit(0);
   }
 
-  const [seller] = await db.select({ id: sellers.id, name: sellers.displayName }).from(sellers).where(eq(sellers.handle, storeHandle));
-  if (!seller) throw new Error(`No store with the handle "${storeHandle}". Run \`pnpm db:seed\` first.`);
-  const rows = await db.select({ id: listings.id, title: listings.title, category: listings.category }).from(listings).where(eq(listings.sellerId, seller.id)).orderBy(asc(listings.createdAt));
+  const stores = await db.select({ id: sellers.id, handle: sellers.handle, name: sellers.displayName }).from(sellers).where(storeHandle ? eq(sellers.handle, storeHandle) : undefined);
+  if (stores.length === 0) throw new Error(storeHandle ? `No store with the handle "${storeHandle}".` : "No stores yet. Run pnpm db:seed first.");
+  const rows = await db
+    .select({ id: listings.id, title: listings.title, category: listings.category })
+    .from(listings)
+    .where(inArray(listings.sellerId, stores.map((st) => st.id)))
+    .orderBy(asc(listings.createdAt));
   // A draft can have no title yet; it just can't be matched by name.
   const pieces: Piece[] = rows.map((r) => ({ id: r.id, title: r.title ?? "(untitled draft)", words: new Set([...words(r.title ?? ""), ...words(r.category ?? "")]) }));
-  console.log(`${files.length} photo(s) in ${dir}, ${pieces.length} pieces at ${seller.name}.\n`);
+  console.log(`${files.length} photo(s) in ${dir}, ${pieces.length} pieces at ${stores.map((st) => st.name).join(", ")}.\n`);
 
   const plan = new Map<string, Shot[]>();
   const unmatched: string[] = [];

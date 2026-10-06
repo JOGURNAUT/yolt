@@ -22,31 +22,6 @@ type Item = Omit<typeof s.listings.$inferInsert, "sellerId" | "slug" | "title"> 
 
 const inStock: Item[] = [
   {
-    // Measured the way a thrift page does it: in inches, with ranges (shoulder 15, chest up to 34, waist 27 to 28, sleeves 24, length 19 to 20).
-    title: "Vintage asymmetric denim jacket, crystal and chain shoulder",
-    category: "jackets",
-    tagSize: "XS-S",
-    measurements: { basis: "AROUND", shoulderCm: 38, chestCm: 86, waistCm: 70, sleeveCm: 61, lengthCm: 49 },
-    condition: "LIKE_NEW",
-    noFlawsConfirmed: true,
-    description:
-      "Rare vintage asymmetric denim jacket in a washed, faded blue-black, with an ornate crystal and chain embellishment across the shoulder. Button front with domed metal buttons, striped lining. Size XS to S. Condition 10/10, zero defects. Shoulder 15 in, chest up to 34 in, waist 27 to 28 in, sleeves 24 in, length 19 to 20 in.",
-    pricePaise: 349900,
-  },
-  {
-    // 1 of 1, handmade; the maker priced it on request, so this price is a placeholder for the demo.
-    title: "KERF FORM1 handmade horned boots, 1 of 1",
-    category: "footwear",
-    brandDeclared: "KERF",
-    tagSize: "EU 40-41 / UK 6.5-7",
-    measurements: {},
-    condition: "LIKE_NEW",
-    noFlawsConfirmed: true,
-    description:
-      "Some designs sit in your head for years before they take shape, and this pair took its time. Influenced by the tactile language of 1vfudie and early-2000s SWEAR London silhouettes (the Rhino and Armadillo platforms), built to feel raw, excessive and still wearable: layers, textures, straps, things that move with you, and of course the horns.\n\nReal repurposed leather throughout, with cowhide grained leather across the layered scraps. Durable rubber horns, sturdy and built to hold their shape over time. Every detail is hand-stitched and reworked by hand, so no two parts sit quite the same. Back zippers for easy wear.\n\nSize EU 40-41 / UK 6.5-7. Made to be worn and looked at.",
-    pricePaise: 2250000,
-  },
-  {
     // Priced and described the way a thrift page writes it: a flat price with free shipping, a measured range, a 10/10 grade.
     title: "Retro souvenir jacket, navy satin with an embroidered bird",
     category: "jackets",
@@ -106,6 +81,42 @@ const comingSoon: Item[] = [
   { title: "Flannel overshirt, green check", category: "shirts", tagSize: "L", measurements: { basis: "FLAT", chestCm: 61 }, condition: "LIKE_NEW", noFlawsConfirmed: true, pricePaise: 94900 },
 ];
 
+/**
+ * A second store, from the Instagram posts of @cybrbride: a vintage denim jacket the caption marks SOLD, and handmade boots
+ * that are not. Real posts used only as local demo data; nothing here claims she is verified, reviewed or followed.
+ */
+const cybrbridePieces: { sold: Item[]; inStock: Item[] } = {
+  sold: [
+    {
+      // Measured the way a thrift page does it: in inches, with ranges (shoulder 15, chest up to 34, waist 27 to 28, sleeves 24, length 19 to 20).
+      title: "Vintage asymmetric denim jacket, crystal and chain shoulder",
+      category: "jackets",
+      tagSize: "XS-S",
+      measurements: { basis: "AROUND", shoulderCm: 38, chestCm: 86, waistCm: 70, sleeveCm: 61, lengthCm: 49 },
+      condition: "LIKE_NEW",
+      noFlawsConfirmed: true,
+      description:
+        "Rare vintage asymmetric denim jacket in a washed, faded blue-black, with an ornate crystal and chain embellishment across the shoulder. Button front with domed metal buttons, striped lining. Size XS to S. Condition 10/10, zero defects. Shoulder 15 in, chest up to 34 in, waist 27 to 28 in, sleeves 24 in, length 19 to 20 in.",
+      pricePaise: 349900,
+    },
+  ],
+  inStock: [
+    {
+      // 1 of 1, handmade; the maker priced it on request, so this price is a placeholder for the demo.
+      title: "KERF FORM1 handmade horned boots, 1 of 1",
+      category: "footwear",
+      brandDeclared: "KERF",
+      tagSize: "EU 40-41 / UK 6.5-7",
+      measurements: {},
+      condition: "LIKE_NEW",
+      noFlawsConfirmed: true,
+      description:
+        "Some designs sit in your head for years before they take shape, and this pair took its time. Influenced by the tactile language of 1vfudie and early-2000s SWEAR London silhouettes (the Rhino and Armadillo platforms), built to feel raw, excessive and still wearable: layers, textures, straps, things that move with you, and of course the horns.\n\nReal repurposed leather throughout, with cowhide grained leather across the layered scraps. Durable rubber horns, sturdy and built to hold their shape over time. Every detail is hand-stitched and reworked by hand, so no two parts sit quite the same. Back zippers for easy wear.\n\nSize EU 40-41 / UK 6.5-7. Made to be worn and looked at.",
+      pricePaise: 2250000,
+    },
+  ],
+};
+
 /** 7:00 PM IST (13:30 UTC), seven days from today. */
 function nextWeekAt7pmIST() {
   const d = new Date(now + 7 * day);
@@ -121,13 +132,14 @@ await db.execute(sql`
     order_items, holds, orders, saved_items, follows, listing_photos, listings, drops,
     addresses, sellers, users RESTART IDENTITY CASCADE`);
 
-const [owner, ananya, kabir, curator] = await db
+const [owner, ananya, kabir, curator, cyber] = await db
   .insert(s.users)
   .values([
     { name: "Second Loop (demo seller)", phone: "+910000000001" },
     { name: "Ananya (demo buyer)", phone: "+910000000002" },
     { name: "Kabir (demo buyer)", phone: "+910000000003" },
     { name: "YOLT staff (demo curator)", phone: "+910000000004" },
+    { name: "cybrbride (demo seller)", phone: "+910000000005" },
   ])
   .returning();
 
@@ -156,12 +168,12 @@ const [drop] = await db
   .values({ sellerId: seller!.id, title: "Winter Vintage Drop", startsAt: nextWeekAt7pmIST(), status: "SCHEDULED" })
   .returning();
 
-const insert = (items: Item[], extra: Partial<typeof s.listings.$inferInsert>, offsetDays: number) =>
+const insert = (items: Item[], extra: Partial<typeof s.listings.$inferInsert>, offsetDays: number, sellerId = seller!.id) =>
   db
     .insert(s.listings)
     .values(
       items.map((it, i) => ({
-        sellerId: seller!.id,
+        sellerId,
         slug: `${slugify(it.title)}-${Math.random().toString(36).slice(2, 7)}`,
         publishedAt: new Date(now - (offsetDays + i) * day),
         ...it,
@@ -173,6 +185,28 @@ const insert = (items: Item[], extra: Partial<typeof s.listings.$inferInsert>, o
 const live = await insert(inStock, { status: "AVAILABLE" }, 0);
 const sold = (await insert(soldOut, { status: "SOLD" }, 10)).map(s.asComplete);
 await insert(comingSoon, { status: "SCHEDULED", dropId: drop!.id, publishedAt: null }, 0);
+
+// A second store (see cybrbridePieces): one piece sold, one in stock, so the pills have both to show.
+// Not marked verified (no Instagram or identity check), and no invented reviews, followers or rating.
+const [cybrbride] = await db
+  .insert(s.sellers)
+  .values({
+    userId: cyber!.id,
+    track: "STORE",
+    status: "APPROVED",
+    kycStatus: "PENDING",
+    handle: "cybrbride",
+    displayName: "cybrbride",
+    // Demo text, not hers.
+    bio: "Vintage finds and handmade one-of-ones.",
+    instagramHandle: "cybrbride",
+    shippingFeePaise: 7900,
+    freeShippingAbovePaise: 199900,
+    dispatchDays: 3,
+  })
+  .returning();
+await insert(cybrbridePieces.inStock, { status: "AVAILABLE" }, 1, cybrbride!.id);
+await insert(cybrbridePieces.sold, { status: "SOLD" }, 20, cybrbride!.id);
 await db.execute(sql`UPDATE listings SET sold_at = published_at + interval '1 day' WHERE status = 'SOLD'`);
 
 // Past delivered orders for the sold items, so the reviews are verified purchases.
