@@ -88,7 +88,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
           </div>
         )}
 
-        {zero ? <ZeroResults p={p} chips={chips} gains={relaxed?.gains ?? []} close={relaxed?.close ?? []} stockCounts={r.stockCounts} clearAll={clearAll} /> : <ProductGrid items={r.hits} showSeller />}
+        {zero ? <ZeroResults p={p} chips={chips} gains={relaxed?.gains ?? []} close={relaxed?.close ?? []} stockCounts={r.stockCounts} clearAll={clearAll} /> : <ProductGrid items={r.hits} showSeller beside />}
 
         {r.pageCount > 1 && (
           <nav aria-label="Pages" className="flex items-center justify-between gap-3 pt-2">
@@ -134,7 +134,7 @@ export default async function SearchPage({ searchParams }: PageProps<"/search">)
   );
 
   return (
-    <div className="flex flex-col gap-3 lg:gap-4">
+    <div className="page-wide flex flex-col gap-3 lg:gap-4">
       <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h1 className="t-h1 break-words">{p.q ? <>“{p.q}”</> : "Browse"}</h1>
         <p className="t-small muted">
@@ -219,7 +219,7 @@ function ZeroResults({
             Close matches
           </h2>
           <span className="t-caption muted">Each one misses just one of your filters</span>
-          <ProductGrid items={close} showSeller />
+          <ProductGrid items={close} showSeller beside />
         </section>
       )}
     </div>

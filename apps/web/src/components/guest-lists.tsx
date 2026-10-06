@@ -51,7 +51,7 @@ export function GuestSaved() {
   if (cards === null) return <p className="text-sm text-muted">Loading…</p>;
   if (cards.length === 0) return <p className="py-6 text-sm text-muted">Tap ♡ on anything you like to keep it here.</p>;
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 min-[1280px]:grid-cols-5 min-[2200px]:grid-cols-6">
       {cards.map((c) => (
         <div key={c.id}>
           <Link href={`/p/${c.slug}`} className="block">

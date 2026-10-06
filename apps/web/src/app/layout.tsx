@@ -63,7 +63,7 @@ export default async function RootLayout({ children, modal }: LayoutProps<"/">) 
               isAdmin={isAdmin}
               devLogin={envFlags().devLogin}
             />
-            <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1248px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-6">{children}</main>
+            <main id="main" tabIndex={-1} className="page-shell mx-auto w-full flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-6">{children}</main>
             <Footer />
             <BottomNav />
             {modal}

@@ -34,7 +34,7 @@ export function Header({
 }) {
   return (
     <header className="sticky -top-[52px] z-30 border-b border-line bg-background/95 backdrop-blur lg:top-0">
-      <div className="mx-auto grid max-w-[1248px] grid-cols-[auto_1fr] items-center px-4 lg:h-[76px] lg:grid-cols-[auto_auto_minmax(0,1fr)_auto] lg:gap-x-5 lg:px-6 xl:gap-x-7">
+      <div className="site-wrap grid grid-cols-[auto_1fr] items-center lg:h-[76px] lg:grid-cols-[auto_auto_minmax(0,1fr)_auto] lg:gap-x-5 xl:gap-x-7">
         <Link href="/" className="wordmark flex h-[52px] items-center text-2xl lg:h-auto lg:text-[30px]">
           YOLT
         </Link>

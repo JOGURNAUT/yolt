@@ -13,7 +13,7 @@ const HELP_LINKS = [
 export function Footer() {
   return (
     <footer className="band-dark border-t border-line">
-      <div className="mx-auto max-w-[1248px] px-4 pb-8 pt-10 lg:px-6 lg:pt-14">
+      <div className="site-wrap pb-8 pt-10 lg:pt-14">
         <div className="grid gap-8 sm:grid-cols-[1fr_auto_auto] sm:gap-16">
           <div>
             <p className="wordmark text-[72px] lg:text-[140px]" aria-hidden="true">

@@ -24,13 +24,13 @@ export function SectionHead({ id, title, caption, href, linkLabel = "See all" }:
   return (
     <div className="mb-3 flex items-baseline justify-between gap-3 lg:mb-4">
       <div className="flex flex-col gap-0.5 lg:flex-row lg:items-baseline lg:gap-3.5">
-        <h2 id={id} className="t-h2">
+        <h2 id={id} className="t-h2 sec-title">
           {title}
         </h2>
         {caption && <p className="t-caption muted lg:text-sm">{caption}</p>}
       </div>
       {href && (
-        <Link href={href} className="t-small flex min-h-11 shrink-0 items-center font-bold">
+        <Link href={href} className="sec-link t-small flex min-h-11 shrink-0 items-center font-bold">
           {linkLabel}
         </Link>
       )}
@@ -43,6 +43,11 @@ function Scroller({ children, desktopCols, className }: { children: React.ReactN
   return <div className={cx("hscroll hscroll-bleed lg:grid lg:gap-6 lg:overflow-visible lg:px-0", desktopCols, className)}>{children}</div>;
 }
 
+/** Phones: a rail of product cards. Desktop: one row of the shelf grid (4, 5 or 6 across, the rest hidden). */
+export function ProductRow({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <div className={cx("hscroll hscroll-bleed shelf-row", className)}>{children}</div>;
+}
+
 // ---------------------------------------------------------------------------
 
 /** Trending now: the most-saved pieces, or the newest under "Just dropped" when saves are too thin. */
@@ -51,14 +56,14 @@ export function TrendingSection({ mode, items }: { mode: "TRENDING" | "JUST_DROP
   return (
     <section aria-labelledby="trend-h" className="pt-4 lg:pt-5">
       <SectionHead id="trend-h" title={trending ? "Trending now" : "Just dropped"} caption={trending ? "Most saved this week" : "Newest pieces first"} href="/search?sort=newest" />
-      <Scroller desktopCols="lg:grid-cols-5">
+      <ProductRow>
         {items.map((item, i) => (
-          <div key={item.id} className={cx("w-[164px] lg:w-auto", i >= 5 && "lg:hidden")}>
+          <div key={item.id} className="w-[164px] lg:w-auto">
             {/* only the first few of a most-saved list carry the sticker, to keep the row calm */}
             <ProductCard item={item} sticker={trending && i < 3 ? { label: "Trending", tone: "pink" } : undefined} />
           </div>
         ))}
-      </Scroller>
+      </ProductRow>
     </section>
   );
 }
@@ -70,9 +75,9 @@ export function GrailsSection({ items, railShown }: { items: CardItem[]; railSho
   return (
     <Section labelledBy="grails-h" className={cx(items.length <= hiddenOnDesktop && "lg:hidden")}>
       <SectionHead id="grails-h" title="Grails" caption="Picked by YOLT · one of one, every time" href="/search?sort=newest" />
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-6">
+      <div className="shelf">
         {items.map((item, i) => (
-          <div key={item.id} className={cx(i === 0 && "col-span-2 lg:col-span-1", i < hiddenOnDesktop && "lg:hidden")}>
+          <div key={item.id} className={cx(i === 0 && "max-sm:col-span-2", i < hiddenOnDesktop && "lg:hidden")}>
             <ProductCard item={item} large showSeller sticker={{ label: "1 of 1" }} />
           </div>
         ))}
@@ -86,7 +91,7 @@ export function GrailsRail({ items }: { items: CardItem[] }) {
   return (
     <aside aria-label="Grails picked by YOLT" className="hidden h-[348px] flex-col gap-6 lg:col-span-4 lg:flex">
       {items.slice(0, 2).map((g) => (
-        <Link key={g.id} href={`/p/${g.slug}`} className="card flex flex-1 gap-4 rounded-[20px] p-3 text-foreground no-underline">
+        <Link key={g.id} href={`/p/${g.slug}`} className="card flex min-h-0 flex-1 gap-4 overflow-hidden rounded-[20px] p-3 text-foreground no-underline">
           <div className="ph !h-[138px] !w-[110px] shrink-0 !rounded-xl">
             <div className="shot">
               {g.coverUrl ? (
@@ -100,8 +105,8 @@ export function GrailsRail({ items }: { items: CardItem[] }) {
           <div className="flex min-w-0 flex-col justify-between py-1">
             <div className="flex flex-col items-start gap-1.5">
               <Sticker>1 of 1</Sticker>
-              <span className="t-caption muted mt-1">Grail · picked by YOLT</span>
-              <span className="t-h3 line-clamp-2">{g.title}</span>
+              <span className="t-caption muted mt-1 max-xl:hidden">Grail · picked by YOLT</span>
+              <span className="t-h3 line-clamp-2 max-xl:line-clamp-1">{g.title}</span>
               <span className="t-small muted">{[g.tagSize, g.sellerName].filter(Boolean).join(" · ")}</span>
             </div>
             <HangTag ink>{formatINR(g.pricePaise)}</HangTag>
@@ -132,7 +137,7 @@ export function FreshFinds({ items, count = 7 }: { items: CardItem[]; count?: nu
   return (
     <Section labelledBy="fresh-h">
       <SectionHead id="fresh-h" title="Fresh finds" href="/search?sort=newest" />
-      <div className="grid grid-cols-2 gap-x-3 gap-y-[22px] lg:grid-cols-4 lg:gap-x-6 lg:gap-y-8">
+      <div className="shelf">
         {items.slice(0, count).map((item) => (
           <ProductCard key={item.id} item={item} showSeller />
         ))}
@@ -163,7 +168,7 @@ const WHY = [
 export function WhyYolt() {
   return (
     <Section labelledBy="why-h" className="lg:pt-[72px]">
-      <h2 id="why-h" className="t-h2 mb-3.5 lg:mb-4">
+      <h2 id="why-h" className="t-h2 sec-title mb-3.5 lg:mb-4">
         Why YOLT
       </h2>
       <ul className="grid gap-3.5 lg:grid-cols-3 lg:gap-6">
@@ -199,7 +204,7 @@ const PRICES = [
 export function ShopByPrice() {
   return (
     <Section labelledBy="price-h" className="lg:pt-[72px]">
-      <h2 id="price-h" className="t-h2 mb-3 lg:mb-4">
+      <h2 id="price-h" className="t-h2 sec-title mb-3 lg:mb-4">
         Shop by price
       </h2>
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-6">
@@ -241,7 +246,7 @@ const STYLES = [
 export function ShopByStyle() {
   return (
     <Section labelledBy="style-h" className="lg:pt-[72px]">
-      <h2 id="style-h" className="t-h2 mb-3 lg:mb-4">
+      <h2 id="style-h" className="t-h2 sec-title mb-3 lg:mb-4">
         Shop by style
       </h2>
       <Scroller desktopCols="lg:grid-cols-8 lg:!gap-4">
@@ -282,13 +287,13 @@ export function JustFoundAHome({ items }: { items: CardItem[] }) {
   return (
     <Section labelledBy="home-h" className="lg:pt-[72px]">
       <SectionHead id="home-h" title="Just found a home" caption="Sold recently. Second lives, already started." />
-      <Scroller desktopCols="lg:grid-cols-6 lg:!gap-5">
-        {items.map((item, i) => (
-          <div key={item.id} className={cx("w-[132px] lg:w-auto", i >= 6 && "lg:hidden")}>
+      <ProductRow>
+        {items.map((item) => (
+          <div key={item.id} className="w-[132px] lg:w-auto">
             <ProductCard item={item} showSeller />
           </div>
         ))}
-      </Scroller>
+      </ProductRow>
     </Section>
   );
 }

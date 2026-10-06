@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
-import { cx, ICON_STROKE } from "@/components/ui/cx";
+import { ICON_STROKE } from "@/components/ui/cx";
 import {
   getDropsStrip,
   getFollowedSellerIds,
@@ -12,7 +12,7 @@ import {
   getStoresToDiscover,
 } from "@/lib/server/queries";
 import { FollowChip } from "./drop-clock";
-import { DropsStrip, FreshFinds, Section, SectionHead, StoresToDiscover } from "./sections";
+import { DropsStrip, FreshFinds, ProductRow, Section, SectionHead, StoresToDiscover } from "./sections";
 
 /** The signed-in home (board B2.2): less marketing, more of what's new for this buyer. */
 export async function SignedInHome({ user }: { user: { userId: string; name: string | null } }) {
@@ -29,7 +29,7 @@ export async function SignedInHome({ user }: { user: { userId: string; name: str
   const first = user.name?.trim().split(/\s+/)[0];
 
   return (
-    <>
+    <div className="page-wide">
       <section className="flex flex-col gap-1 lg:pt-2">
         <h1 className="t-display">{first ? `Hey ${first}` : "Welcome back"}</h1>
         <p className="t-body muted">Here&apos;s what&apos;s new since your last visit.</p>
@@ -102,10 +102,10 @@ export async function SignedInHome({ user }: { user: { userId: string; name: str
 
       <FreshFinds items={fresh} />
       <StoresToDiscover stores={stores} followed={new Set()} signedIn />
-    </>
+    </div>
   );
 }
 
 function Rail({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cx("hscroll hscroll-bleed lg:grid lg:grid-cols-5 lg:gap-6 lg:overflow-visible lg:px-0", className)}>{children}</div>;
+  return <ProductRow className={className}>{children}</ProductRow>;
 }
