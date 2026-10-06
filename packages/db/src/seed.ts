@@ -55,7 +55,7 @@ const slugify = (t: string) =>
   t.toLowerCase().replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
 await db.execute(sql`
-  TRUNCATE rate_limit_hits, seller_applications, buyer_preferences, homepage_slots, drop_reminders, bag_items, admins, claims, shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
+  TRUNCATE notification_deliveries, push_subscriptions, rate_limit_hits, seller_applications, buyer_preferences, homepage_slots, drop_reminders, bag_items, admins, claims, shipment_events, shipments, sessions, otp_challenges, audit_events, outbox_events, refunds, payment_events, payment_attempts, reviews,
     order_items, holds, orders, saved_items, follows, listing_photos, listings, drops,
     addresses, sellers, users RESTART IDENTITY CASCADE`);
 

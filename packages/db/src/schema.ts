@@ -621,6 +621,52 @@ export const outboxEvents = pgTable(
   (t) => [index("outbox_unprocessed_idx").on(t.createdAt).where(sql`${t.processedAt} IS NULL`)],
 );
 
+/** A browser's Web Push subscription. Revoked rather than deleted when the push service says it is gone. */
+export const pushSubscriptions = pgTable(
+  "push_subscriptions",
+  {
+    id: id(),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    /** Short device label such as "Chrome on Android"; never the raw user agent. */
+    userAgent: text("user_agent"),
+    createdAt: createdAt(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [index("push_subscriptions_user_idx").on(t.userId).where(sql`${t.revokedAt} IS NULL`)],
+);
+
+/**
+ * One push per user per thing that happened. `dedupeKey` (e.g. "drop-soon:<dropId>") is unique per
+ * user, so the same notification can never be queued twice however often the cron runs; the
+ * status then records how delivery went. The payload is fixed when the row is created.
+ */
+export const notificationDeliveries = pgTable(
+  "notification_deliveries",
+  {
+    id: id(),
+    eventId: uuid("event_id").references(() => outboxEvents.id),
+    userId: uuid("user_id").notNull().references(() => users.id),
+    dedupeKey: text("dedupe_key").notNull(),
+    kind: text("kind").notNull(),
+    payload: jsonb("payload").$type<{ title: string; body: string; url: string; tag?: string }>().notNull(),
+    status: text("status", { enum: ["PENDING", "SENDING", "SENT", "FAILED"] }).notNull().default("PENDING"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("notification_deliveries_user_key_idx").on(t.userId, t.dedupeKey),
+    index("notification_deliveries_due_idx").on(t.nextAttemptAt).where(sql`${t.status} IN ('PENDING', 'SENDING')`),
+  ],
+);
+
 export const auditEvents = pgTable(
   "audit_events",
   {
