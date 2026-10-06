@@ -9,7 +9,7 @@ export default async function SellerLayout({ children }: LayoutProps<"/seller">)
   const counts = await getSellerOrderCounts(db, current.seller.id);
   const { displayName, handle, logoUrl } = current.seller;
   return (
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
+    <div className="mx-auto flex w-full max-w-[1760px] flex-col gap-4 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-8">
       <SellerNav store={{ name: displayName, handle, logoUrl }} toShip={counts["to-ship"]} />
       <div className="min-w-0 space-y-5">{children}</div>
     </div>

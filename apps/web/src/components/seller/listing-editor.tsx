@@ -200,7 +200,7 @@ export function ListingEditor({
   const price = pricePaise(form.price);
 
   return (
-    <div className="grid items-start gap-5 pb-44 lg:grid-cols-[minmax(0,1fr)_320px] lg:pb-0">
+    <div className="grid max-w-[1120px] items-start gap-5 pb-44 lg:grid-cols-[minmax(0,1fr)_320px] lg:pb-0">
       <div className="space-y-4">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <h1 className="t-h1 min-w-0 grow">{live ? "Edit live listing" : form.title?.trim() || "New listing"}</h1>

@@ -32,7 +32,7 @@ const RULES = [
 export default async function SellPage() {
   if (await getCurrentSeller()) redirect("/seller");
   return (
-    <div className="space-y-10 lg:space-y-14">
+    <div className="mx-auto max-w-[1120px] space-y-10 lg:space-y-14">
       <section className="band-dark flex flex-col gap-3.5 rounded-3xl p-6 lg:p-12">
         <Sticker className="self-start">For thrift stores</Sticker>
         <h1 className="t-display max-w-[760px] text-white">Give your pieces a second life, without the DMs.</h1>

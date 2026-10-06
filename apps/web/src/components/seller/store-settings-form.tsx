@@ -113,7 +113,7 @@ export function StoreSettingsForm({ initial }: { initial: Settings }) {
   const touch = () => setState("dirty");
 
   return (
-    <form onSubmit={save} className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <form onSubmit={save} className="grid max-w-[1120px] items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="space-y-4">
         <section aria-labelledby="look-h" className="sec">
           <h2 id="look-h" className="t-h2">
