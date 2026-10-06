@@ -89,10 +89,11 @@ export function GrailsSection({ items, railShown }: { items: CardItem[]; railSho
 /** The hero's desktop rail: the first two Grails as compact cards. */
 export function GrailsRail({ items }: { items: CardItem[] }) {
   return (
-    <aside aria-label="Grails picked by YOLT" className="hidden h-[348px] flex-col gap-6 lg:col-span-4 lg:flex">
+    <aside aria-label="Grails picked by YOLT" className="hidden h-[348px] flex-col lg:col-span-4 lg:flex">
       {items.slice(0, 2).map((g) => (
-        <Link key={g.id} href={`/p/${g.slug}`} className="card flex min-h-0 flex-1 gap-4 overflow-hidden rounded-none p-3 text-foreground no-underline">
-          <div className="ph !h-[138px] !w-[110px] shrink-0 !rounded-none">
+        // A shelf tile: the photo runs the card's full height, edge to edge; the words sit beside it, price at the foot.
+        <Link key={g.id} href={`/p/${g.slug}`} className="card flex min-h-0 flex-1 overflow-hidden !rounded-none p-0 text-foreground no-underline [&+&]:border-t-0">
+          <div className="ph !h-auto !w-auto shrink-0 self-stretch !rounded-none">
             <div className="shot">
               {g.coverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element -- switch to next/image once the media loader exists
@@ -101,15 +102,19 @@ export function GrailsRail({ items }: { items: CardItem[] }) {
                 <span className="t-caption uppercase muted">{g.category}</span>
               )}
             </div>
-          </div>
-          <div className="flex min-w-0 flex-col justify-between py-1">
-            <div className="flex flex-col items-start gap-1.5">
+            <span className="absolute left-2.5 top-3 z-[1]">
               <Sticker>1 of 1</Sticker>
-              <span className="t-caption muted mt-1 max-xl:hidden">Grail · picked by YOLT</span>
-              <span className="t-h3 line-clamp-2 max-xl:line-clamp-1">{g.title}</span>
+            </span>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-between p-4 xl:p-5">
+            <div className="flex flex-col gap-1.5">
+              <span className="t-caption muted max-xl:hidden">Grail · picked by YOLT</span>
+              <span className="t-h3 line-clamp-3">{g.title}</span>
               <span className="t-small muted">{[g.tagSize, g.sellerName].filter(Boolean).join(" · ")}</span>
             </div>
-            <HangTag ink>{formatINR(g.pricePaise)}</HangTag>
+            <span className="self-start">
+              <HangTag ink>{formatINR(g.pricePaise)}</HangTag>
+            </span>
           </div>
         </Link>
       ))}
