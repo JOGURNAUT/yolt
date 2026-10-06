@@ -10,7 +10,7 @@ import { ICON_STROKE } from "@/components/ui/cx";
 import { HangTag } from "@/components/ui/hang-tag";
 import { listingBadge, StatusBadge } from "@/components/ui/status-badge";
 import { Sticker } from "@/components/ui/sticker";
-import { ConditionBlock, FlawList, ProtectionNote, SellerCard } from "@/components/product/detail-blocks";
+import { AboutBlock, ConditionBlock, FlawList, ProtectionNote, SellerCard } from "@/components/product/detail-blocks";
 import { DropCountdown } from "@/components/product/drop-countdown";
 import { MeasurementTable, type MeasurementRow } from "@/components/product/measurement-table";
 import { PhotoGallery } from "@/components/product/photo-gallery";
@@ -168,6 +168,7 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
             {condition && <ConditionBlock label={condition.label} meaning={condition.meaning} />}
             <MeasurementTable tagSize={l.tagSize} rows={rows} basis={rows.length ? l.measurements.basis : undefined} />
             <FlawList flaws={l.flaws} noFlawsConfirmed={l.noFlawsConfirmed} photos={flawPhotos} />
+            <AboutBlock description={l.description} />
 
             {(l.brandDeclared || authSensitive) && (
               <p className="t-small">

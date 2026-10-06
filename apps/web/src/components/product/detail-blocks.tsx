@@ -17,6 +17,20 @@ export function ConditionBlock({ label, meaning }: { label: string; meaning: str
   );
 }
 
+/** The seller's own words about the piece. Shown after the facts (condition, measurements, flaws), never instead of them. */
+export function AboutBlock({ description }: { description: string | null }) {
+  const text = description?.trim();
+  if (!text) return null;
+  return (
+    <section aria-labelledby="about-h" className="flex flex-col gap-1.5">
+      <h2 id="about-h" className="t-caption muted !font-sans">
+        About this piece
+      </h2>
+      <p className="t-body whitespace-pre-line">{text}</p>
+    </section>
+  );
+}
+
 type FlawPhoto = { id: string; position: number };
 
 /**
