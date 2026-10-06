@@ -10,8 +10,7 @@ const TABS = [
   { href: "/search", label: "Explore", icon: Compass, match: (p: string) => p.startsWith("/search") },
   { href: "/drops", label: "Drops", icon: Ticket, match: (p: string) => p.startsWith("/drops") || p.startsWith("/d/") },
   { href: "/saved", label: "Saved", icon: Heart, match: (p: string) => p.startsWith("/saved") },
-  // Profile points at orders until /account exists.
-  { href: "/orders", label: "Profile", icon: User, match: (p: string) => p.startsWith("/orders") },
+  { href: "/account", label: "Profile", icon: User, match: (p: string) => p.startsWith("/account") || p.startsWith("/orders") },
 ] as const;
 
 const HIDDEN_ON = ["/seller", "/admin", "/checkout"];
