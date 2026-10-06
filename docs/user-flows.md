@@ -242,6 +242,8 @@ Profile → Sell on YOLT → choose track
 
 Logo, banner, bio, shipping fee rule, dispatch time (1–3 days), pickup address → preview store → publish.
 
+API: `GET`/`PATCH /api/seller/store`, `POST`/`DELETE /api/seller/store/logo` and `/banner`. Bio up to 160 characters; shipping ₹0–₹500; "free above" ₹100–₹50,000 or off; pickup address uses the same validation as delivery addresses. Images are re-encoded to WebP with EXIF removed (logo 512 × 512, banner 1600 × 600, cropped). The Instagram handle, its verification, KYC and the store URL are read-only here.
+
 ### S-F3 Create a listing (P0; Instagram import P1)
 
 ```
@@ -306,6 +308,21 @@ Payouts → balance: pending (in return window) · available · paid
 ```
 
 - Zero commission in the pilot. Each order on the statement is labelled **Your link** (always ₹0) or **Found on YOLT** (₹0 in the pilot; commission later, D13), plus TCS deducted if L1 applies, so the later pricing is never a surprise.
+
+**How the statement is derived** (`GET /api/seller/payouts`, `packages/core/src/payouts.ts`). There is no payouts table yet; the statement is computed from orders, refunds and claims, so it can't drift from the order history.
+
+| Term | Definition |
+|---|---|
+| Statement row | An order the buyer paid for and that wasn't cancelled: CONFIRMED, PACKED, SHIPPED, DELIVERED or CLOSED. Cancelled, expired and refund-needed orders never appear. |
+| Items + shipping | `subtotal + shipping`. Buyers pay no platform fee (D13). |
+| Commission | ₹0 on every order in the pilot. Later it applies only to Found-on-YOLT orders. |
+| Refunded | Sum of every refund recorded for the order. A refund the provider hasn't finished still counts: the buyer is owed it. |
+| Net | `max(0, items + shipping − commission − refunded)` |
+| **Pending** | Not past the buyer-protection window: the order isn't CLOSED (orders close 48 h after delivery), **or** it has an open or escalated claim, even if it is CLOSED. |
+| **Available** | CLOSED, no open or escalated claim, and not paid out. |
+| **Paid out** | ₹0 for now. TODO: record each provider settlement (Cashfree Easy Split), subtract it from Available and add it here. |
+
+Rows show order reference, date paid, items, shipping, source (`SELLER_LINK` → "Your link", `YOLT_DISCOVERY` → "Found on YOLT"), commission, refunds and net, newest first, 20 per page (max 50). Balances always cover every order, not just the page.
 
 ### S-F10 Posts (P1; reels P2)
 
@@ -393,3 +410,39 @@ Transactional messages never carry marketing. Marketing respects quiet hours and
 3. **Launch geography:** depends on legal check L2 (see `decisions.md`).
 4. **Shipping fee:** seller-set, or one platform-wide flat rate for simplicity in the pilot?
 5. **Minimum listing quality for closet sellers:** same photo and measurement rules as stores, or lighter?
+
+---
+
+## 10. API for the landing, sell and account screens
+
+Behaviour behind the endpoints added for the redesigned screens. Routes live in `packages/api/src/routes`, logic in `packages/core/src`.
+
+### Landing (B-F1): `GET /api/home`
+
+One public read (cached 30 s) returns every section, so the page makes a single request. Cards use the same shape as search results and saved items, so `ProductCard` renders them unchanged. Drafts and suspended stores are never included.
+
+| Field | Rule |
+|---|---|
+| `trending` | `{ mode, items }`. In-stock pieces saved most in the last 7 days; a piece needs at least 3 saves (`TRENDING_MIN_SAVES`). With fewer than 4 qualifying pieces (`TRENDING_MIN_ITEMS`) it returns the newest in-stock pieces with `mode: "JUST_DROPPED"`. Up to 12. |
+| `justSold` | Pieces sold in the last 30 days, newest first, up to 12, approved stores only. |
+| `grails` | The current curated Grails list, in curated order, live pieces only. Empty when nothing is curated; never auto-filled. |
+| `featuredStore` | The current curated store, else the approved store with the most in-stock pieces (`source` says which). `null` if no store has anything in stock. |
+| `edit` | `{ title, items }` for the current curated edit, or `null` (also when none of its pieces are live any more). |
+
+"In stock" and "live" both mean AVAILABLE, RESERVED or PAYMENT_PENDING (buyers see the last two as reserved).
+
+### Homepage curation (admin)
+
+`GET/POST /api/admin/homepage-slots`, `PATCH/DELETE /api/admin/homepage-slots/{id}`. Kinds: FEATURED_STORE (an approved store), GRAILS (1–12 live pieces), EDIT (title of 3–40 characters plus 1–12 live pieces). A slot may have `startsAt`/`endsAt`; it is current when now is inside the window, and the most recently created current slot per kind wins. The list marks each slot CURRENT, UPCOMING or EXPIRED and flags the one showing. Writes need ADMIN, a fresh session and a reason, and write an audit event; SUPPORT can read.
+
+### Buyer preferences (B-F4)
+
+`GET`/`PUT /api/me/preferences` (sizes up to 8, styles from the fixed list, optional per-piece budget in paise), and `GET /api/me/in-your-sizes`. Sizes are stored upper-cased with spaces collapsed, and matched the same way against listings' tag sizes, so "m" matches "M". Everything is optional; PUT with empty lists clears it.
+
+### Apply to sell (S-F1)
+
+`POST /api/seller-applications` is public. It is rate limited to 5 per network and 3 per phone per hour (429 with `Retry-After`). An open application (NEW or CONTACTED) for the same phone or Instagram handle is returned instead of creating another (200, `existing: true`). Each new application queues a `seller_application.created` outbox event. Staff use `GET /api/admin/applications?status=` and `POST /api/admin/applications/{id}/status` (reason required, audited). Onboarding itself is still done by hand with `POST /api/admin/sellers`.
+
+### Account
+
+`GET`/`PATCH /api/me`. Devices: `GET /api/me/sessions` (device label, created, last seen, `current`), `DELETE /api/me/sessions/{id}` (revoking the current one also signs this browser out) and `POST /api/me/sessions/revoke-others`. Session ids are opaque row ids; tokens and their hashes are never returned. The saved-address routes (`/api/addresses`: list, add, edit, set default, delete, capped at 10) already cover the address management screen.
