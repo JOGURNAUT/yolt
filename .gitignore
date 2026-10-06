@@ -7,3 +7,10 @@ dist
 !.env.example
 *.log
 coverage
+
+# Playwright
+test-results/
+playwright-report/
+
+# Agent worktrees
+.claude/worktrees/

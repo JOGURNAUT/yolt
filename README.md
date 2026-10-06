@@ -54,7 +54,15 @@ Then sign in with that phone number; **Admin** appears in the header. Admin acti
 pnpm test         # runs against the yolt_test database (reset on every run)
 ```
 
-Covers: 100 concurrent buyers for one garment → one hold; stale releases can't free a newer hold; duplicate and concurrent webhooks confirm once; late payments are refunded if the item went to someone else; amount mismatches don't confirm; sold-elsewhere vs checkout races; API auth and ownership checks.
+Browser tests drive the main flows in a phone-sized Chromium against a production build, on their own database (`yolt_e2e`, created on first run) and port 3100, so they never touch your dev data:
+
+```sh
+pnpm --filter @yolt/web e2e:build   # next build, then the tests (pnpm --filter @yolt/web e2e reuses the last build)
+```
+
+They cover browsing and access rules, buy → pay → ship → deliver → review → report → refund, guest saves and bag merging at sign-in, a drop opening live with the per-buyer limit, and a seller publishing a listing with photos. Any browser error fails a test.
+
+Unit and integration tests cover: 100 concurrent buyers for one garment → one hold; stale releases can't free a newer hold; duplicate and concurrent webhooks confirm once; late payments are refunded if the item went to someone else; amount mismatches don't confirm; sold-elsewhere vs checkout races; API auth and ownership checks.
 
 ## Not built yet
 
