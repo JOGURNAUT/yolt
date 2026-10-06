@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CONDITION, formatIST, formatINR } from "@/lib/format";
+import { formatDay as formatSoldDay } from "@/lib/store-format";
 import type { ListingCard } from "@/lib/server/queries";
 import { CardPhoto } from "./garment-image";
 import { CardAction, SaveButton } from "./shop-buttons";
@@ -8,7 +9,7 @@ import { listingBadge, StatusBadge } from "./ui/status-badge";
 import { Sticker } from "./ui/sticker";
 
 /** A card's data. The back photo is optional: search results don't carry one, so they just don't crossfade. */
-export type CardItem = Omit<ListingCard, "backUrl"> & { backUrl?: string | null };
+export type CardItem = Omit<ListingCard, "backUrl" | "soldAt"> & { backUrl?: string | null; soldAt?: Date | null };
 
 /**
  * ProductCard (board C4): 4:5 photo, hang-tag price, at most one sticker, the save heart, and on
@@ -24,7 +25,7 @@ export function ProductCard({ item, showSeller = false }: { item: CardItem; show
 
   const meta = [
     comingSoon && item.dropStartsAt ? formatIST(item.dropStartsAt) : item.tagSize,
-    comingSoon ? null : CONDITION[item.condition]?.label,
+    sold && item.soldAt ? `Sold ${formatSoldDay(item.soldAt)}` : comingSoon ? null : CONDITION[item.condition]?.label,
     showSeller ? item.sellerName : null,
   ]
     .filter(Boolean)

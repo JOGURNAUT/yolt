@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, avg, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { connection } from "next/server";
 import { asComplete, drops, listingPhotos, listings, orderItems, reviews, sellers, users } from "@yolt/db";
 import { db } from "./db";
@@ -36,6 +36,7 @@ const cardColumns = {
   sellerName: sellers.displayName,
   sellerHandle: sellers.handle,
   dropStartsAt: drops.startsAt,
+  soldAt: listings.soldAt,
   // Correlated subquery with explicit table names: Drizzle leaves columns unqualified when a
   // query has no join, which would silently compare the photo's own id instead of the listing's.
   coverUrl: sql<string | null>`(
@@ -83,7 +84,7 @@ export async function getStoreCounts(sellerId: string) {
   return { "in-stock": sum("in-stock"), "sold-out": sum("sold-out"), "coming-soon": sum("coming-soon") };
 }
 
-export async function getStoreListings(sellerId: string, filter: StockFilter) {
+export async function getStoreListings(sellerId: string, filter: StockFilter, limit = 24) {
   const order =
     filter === "sold-out"
       ? [desc(listings.soldAt)]
@@ -93,43 +94,65 @@ export async function getStoreListings(sellerId: string, filter: StockFilter) {
   const rows = await selectCards()
     .where(and(eq(listings.sellerId, sellerId), inArray(listings.status, [...statusesFor[filter]])))
     .orderBy(...order)
-    .limit(60);
+    .limit(limit);
   return rows.map(toCard);
 }
 
+/** The store's next drop, or the one open right now, with how many pieces it holds. */
 export async function getUpcomingDrop(sellerId: string) {
-  const [drop] = await db
-    .select()
+  const [row] = await db
+    .select({ drop: drops, pieces: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.drop_id = ${drops}.id)` })
     .from(drops)
-    .where(and(eq(drops.sellerId, sellerId), eq(drops.status, "SCHEDULED")))
+    .where(and(eq(drops.sellerId, sellerId), inArray(drops.status, ["SCHEDULED", "LIVE"])))
     .orderBy(asc(drops.startsAt))
     .limit(1);
-  return drop ?? null;
+  return row ? { ...row.drop, pieces: row.pieces } : null;
+}
+
+/** Overall and "matched the listing" averages and the count per star, over every review the store has. */
+export async function getStoreRating(sellerId: string) {
+  const [[totals], byStars] = await Promise.all([
+    db
+      .select({ total: count(), average: avg(reviews.rating), accuracy: avg(reviews.accuracyRating) })
+      .from(reviews)
+      .where(eq(reviews.sellerId, sellerId)),
+    db.select({ stars: reviews.rating, n: count() }).from(reviews).where(eq(reviews.sellerId, sellerId)).groupBy(reviews.rating),
+  ]);
+  const total = totals?.total ?? 0;
+  const byStar = new Map(byStars.map((r) => [r.stars, r.n]));
+  return {
+    total,
+    average: total && totals?.average ? Number(totals.average) : null,
+    accuracy: totals?.accuracy ? Number(totals.accuracy) : null,
+    breakdown: [5, 4, 3, 2, 1].map((stars) => ({ stars, n: byStar.get(stars) ?? 0 })),
+  };
 }
 
 export async function getStoreReviews(sellerId: string) {
-  const rows = await db
-    .select({
-      id: reviews.id,
-      rating: reviews.rating,
-      body: reviews.body,
-      photoUrls: reviews.photoUrls,
-      sellerReply: reviews.sellerReply,
-      createdAt: reviews.createdAt,
-      buyerName: users.name,
-      item: orderItems.snapshot,
-      itemPricePaise: orderItems.pricePaise,
-    })
-    .from(reviews)
-    .innerJoin(users, eq(users.id, reviews.buyerId))
-    .innerJoin(orderItems, eq(orderItems.id, reviews.orderItemId))
-    .where(eq(reviews.sellerId, sellerId))
-    .orderBy(desc(reviews.createdAt))
-    .limit(50);
-  const total = rows.length;
-  const average = total ? rows.reduce((t, r) => t + r.rating, 0) / total : null;
-  const breakdown = [5, 4, 3, 2, 1].map((stars) => ({ stars, n: rows.filter((r) => r.rating === stars).length }));
-  return { reviews: rows, total, average, breakdown };
+  const [rating, rows] = await Promise.all([
+    getStoreRating(sellerId),
+    db
+      .select({
+        id: reviews.id,
+        rating: reviews.rating,
+        body: reviews.body,
+        photoUrls: reviews.photoUrls,
+        sellerReply: reviews.sellerReply,
+        createdAt: reviews.createdAt,
+        buyerName: users.name,
+        item: orderItems.snapshot,
+        itemPricePaise: orderItems.pricePaise,
+        itemSlug: listings.slug,
+      })
+      .from(reviews)
+      .innerJoin(users, eq(users.id, reviews.buyerId))
+      .innerJoin(orderItems, eq(orderItems.id, reviews.orderItemId))
+      .leftJoin(listings, eq(listings.id, orderItems.listingId))
+      .where(eq(reviews.sellerId, sellerId))
+      .orderBy(desc(reviews.createdAt))
+      .limit(50),
+  ]);
+  return { ...rating, reviews: rows };
 }
 
 export async function getListing(slug: string) {
@@ -150,8 +173,17 @@ export async function getListing(slug: string) {
 }
 
 export async function getMoreFromStore(sellerId: string, excludeId: string) {
-  const rows = await getStoreListings(sellerId, "in-stock");
-  return rows.filter((r) => r.id !== excludeId).slice(0, 4);
+  const rows = await getStoreListings(sellerId, "in-stock", 8);
+  return rows.filter((r) => r.id !== excludeId).slice(0, 5);
+}
+
+/** Available pieces in the same category from other stores. */
+export async function getSimilarListings(category: string, sellerId: string) {
+  const rows = await selectCards()
+    .where(and(eq(listings.status, "AVAILABLE"), eq(listings.category, category), ne(listings.sellerId, sellerId), eq(sellers.status, "APPROVED")))
+    .orderBy(desc(listings.publishedAt))
+    .limit(5);
+  return rows.map(toCard);
 }
 
 export async function getFreshFinds() {
