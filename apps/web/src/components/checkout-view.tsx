@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { formatINR } from "@/lib/format";
 import { AddressStep } from "./address-step";
+import { Button } from "./ui/button";
 
 type Order = {
   id: string;
@@ -154,26 +155,21 @@ export function CheckoutView({ orderId, sandbox }: { orderId: string; sandbox: b
             {paying ? (
               <p className="text-sm text-muted">Checking your payment — don&apos;t pay again.</p>
             ) : (
-              <button
-                type="button"
-                onClick={pay}
-                disabled={busy || !order.shippingAddress}
-                className="w-full rounded-full bg-foreground py-3 font-semibold text-background disabled:opacity-60"
-              >
+              <Button size="lg" block onClick={pay} disabled={busy || !order.shippingAddress}>
                 Pay {formatINR(order.totalPaise)}
-              </button>
+              </Button>
             )}
             {order.payment === "FAILED" && !paying && <p className="text-sm text-danger">Payment failed. You can try again.</p>}
             {sandbox && paying && session && (
               <div className="rounded-lg border border-dashed border-line p-3 text-sm">
                 <p className="mb-2 text-muted">Sandbox gateway (development only)</p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => simulate("success")} disabled={busy} className="flex-1 rounded-full border border-line py-2">
+                  <Button variant="secondary" onClick={() => simulate("success")} disabled={busy} className="flex-1">
                     Approve payment
-                  </button>
-                  <button type="button" onClick={() => simulate("failure")} disabled={busy} className="flex-1 rounded-full border border-line py-2">
+                  </Button>
+                  <Button variant="secondary" onClick={() => simulate("failure")} disabled={busy} className="flex-1">
                     Fail payment
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

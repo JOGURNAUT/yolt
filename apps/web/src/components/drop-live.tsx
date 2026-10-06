@@ -166,7 +166,7 @@ export function DropLive({
         })}
       </div>
 
-      <p role="status" aria-live="polite" className={`fixed inset-x-4 bottom-4 z-20 mx-auto max-w-md rounded-lg bg-foreground p-3 text-center text-sm text-background shadow-lg transition ${toast ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+      <p role="status" aria-live="polite" className={`toast fixed inset-x-4 bottom-[calc(var(--bnav-h)+16px)] z-40 mx-auto max-w-md justify-center text-center transition-opacity ${toast ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         {toast}
       </p>
     </div>

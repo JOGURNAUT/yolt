@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatIndianMobile, INDIAN_STATES, validateAddress, type AddressError, type AddressInput } from "@yolt/shared";
+import { Button } from "./ui/button";
 
 type Address = {
   id: string;
@@ -104,7 +105,7 @@ export function AddressStep({
   }
 
   const errorFor = (field: keyof AddressInput) => fieldErrors.find((e) => e.field === field)?.message;
-  const input = "w-full rounded-md border border-line bg-background px-3 py-2";
+  const input = "input";
 
   if (!editing && current) {
     return (
@@ -194,13 +195,13 @@ export function AddressStep({
             </select>
           </Field>
           <div className="flex gap-2">
-            <button type="submit" disabled={busy} className="flex-1 rounded-full bg-foreground py-2.5 font-semibold text-background disabled:opacity-60">
+            <Button type="submit" size="lg" disabled={busy} className="flex-1">
               {busy ? "Saving…" : "Deliver here"}
-            </button>
+            </Button>
             {addresses && addresses.length > 0 && (
-              <button type="button" onClick={() => setAdding(false)} className="rounded-full border border-line px-4">
+              <Button variant="secondary" size="lg" onClick={() => setAdding(false)}>
                 Cancel
-              </button>
+              </Button>
             )}
           </div>
         </form>
@@ -215,10 +216,10 @@ export function AddressStep({
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1 text-sm">
-      <span className="font-medium">{label}</span>
+    <label className="field">
+      {label}
       {children}
-      {error && <span className="block text-danger">{error}</span>}
+      {error && <span className="help err">{error}</span>}
     </label>
   );
 }

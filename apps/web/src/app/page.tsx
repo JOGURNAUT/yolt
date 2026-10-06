@@ -13,7 +13,7 @@ export default async function Home() {
           {fresh.length ? <ProductGrid items={fresh} showSeller /> : <p className="text-muted">No items listed yet.</p>}
         </div>
       </section>
-      <section>
+      <section id="stores" className="scroll-mt-28">
         <h2 className="text-lg font-semibold">Stores to discover</h2>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {stores.map((s) => (

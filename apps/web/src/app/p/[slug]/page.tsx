@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Measurements } from "@yolt/db";
 import { BuyButton } from "@/components/buy-button";
+import { ButtonLink } from "@/components/ui/button";
 import { GarmentImage } from "@/components/garment-image";
 import { PincodeCheck } from "@/components/pincode-check";
 import { AddToBagButton, SaveButton } from "@/components/shop-buttons";
@@ -176,12 +177,12 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
           </div>
           {(sold || withdrawn) && (
             <div className="space-y-2">
-              <Link href={`/search?cat=${l.category}`} className="block rounded-full bg-foreground py-3 text-center font-medium text-background">
+              <ButtonLink href={`/search?cat=${l.category}`} size="lg" block>
                 Find similar pieces
-              </Link>
-              <Link href={`/s/${seller.handle}`} className="block rounded-full border border-line py-3 text-center font-medium">
+              </ButtonLink>
+              <ButtonLink href={`/s/${seller.handle}`} variant="secondary" size="lg" block>
                 See what&apos;s in stock at {seller.displayName}
-              </Link>
+              </ButtonLink>
             </div>
           )}
         </div>

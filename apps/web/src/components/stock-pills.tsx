@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { STOCK_FILTERS, type StockFilter } from "@/lib/server/queries";
 
+/** StockPills (board C1): count in each pill, the choice kept in the URL as ?status=. */
 export function StockPills({
   basePath,
   active,
@@ -11,7 +12,7 @@ export function StockPills({
   counts: Record<StockFilter, number>;
 }) {
   return (
-    <nav aria-label="Filter by availability" className="flex gap-2 overflow-x-auto pb-1">
+    <nav aria-label="Filter by availability" className="-mx-1 flex gap-2 overflow-x-auto px-1 py-1">
       {STOCK_FILTERS.map((f) => {
         const selected = f.value === active;
         return (
@@ -20,11 +21,9 @@ export function StockPills({
             href={f.value === "in-stock" ? basePath : `${basePath}?status=${f.value}`}
             aria-current={selected ? "page" : undefined}
             scroll={false}
-            className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium ${
-              selected ? "border-foreground bg-foreground text-background" : "border-line hover:border-foreground"
-            }`}
+            className={`pill shrink-0${selected ? " is-active" : ""}`}
           >
-            {f.label} <span className={selected ? "opacity-80" : "text-muted"}>{counts[f.value]}</span>
+            {f.label} <span className="n">{counts[f.value]}</span>
           </Link>
         );
       })}
