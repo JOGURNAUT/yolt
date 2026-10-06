@@ -1,8 +1,11 @@
 "use client";
 
+import { Bell } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ICON_STROKE } from "@/components/ui/cx";
+import { currentPushSubscription, disablePush, enablePush, getPushConfig, pushRegistration, pushSupported } from "@/lib/client/push";
 
 type Session = { id: string; deviceLabel: string; lastSeenAt: string; current: boolean };
 
@@ -48,6 +51,65 @@ export function NameEditor({ name }: { name: string | null }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+type PushStatus = "checking" | "unavailable" | "off" | "on" | "blocked";
+
+/** Drop and saved-item pings for this device. Hidden where push isn't available (no service worker, unsupported browser, no keys). */
+export function NotificationsRow() {
+  const [status, setStatus] = useState<PushStatus>("checking");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const config = await getPushConfig();
+      const sub = config.enabled && pushSupported() ? await currentPushSubscription() : null;
+      const reg = config.enabled && pushSupported() ? await pushRegistration() : null;
+      if (!live) return;
+      if (!config.enabled || !reg) setStatus("unavailable");
+      else if (Notification.permission === "denied") setStatus("blocked");
+      else setStatus(sub && Notification.permission === "granted" ? "on" : "off");
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  if (status === "checking" || status === "unavailable") return null;
+
+  async function toggle() {
+    setBusy(true);
+    if (status === "on") {
+      if (await disablePush()) setStatus("off");
+    } else {
+      const r = await enablePush();
+      setStatus(r.ok ? "on" : r.reason === "blocked" ? "blocked" : "off");
+    }
+    setBusy(false);
+  }
+
+  const sub = { on: "On for this device", off: "Off on this device", blocked: "Blocked in your browser settings" }[status];
+  return (
+    <div className="card flex min-h-14 items-center gap-3 px-4 py-1">
+      <Bell aria-hidden className="ic" strokeWidth={ICON_STROKE} />
+      <span id="notif-label" className="flex grow flex-col gap-0.5">
+        <span className="t-body font-semibold">Notifications</span>
+        <span className="t-small muted">{sub}</span>
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={status === "on"}
+        aria-labelledby="notif-label"
+        disabled={busy || status === "blocked"}
+        onClick={toggle}
+        className="btn btn-sm btn-secondary min-h-11"
+      >
+        {status === "on" ? "Turn off" : "Turn on"}
+      </button>
+    </div>
   );
 }
 

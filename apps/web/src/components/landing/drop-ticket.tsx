@@ -68,7 +68,7 @@ export function DropTicket({ drop, signedIn, reminderOn, className }: { drop: Dr
             Claim now
           </Link>
         ) : (
-          <RemindButton dropId={drop.id} reminderOn={reminderOn} signedIn={signedIn} className="btn btn-primary min-h-11 whitespace-normal px-2 py-1.5 text-center text-sm leading-tight" />
+          <RemindButton dropId={drop.id} title={drop.title} whenText={formatIST(drop.startsAt)} reminderOn={reminderOn} signedIn={signedIn} className="btn btn-primary min-h-11 whitespace-normal px-2 py-1.5 text-center text-sm leading-tight" />
         )}
         {!drop.live && (
           <Link href={`/d/${drop.id}`} className="btn btn-ghost h-11 text-sm">

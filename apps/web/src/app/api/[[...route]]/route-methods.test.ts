@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createApp, DevOtpSender, DevShippingProvider, MemoryMediaStorage, UnconfiguredPaymentProvider } from "@yolt/api";
+import { createApp, DevOtpSender, DevShippingProvider, MemoryMediaStorage, UnconfiguredPaymentProvider, UnconfiguredPushSender } from "@yolt/api";
 import type { Db } from "@yolt/db";
 
 // Next.js answers 405 for any method this route file doesn't export, before Hono runs.
@@ -12,6 +12,7 @@ describe("API mount", () => {
       payments: new UnconfiguredPaymentProvider(),
       media: new MemoryMediaStorage(),
       otp: new DevOtpSender(),
+      push: new UnconfiguredPushSender(),
       authSecrets: { pepper: "x" },
       shipping: new DevShippingProvider(),
       devLogin: false,

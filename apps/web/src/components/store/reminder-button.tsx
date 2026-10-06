@@ -2,14 +2,16 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { usePushPrompt } from "@/components/push-prompt";
 import { Button } from "@/components/ui/button";
 
 /** "Remind me" on a drop ticket. Guests are sent to sign in and brought back. */
-export function ReminderButton({ dropId, on, signedIn }: { dropId: string; on: boolean; signedIn: boolean }) {
+export function ReminderButton({ dropId, title, whenText, on, signedIn }: { dropId: string; title: string; whenText?: string; on: boolean; signedIn: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const [set, setSet] = useState(on);
   const [busy, setBusy] = useState(false);
+  const push = usePushPrompt();
 
   async function toggle() {
     if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}&for=remind`);
@@ -19,9 +21,12 @@ export function ReminderButton({ dropId, on, signedIn }: { dropId: string; on: b
     const res = await fetch(`/api/drops/${dropId}/reminder`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ on: next }) });
     setBusy(false);
     if (!res.ok) setSet(!next);
+    // TODO: showInstallHint("reminder") after the push prompt once useInstallPrompt lands with the PWA shell.
+    else if (next) void push.ask({ reason: "drop", title, whenText });
   }
 
   return (
+    <>
     <Button
       size="sm"
       variant={set ? "secondary" : "primary"}
@@ -32,5 +37,7 @@ export function ReminderButton({ dropId, on, signedIn }: { dropId: string; on: b
     >
       {set ? "Reminder set" : "Remind me"}
     </Button>
+    {push.prompt}
+    </>
   );
 }

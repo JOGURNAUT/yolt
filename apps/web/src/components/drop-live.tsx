@@ -4,6 +4,7 @@ import { Bell, CalendarClock, Check, Clock, LoaderCircle, ShieldCheck, Undo2, Us
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePushPrompt } from "@/components/push-prompt";
 import { initials } from "@/components/search/store-row";
 import { ShareButton } from "@/components/store/share-button";
 import { ButtonLink } from "@/components/ui/button";
@@ -91,6 +92,7 @@ export function DropLive({
   const [toast, setToast] = useState<string | null>(null);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [reminder, setReminder] = useState(reminderOn);
+  const push = usePushPrompt();
   const [flipped, setFlipped] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -148,6 +150,8 @@ export function DropLive({
     setReminder(next);
     const res = await fetch(`/api/drops/${dropId}/reminder`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ on: next }) });
     if (!res.ok) setReminder(!next);
+    // TODO: showInstallHint("reminder") after the push prompt once useInstallPrompt lands with the PWA shell.
+    else if (next) void push.ask({ reason: "drop", title, whenText: startsLabel });
   }
 
   // The buyer's own holds that are still running (the server lists them at render time).
@@ -346,6 +350,7 @@ export function DropLive({
         )}
       </div>
 
+      {push.prompt}
       {toast && (
         <Toast tone="info" onDismiss={() => setToast(null)} className="fixed inset-x-4 bottom-[calc(var(--bnav-h)+16px)] z-40 mx-auto max-w-md">
           {toast}
