@@ -5,11 +5,26 @@ import { useState } from "react";
 import { formatINR } from "@/lib/format";
 import { Button } from "./ui/button";
 
-export function BuyButton({ listingId, pricePaise }: { listingId: string; pricePaise: number }) {
+export function BuyButton({
+  listingId,
+  pricePaise,
+  size = "lg",
+  onMessage,
+  className,
+}: {
+  listingId: string;
+  pricePaise: number;
+  size?: "md" | "lg";
+  /** When given, the button is bare and problems are reported here (the product bar shows them). */
+  onMessage?: (message: string | null) => void;
+  className?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [ownMessage, setOwnMessage] = useState<string | null>(null);
+  const message = ownMessage;
+  const setMessage = onMessage ?? setOwnMessage;
 
   async function buy() {
     setBusy(true);
@@ -44,6 +59,13 @@ export function BuyButton({ listingId, pricePaise }: { listingId: string; priceP
       setBusy(false);
     }
   }
+
+  const button = (
+    <Button size={size} block onClick={buy} disabled={busy} className={className}>
+      {busy ? "Reserving…" : `Buy now · ${formatINR(pricePaise)}`}
+    </Button>
+  );
+  if (onMessage) return button;
 
   return (
     <div className="sticky bottom-[var(--bnav-h)] z-20 -mx-4 space-y-2 border-t border-line bg-background px-4 py-3 md:static md:mx-0 md:border-0 md:p-0">

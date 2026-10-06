@@ -13,11 +13,17 @@ import { ShareButton } from "./share-button";
 type Drop = Parameters<typeof DropTicket>[0]["drop"];
 
 /** The shipping promise in one line, e.g. "Ships in 2 days · Shipping ₹79, free above ₹1,999". */
-export function shippingLine(store: Pick<typeof sellers.$inferSelect, "dispatchDays" | "shippingFeePaise" | "freeShippingAbovePaise">) {
-  const ships = `Ships in ${store.dispatchDays} ${store.dispatchDays === 1 ? "day" : "days"}`;
-  if (store.shippingFeePaise === 0) return `${ships} · Free shipping`;
+type Shipping = Pick<typeof sellers.$inferSelect, "dispatchDays" | "shippingFeePaise" | "freeShippingAbovePaise">;
+
+/** "Shipping ₹79, free above ₹1,999", or "Free shipping". */
+export function shippingCost(store: Shipping) {
+  if (store.shippingFeePaise === 0) return "Free shipping";
   const free = store.freeShippingAbovePaise !== null ? `, free above ${formatINR(store.freeShippingAbovePaise)}` : "";
-  return `${ships} · Shipping ${formatINR(store.shippingFeePaise)}${free}`;
+  return `Shipping ${formatINR(store.shippingFeePaise)}${free}`;
+}
+
+export function shippingLine(store: Shipping) {
+  return `Ships in ${store.dispatchDays} ${store.dispatchDays === 1 ? "day" : "days"} · ${shippingCost(store)}`;
 }
 
 /**

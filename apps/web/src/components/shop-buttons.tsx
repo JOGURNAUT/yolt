@@ -6,7 +6,7 @@ import { Heart, ShoppingBag } from "lucide-react";
 import { useShop } from "./shop-state";
 import { Button, ButtonLink } from "./ui/button";
 import { cx, ICON_STROKE } from "./ui/cx";
-import { IconLink } from "./ui/icon-button";
+import { IconButton, IconLink } from "./ui/icon-button";
 
 const SPARK = "M12 2 C12 8 16 12 22 12 C16 12 12 16 12 22 C12 16 8 12 2 12 C8 12 12 8 12 2 Z";
 const SPARKS = [
@@ -16,10 +16,23 @@ const SPARKS = [
 ] as const;
 
 /** Heart on product cards and pages (board C4). Works for guests (kept on this device). */
-export function SaveButton({ listingId, className = "" }: { listingId: string; className?: string }) {
+export function SaveButton({ listingId, className = "", variant = "card" }: { listingId: string; className?: string; variant?: "card" | "bar" }) {
   const { isSaved, toggleSave } = useShop();
   const saved = isSaved(listingId);
   const [pop, setPop] = useState(false);
+  if (variant === "bar") {
+    // The product page's own round button: same names and behaviour, filled heart when saved.
+    return (
+      <IconButton
+        label={saved ? "Remove from saved" : "Save"}
+        aria-pressed={saved}
+        onClick={() => void toggleSave(listingId)}
+        className={cx("!size-[50px] lg:!size-14", className)}
+      >
+        <Heart aria-hidden className="ic" strokeWidth={ICON_STROKE} style={{ fill: saved ? "var(--foreground)" : "none" }} />
+      </IconButton>
+    );
+  }
   return (
     <button
       type="button"
@@ -51,25 +64,38 @@ const BAG_ERRORS: Record<string, string> = {
 };
 
 /** "Add to bag" on product pages. Adding never reserves the piece. */
-export function AddToBagButton({ listingId }: { listingId: string }) {
+export function AddToBagButton({
+  listingId,
+  size = "lg",
+  onError,
+  className,
+}: {
+  listingId: string;
+  size?: "md" | "lg";
+  /** When given, a failure is reported here instead of printed under the button. */
+  onError?: (message: string | null) => void;
+  className?: string;
+}) {
   const { inBag, addToBag } = useShop();
   const [error, setError] = useState<string | null>(null);
   if (inBag(listingId)) {
     return (
-      <ButtonLink href="/bag" variant="secondary" size="lg" block>
+      <ButtonLink href="/bag" variant="secondary" size={size} block className={className}>
         In your bag · View bag
       </ButtonLink>
     );
   }
   return (
-    <div className="space-y-1">
+    <div className={cx("space-y-1", className)}>
       <Button
         variant="secondary"
-        size="lg"
+        size={size}
         block
         onClick={async () => {
           const r = await addToBag(listingId);
-          setError(r.ok ? null : (BAG_ERRORS[r.error ?? ""] ?? "Couldn't add to bag."));
+          const message = r.ok ? null : (BAG_ERRORS[r.error ?? ""] ?? "Couldn't add to bag.");
+          if (onError) onError(message);
+          else setError(message);
         }}
       >
         Add to bag
