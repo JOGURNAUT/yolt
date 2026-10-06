@@ -21,7 +21,7 @@ export function StockPills({
             href={f.value === "in-stock" ? basePath : `${basePath}?status=${f.value}`}
             aria-current={selected ? "page" : undefined}
             scroll={false}
-            className={`pill shrink-0${selected ? " is-active" : ""}`}
+            className={`pill min-h-11 shrink-0${selected ? " is-active" : ""}`}
           >
             {f.label} <span className="n">{counts[f.value]}</span>
           </Link>

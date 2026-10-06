@@ -1,0 +1,93 @@
+/*
+ * Store page layout (boards Store and StoreDesktop). Plain CSS because the header re-orders its
+ * parts between phone and desktop with grid areas. Colours and sizes come from the foundations.
+ */
+.store-banner {
+  margin: -16px -16px 0;
+  height: 150px;
+  overflow: hidden;
+  background: var(--surface-2);
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+.store-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.store-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "logo actions" "info info" "ticket ticket";
+  column-gap: 12px;
+  row-gap: 12px;
+}
+.store-logo {
+  grid-area: logo;
+  position: relative;
+  z-index: 2;
+  margin-top: -42px;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #0d0d0c;
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--background);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+.store-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.store-actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+}
+.store-info {
+  grid-area: info;
+}
+.store-ticket {
+  grid-area: ticket;
+  margin-top: 8px;
+}
+@media (min-width: 1024px) {
+  .store-banner {
+    margin: 0;
+    height: 220px;
+    border-radius: 24px;
+    box-shadow: none;
+  }
+  .store-head {
+    grid-template-columns: 112px minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-areas: "logo info actions" "logo info ticket";
+    column-gap: 24px;
+    row-gap: 14px;
+    padding: 0 24px;
+    align-items: start;
+  }
+  .store-logo {
+    margin-top: -48px;
+    width: 112px;
+    height: 112px;
+    box-shadow: 0 0 0 5px var(--background);
+    font-size: 34px;
+  }
+  .store-actions {
+    justify-content: flex-end;
+    padding-top: 16px;
+  }
+  .store-info {
+    padding-top: 16px;
+  }
+  .store-ticket {
+    margin-top: 0;
+  }
+}
