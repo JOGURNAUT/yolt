@@ -46,6 +46,7 @@ const formOf = (s: SlotView | undefined): Form =>
 
 export function HomepageCurator({ canWrite, slots, stores, candidates, pieces }: { canWrite: boolean; slots: SlotView[]; stores: Store[]; candidates: PieceView[]; pieces: PieceView[] }) {
   const router = useRouter();
+  const storeId = useId();
   const known = useMemo(() => new Map([...candidates, ...pieces].map((p) => [p.id, p])), [candidates, pieces]);
   const winner = (k: Kind) => slots.find((s) => s.kind === k && s.winning);
 
@@ -131,9 +132,9 @@ export function HomepageCurator({ canWrite, slots, stores, candidates, pieces }:
               {editing && <p className="t-small muted">Editing an existing entry. Use “Add as a new entry” to keep it and add another.</p>}
 
               {kind === "FEATURED_STORE" && (
-                <label className="field">
-                  Store
-                  <select className="input" value={form.sellerId} onChange={(e) => setForm({ ...form, sellerId: e.target.value })}>
+                <div className="field">
+                  <label htmlFor={storeId}>Store</label>
+                  <select id={storeId} className="input" value={form.sellerId} onChange={(e) => setForm({ ...form, sellerId: e.target.value })}>
                     <option value="">Choose a store…</option>
                     {stores.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -142,7 +143,7 @@ export function HomepageCurator({ canWrite, slots, stores, candidates, pieces }:
                     ))}
                   </select>
                   <span className="help">Only approved stores can be featured.</span>
-                </label>
+                </div>
               )}
 
               {kind === "EDIT" && (
