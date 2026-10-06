@@ -10,6 +10,8 @@ import { HoldTimer } from "./checkout/hold-timer";
 import { PaymentStatus } from "./checkout/payment-status";
 import { PriceSummary } from "./checkout/price-summary";
 import { SnapshotLine } from "./checkout/snapshot-line";
+import { useInstallPrompt } from "./system/install-prompt";
+import { SessionExpired } from "./system/session-expired";
 import { ProtectionNote } from "./product/detail-blocks";
 import { Button, ButtonLink } from "./ui/button";
 import { ICON_STROKE } from "./ui/cx";
@@ -28,6 +30,8 @@ type Order = {
   items: { listingId: string; title: string; tagSize: string | null; condition?: string; category?: string; photoUrl?: string | null; pricePaise: number }[];
 };
 
+const SIGNED_OUT = "signed-out";
+
 type Session = { providerOrderId: string; holdExpiresAt: string; resumed: boolean };
 type Context = { sellerName: string; sellerHandle: string; slugs: Record<string, string> };
 
@@ -42,11 +46,12 @@ export function CheckoutView({ orderId, sandbox, context }: { orderId: string; s
   const [eta, setEta] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const now = useNow();
+  const { showInstallHint } = useInstallPrompt();
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
     if (res.ok) setOrder((await res.json()) as Order);
-    else setError(res.status === 401 ? "Sign in to see this order." : "Order not found.");
+    else setError(res.status === 401 ? SIGNED_OUT : "Order not found.");
   }, [orderId]);
 
   useEffect(() => {
@@ -63,6 +68,13 @@ export function CheckoutView({ orderId, sandbox, context }: { orderId: string; s
     return () => clearInterval(t);
   }, [paying, load]);
 
+  // After an order, offer the home-screen card (once per cool-down, and only where install works).
+  const confirmed = order?.status === "CONFIRMED";
+  useEffect(() => {
+    if (confirmed) showInstallHint("order");
+  }, [confirmed, showInstallHint]);
+
+  if (error === SIGNED_OUT) return <SessionExpired next={`/checkout/${orderId}`} />;
   if (error) return <p className="py-10 text-center text-muted">{error}</p>;
   if (!order) return <p className="py-10 text-center text-muted">Loading…</p>;
 
