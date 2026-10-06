@@ -1,6 +1,6 @@
 import "server-only";
-import { sql } from "drizzle-orm";
-import { claims, orders, refunds, sellerApplications } from "@yolt/db";
+import { desc, eq, sql } from "drizzle-orm";
+import { auditEvents, claims, orders, refunds, sellerApplications, users } from "@yolt/db";
 import { db } from "./db";
 
 /**
@@ -29,4 +29,14 @@ export async function getAdminDashboardCounts() {
 export async function getApplicationCounts() {
   const rows = await db.select({ status: sellerApplications.status, n: sql<number>`count(*)::int` }).from(sellerApplications).groupBy(sellerApplications.status);
   return Object.fromEntries(rows.map((r) => [r.status, r.n])) as Partial<Record<"NEW" | "CONTACTED" | "ONBOARDED" | "REJECTED", number>>;
+}
+
+/** The audit log with who did each thing: staff name or the last digits of their phone. */
+export async function getAuditLog(limit = 200) {
+  return db
+    .select({ event: auditEvents, actorName: users.name, actorPhone: users.phone })
+    .from(auditEvents)
+    .leftJoin(users, eq(users.id, auditEvents.actorId))
+    .orderBy(desc(auditEvents.createdAt))
+    .limit(limit);
 }
