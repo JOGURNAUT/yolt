@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatINR } from "@/lib/format";
+import { Button } from "./ui/button";
 
 export function BuyButton({ listingId, pricePaise }: { listingId: string; pricePaise: number }) {
   const router = useRouter();
@@ -46,14 +47,9 @@ export function BuyButton({ listingId, pricePaise }: { listingId: string; priceP
 
   return (
     <div className="sticky bottom-[var(--bnav-h)] z-20 -mx-4 space-y-2 border-t border-line bg-background px-4 py-3 md:static md:mx-0 md:border-0 md:p-0">
-      <button
-        type="button"
-        onClick={buy}
-        disabled={busy}
-        className="w-full rounded-full bg-foreground py-3 font-semibold text-background disabled:opacity-60"
-      >
+      <Button size="lg" block onClick={buy} disabled={busy}>
         {busy ? "Reserving…" : `Buy now · ${formatINR(pricePaise)}`}
-      </button>
+      </Button>
       <p role="status" aria-live="polite" className="text-sm text-danger">
         {message}
       </p>

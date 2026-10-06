@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatINR } from "@/lib/format";
 import { useShop } from "./shop-state";
+import { Button } from "./ui/button";
 
 export function BagRemoveButton({ listingId }: { listingId: string }) {
   const { removeFromBag } = useShop();
   return (
-    <button type="button" onClick={() => removeFromBag(listingId)} className="text-xs text-muted underline">
+    <button type="button" onClick={() => removeFromBag(listingId)} className="min-h-11 px-2 text-xs text-muted underline">
       Remove
     </button>
   );
@@ -21,8 +22,9 @@ export function BagCheckoutButton({ listingIds, storeName, totalPaise }: { listi
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="space-y-1">
-      <button
-        type="button"
+      <Button
+        size="lg"
+        block
         disabled={busy}
         onClick={async () => {
           setBusy(true);
@@ -38,10 +40,9 @@ export function BagCheckoutButton({ listingIds, storeName, totalPaise }: { listi
           );
           router.refresh();
         }}
-        className="w-full rounded-full bg-foreground py-3 font-semibold text-background disabled:opacity-60"
       >
         {busy ? "Reserving…" : `Check out ${storeName} · ${formatINR(totalPaise)}`}
-      </button>
+      </Button>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );

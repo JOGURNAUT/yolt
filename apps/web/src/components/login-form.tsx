@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { normalizeIndianMobile } from "@yolt/shared";
+import { Button } from "./ui/button";
 
 type Step = { kind: "phone" } | { kind: "code"; phone: string; sentTo: string; channel: string; devCode?: string };
 
@@ -85,8 +86,6 @@ export function LoginForm({ next }: { next: string }) {
     );
   }
 
-  const field = "w-full rounded-md border border-line bg-background px-3 py-3 text-lg";
-  const primary = "w-full rounded-full bg-foreground py-3 font-semibold text-background disabled:opacity-50";
 
   if (step.kind === "phone") {
     return (
@@ -97,12 +96,11 @@ export function LoginForm({ next }: { next: string }) {
           void sendCode();
         }}
       >
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Mobile number</span>
-          <div className="flex items-center gap-2">
-            <span className="rounded-md border border-line px-3 py-3 text-lg text-muted">+91</span>
+        <label className="field">
+          Mobile number
+          <div className="phone">
+            <span className="cc">+91</span>
             <input
-              className={field}
               type="tel"
               inputMode="numeric"
               autoComplete="tel-national"
@@ -113,9 +111,9 @@ export function LoginForm({ next }: { next: string }) {
             />
           </div>
         </label>
-        <button type="submit" disabled={busy} className={primary}>
+        <Button type="submit" size="lg" block disabled={busy}>
           {busy ? "Sending…" : "Send code on WhatsApp"}
-        </button>
+        </Button>
         <p role="alert" aria-live="polite" className="text-sm text-danger">
           {error}
         </p>
@@ -136,10 +134,10 @@ export function LoginForm({ next }: { next: string }) {
           Development: your code is <span className="font-mono font-semibold">{step.devCode}</span>
         </p>
       )}
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">6-digit code</span>
+      <label className="field">
+        6-digit code
         <input
-          className={`${field} tracking-[0.4em]`}
+          className="input t-mono tracking-[0.4em]"
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={6}
@@ -148,9 +146,9 @@ export function LoginForm({ next }: { next: string }) {
           autoFocus
         />
       </label>
-      <button type="submit" disabled={busy || code.length !== 6} className={primary}>
+      <Button type="submit" size="lg" block disabled={busy || code.length !== 6}>
         {busy ? "Checking…" : "Sign in"}
-      </button>
+      </Button>
       <p role="alert" aria-live="polite" className="text-sm text-danger">
         {error}
       </p>
@@ -159,7 +157,7 @@ export function LoginForm({ next }: { next: string }) {
           type="button"
           disabled={cooldown > 0 || busy}
           onClick={() => sendCode("WHATSAPP")}
-          className="underline disabled:no-underline disabled:opacity-50"
+          className="min-h-11 underline disabled:no-underline disabled:opacity-50"
         >
           {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
         </button>
@@ -167,7 +165,7 @@ export function LoginForm({ next }: { next: string }) {
           type="button"
           disabled={cooldown > 0 || busy}
           onClick={() => sendCode("SMS")}
-          className="underline disabled:no-underline disabled:opacity-50"
+          className="min-h-11 underline disabled:no-underline disabled:opacity-50"
         >
           Send by SMS instead
         </button>

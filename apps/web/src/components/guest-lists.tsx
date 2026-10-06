@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { formatINR } from "@/lib/format";
 import { GarmentImage } from "./garment-image";
 import { useShop } from "./shop-state";
+import { ButtonLink } from "./ui/button";
 
 type Card = {
   id: string;
@@ -85,7 +86,7 @@ export function GuestBag() {
                   </Link>
                   <span className="flex items-center gap-3">
                     {soldOut(c.status) ? <span className="text-muted">Sold out</span> : formatINR(c.pricePaise)}
-                    <button type="button" onClick={() => removeFromBag(c.id)} className="text-xs text-muted underline">
+                    <button type="button" onClick={() => removeFromBag(c.id)} className="min-h-11 px-2 text-xs text-muted underline">
                       Remove
                     </button>
                   </span>
@@ -95,9 +96,9 @@ export function GuestBag() {
           </section>
         );
       })}
-      <Link href="/login?next=/bag" className="block w-full rounded-full bg-foreground py-3 text-center font-semibold text-background">
+      <ButtonLink href="/login?next=/bag" size="lg" block>
         Sign in to check out
-      </Link>
+      </ButtonLink>
     </div>
   );
 }
