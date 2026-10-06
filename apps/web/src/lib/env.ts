@@ -36,3 +36,14 @@ export function missingConfig(env: AppEnv = appEnv()): string[] {
   if (env === "production") required.push("LEGAL_ENTITY_NAME", "LEGAL_ADDRESS", "GRIEVANCE_OFFICER_NAME", "GRIEVANCE_EMAIL");
   return required.filter((k) => !process.env[k]);
 }
+
+const PUSH_KEYS = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"] as const;
+
+/**
+ * Settings that switch a feature on but don't stop the site without them. Web push stays off
+ * (and the app hides its prompts) until all three VAPID values are set; /api/health reports them.
+ */
+export function missingOptionalConfig(env: AppEnv = appEnv()): string[] {
+  if (env === "development") return [];
+  return PUSH_KEYS.filter((k) => !process.env[k]);
+}

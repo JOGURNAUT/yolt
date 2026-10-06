@@ -9,6 +9,7 @@ import {
   openDueDrops,
   queueDropReminders,
   createCheckout,
+  deliverNotifications,
   createSession,
   getBuyerOrder,
   getBuyerOrders,
@@ -24,6 +25,7 @@ import {
   searchListings,
   startPayment,
   type AuthSecrets,
+  type PushSender,
 } from "@yolt/core";
 import { asComplete, holds, listings, orderItems, orders, paymentAttempts, sellers, shipments, users, type Db } from "@yolt/db";
 import { FIRST_TOUCH_COOKIE, parseSearchParams } from "@yolt/shared";
@@ -41,6 +43,7 @@ import { dropRoutes } from "./routes/drops";
 import { trustRoutes } from "./routes/trust";
 import { homeRoutes, sellerApplicationRoutes } from "./routes/home";
 import { meRoutes } from "./routes/me";
+import { pushRoutes } from "./routes/push";
 import {
   DevShippingProvider,
   estimatedWeightGrams,
@@ -57,6 +60,7 @@ export type AppDeps = {
   /** Present only outside production: lets the local UI "complete" a payment. */
   sandbox?: SandboxPaymentProvider;
   otp: OtpSender;
+  push: PushSender;
   authSecrets: AuthSecrets;
   /** Local development only: one-click login as any user (/api/dev/login). */
   devLogin: boolean;
@@ -506,6 +510,7 @@ export function createApp(deps: AppDeps) {
   app.route("/home", homeRoutes({ db }));
   app.route("/seller-applications", sellerApplicationRoutes({ db, secrets: deps.authSecrets }));
   app.route("/me", meRoutes({ db, secureCookies }));
+  app.route("/push", pushRoutes({ db, push: deps.push, secrets: deps.authSecrets }));
   app.route("/", trustRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------
@@ -525,6 +530,13 @@ export function createApp(deps: AppDeps) {
     }
     const [reminders, opened, ended] = [await queueDropReminders(db), await openDueDrops(db), await endFinishedDrops(db)];
     return c.json({ ...reminders, ...opened, ...ended });
+  });
+
+  app.get("/cron/notifications", async (c) => {
+    if (!deps.cronSecret || c.req.header("authorization") !== `Bearer ${deps.cronSecret}`) {
+      return c.json({ error: "UNAUTHORIZED" }, 401);
+    }
+    return c.json(await deliverNotifications(db, deps.push, { limit: 100 }));
   });
 
   app.get("/cron/close-delivered", async (c) => {

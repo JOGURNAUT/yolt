@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { usePushPrompt } from "@/components/push-prompt";
 import { Countdown } from "@/components/ui/countdown";
 import { cx, ICON_STROKE } from "@/components/ui/cx";
 
@@ -40,12 +41,16 @@ export function DropCountdown({ startsAt, serverNow, size = "sm", className }: {
  */
 export function RemindButton({
   dropId,
+  title,
+  startsAt,
   reminderOn,
   signedIn,
   className,
   style,
 }: {
   dropId: string;
+  title: string;
+  startsAt?: string;
   reminderOn: boolean;
   signedIn: boolean;
   className?: string;
@@ -54,6 +59,7 @@ export function RemindButton({
   const router = useRouter();
   const pathname = usePathname();
   const [on, setOn] = useState(reminderOn);
+  const push = usePushPrompt();
 
   async function toggle() {
     if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}`);
@@ -61,13 +67,17 @@ export function RemindButton({
     setOn(next);
     const res = await fetch(`/api/drops/${dropId}/reminder`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ on: next }) });
     if (!res.ok) setOn(!next);
+    else if (next) void push.ask({ reason: "drop", title, startsAt });
   }
 
   return (
-    <button type="button" onClick={toggle} className={cx(className)} style={style}>
-      {on && <Check aria-hidden className="ic ic-16" strokeWidth={ICON_STROKE} />}
-      {on ? "Reminder set" : "Remind me"}
-    </button>
+    <>
+      <button type="button" onClick={toggle} className={cx(className)} style={style}>
+        {on && <Check aria-hidden className="ic ic-16" strokeWidth={ICON_STROKE} />}
+        {on ? "Reminder set" : "Remind me"}
+      </button>
+      {push.prompt}
+    </>
   );
 }
 

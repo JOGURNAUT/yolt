@@ -83,7 +83,7 @@ export function DropSlide({ drop, serverNow, signedIn, reminderOn, holdMinutes }
                   Claim now
                 </Link>
               ) : (
-                <RemindButton dropId={drop.id} reminderOn={reminderOn} signedIn={signedIn} className={BTN_ON_DARK} />
+                <RemindButton dropId={drop.id} title={drop.title} startsAt={drop.startsAt.toISOString()} reminderOn={reminderOn} signedIn={signedIn} className={BTN_ON_DARK} />
               )}
             </span>
           </div>

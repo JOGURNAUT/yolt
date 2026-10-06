@@ -3,6 +3,7 @@ export { FIRST_TOUCH_COOKIE, SESSION_COOKIE } from "./auth";
 export { DevOtpSender, UnconfiguredOtpSender, type OtpSender } from "./otp/sender";
 export { UnconfiguredPaymentProvider, type PaymentProvider } from "./payments/provider";
 export { SandboxPaymentProvider } from "./payments/sandbox";
+export { FakePushSender, pushSenderFromEnv, UnconfiguredPushSender, WebPushSender, type SentPush } from "./push/sender";
 export {
   DevShippingProvider,
   estimatedWeightGrams,

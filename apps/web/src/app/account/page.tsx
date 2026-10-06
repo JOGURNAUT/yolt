@@ -4,7 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { getAccount } from "@yolt/core";
 import { formatIndianMobile } from "@yolt/shared";
-import { NameEditor, SignOutActions } from "@/components/account/profile-actions";
+import { NameEditor, NotificationsRow, SignOutActions } from "@/components/account/profile-actions";
 import { ICON_STROKE } from "@/components/ui/cx";
 import { db } from "@/lib/server/db";
 import { getAccountCounts } from "@/lib/server/queries";
@@ -70,6 +70,7 @@ export default async function AccountPage() {
       </div>
       <RowList label="Your stuff" rows={yours} />
       <RowList label="More" rows={more} />
+      <NotificationsRow />
       <SignOutActions />
     </div>
   );

@@ -67,6 +67,12 @@ function orderReference() {
 
 const addSeconds = (d: Date, s: number) => new Date(d.getTime() + s * 1000);
 
+/** Tells people who saved these pieces that they are available again (delivered as a push by the notifications job). */
+async function queueBackInStock(tx: Tx, listingIds: string[]) {
+  if (listingIds.length === 0) return;
+  await tx.insert(outboxEvents).values({ type: "listing.available", payload: { listingIds } });
+}
+
 // ---------------------------------------------------------------------------
 // Checkout: create holds + an order awaiting payment
 // ---------------------------------------------------------------------------
@@ -490,10 +496,12 @@ export async function handlePaymentEvent(db: Db, input: PaymentEventInput): Prom
         .where(and(eq(holds.orderId, order.id), eq(holds.status, "ACTIVE")))
         .returning({ id: holds.id });
       for (const h of stillHeld) {
-        await tx
+        const freed = await tx
           .update(listings)
           .set({ status: "AVAILABLE", currentHoldId: null, updatedAt: now })
-          .where(eq(listings.currentHoldId, h.id));
+          .where(eq(listings.currentHoldId, h.id))
+          .returning({ id: listings.id });
+        await queueBackInStock(tx, freed.map((l) => l.id));
       }
       await tx.update(orders).set({ status: "NEEDS_REFUND", updatedAt: now }).where(eq(orders.id, order.id));
       return requestRefund("ITEM_UNAVAILABLE");
@@ -532,10 +540,12 @@ async function expireHoldRows(tx: Tx, due: { id: string; orderId: string }[], no
   const ids = due.map((h) => h.id);
   await tx.update(holds).set({ status: "EXPIRED", endedAt: now }).where(inArray(holds.id, ids));
   // Generation check: only release items still owned by these exact holds.
-  await tx
+  const freed = await tx
     .update(listings)
     .set({ status: "AVAILABLE", currentHoldId: null, updatedAt: now })
-    .where(inArray(listings.currentHoldId, ids));
+    .where(inArray(listings.currentHoldId, ids))
+    .returning({ id: listings.id });
+  await queueBackInStock(tx, freed.map((l) => l.id));
 
   const orderIds = [...new Set(due.map((h) => h.orderId))];
   await tx
@@ -589,10 +599,12 @@ export async function releaseCheckout(db: Db, input: { orderId: string; buyerId:
       .where(and(eq(holds.orderId, order.id), eq(holds.status, "ACTIVE")))
       .returning({ id: holds.id });
     if (released.length > 0) {
-      await tx
+      const freed = await tx
         .update(listings)
         .set({ status: "AVAILABLE", currentHoldId: null, updatedAt: now })
-        .where(inArray(listings.currentHoldId, released.map((h) => h.id)));
+        .where(inArray(listings.currentHoldId, released.map((h) => h.id)))
+        .returning({ id: listings.id });
+      await queueBackInStock(tx, freed.map((l) => l.id));
     }
     await tx.update(orders).set({ status: "CANCELLED_BY_BUYER", updatedAt: now }).where(eq(orders.id, order.id));
     return { ok: true as const };

@@ -41,7 +41,7 @@ export function DropTicket({ drop, storeName, reminderOn, signedIn }: { drop: Dr
             Claim now
           </Link>
         ) : (
-          <ReminderButton dropId={drop.id} on={reminderOn} signedIn={signedIn} />
+          <ReminderButton dropId={drop.id} title={drop.title} startsAt={drop.startsAt.toISOString()} on={reminderOn} signedIn={signedIn} />
         )}
       </div>
     </div>

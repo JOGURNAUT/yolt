@@ -22,6 +22,9 @@ jobs:
       - name: Open drops and queue reminders
         run: |
           curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/drops"
+      - name: Send push notifications
+        run: |
+          curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/notifications"
       - name: Close delivered orders
         run: |
           curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/api/cron/close-delivered"
