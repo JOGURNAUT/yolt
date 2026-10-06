@@ -101,9 +101,9 @@ test("a product shows the protection line, brand note and delivery check states"
 
 test("units switch between cm and in", async ({ page }) => {
   await page.goto(FLAWED);
-  await expect(page.getByText("41 cm")).toBeVisible();
+  await expect(page.getByText("108 cm")).toBeVisible();
   await page.getByRole("button", { name: "in", exact: true }).click();
-  await expect(page.getByText("16.1 in")).toBeVisible();
+  await expect(page.getByText("42.5 in")).toBeVisible(); // 108 cm
   await expect(page.getByText("Measured flat, one side.")).toBeVisible();
 });
 

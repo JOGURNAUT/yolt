@@ -30,7 +30,7 @@ const inStock: Item[] = [
     condition: "GOOD",
     flaws: "Loose threads along the hem of both legs (see the last photos).",
     description:
-      "Black cargo pants with legs that zip off at the knee, so they turn into shorts. Loaded with hardware: D-ring straps at the waist, buckle-and-eyelet pockets on both thighs, a column of eyelets down the back and long strap tails that hang at the sides. Soft washed black cotton twill with a wide, relaxed leg. The hem is frayed on both legs; everything else is in good shape. Measured flat, one side.",
+      "Black cargo pants with legs that zip off at the knee, so they turn into shorts. Loaded with hardware: D-ring straps at the waist, buckle-and-eyelet pockets on both thighs, a column of eyelets down the back and long strap tails that hang at the sides. Soft washed black cotton twill with a wide, relaxed leg. The hem is frayed on both legs; everything else is in good shape.",
     pricePaise: 219900,
   },
   {
