@@ -24,3 +24,9 @@ export async function getAdminDashboardCounts() {
     (SELECT count(*)::int FROM ${sellerApplications} WHERE status = 'NEW') AS new_applications`);
   return row!;
 }
+
+/** Applications per status, for the tabs on the Sellers page. */
+export async function getApplicationCounts() {
+  const rows = await db.select({ status: sellerApplications.status, n: sql<number>`count(*)::int` }).from(sellerApplications).groupBy(sellerApplications.status);
+  return Object.fromEntries(rows.map((r) => [r.status, r.n])) as Partial<Record<"NEW" | "CONTACTED" | "ONBOARDED" | "REJECTED", number>>;
+}
