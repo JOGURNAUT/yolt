@@ -65,7 +65,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {reviewData.average !== null && (
               <a href="#reviews" className="hover:underline">
-                <Stars rating={reviewData.average} className="text-accent" /> {reviewData.average.toFixed(1)} (
+                <Stars rating={reviewData.average} /> {reviewData.average.toFixed(1)} (
                 {reviewData.total} reviews)
               </a>
             )}
@@ -87,7 +87,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
           href={`/d/${drop.id}`}
           className="block rounded-lg border border-line bg-surface p-4 hover:border-foreground"
         >
-          <p className="text-xs font-medium uppercase tracking-wide text-accent">Upcoming drop</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Upcoming drop</p>
           <p className="font-semibold">{drop.title}</p>
           <p className="text-sm text-muted">{formatIST(drop.startsAt)}</p>
         </a>
@@ -116,7 +116,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
             <div className="flex items-center gap-6">
               <div>
                 <p className="text-3xl font-bold">{reviewData.average!.toFixed(1)}</p>
-                <Stars rating={reviewData.average!} className="text-accent" />
+                <Stars rating={reviewData.average!} />
                 <p className="text-xs text-muted">{reviewData.total} verified purchases</p>
               </div>
               <ul className="flex-1 space-y-1 text-xs">
@@ -125,7 +125,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
                     <span className="w-3">{b.stars}</span>
                     <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-placeholder">
                       <span
-                        className="block h-full bg-accent"
+                        className="block h-full bg-foreground"
                         style={{ width: `${(b.n / reviewData.total) * 100}%` }}
                       />
                     </span>
@@ -139,7 +139,7 @@ export default async function StorePage({ params, searchParams }: PageProps<"/s/
                 <li key={r.id} className="rounded-lg border border-line bg-surface p-4">
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">{r.buyerName?.split(" ")[0] ?? "Buyer"}</span>
-                    <Stars rating={r.rating} className="text-accent" />
+                    <Stars rating={r.rating} />
                   </div>
                   {r.body && <p className="mt-2 text-sm">{r.body}</p>}
                   {r.photoUrls.length > 0 && (

@@ -16,7 +16,7 @@ export default async function DropsPage() {
   const card = (d: (typeof drops)[number]) => (
     <li key={d.id}>
       <Link href={`/d/${d.id}`} className="block rounded-lg border border-line bg-surface p-4 hover:border-foreground">
-        <p className="text-xs uppercase tracking-wide text-accent">{d.status === "LIVE" ? "Live now" : formatIST(d.startsAt)}</p>
+        <p className="text-xs uppercase tracking-wide text-muted">{d.status === "LIVE" ? "Live now" : formatIST(d.startsAt)}</p>
         <p className="font-semibold">{d.title}</p>
         <p className="text-sm text-muted">
           {d.sellerName} · {d.items} {d.items === 1 ? "piece" : "pieces"}

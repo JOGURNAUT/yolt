@@ -24,7 +24,7 @@ export default async function SellerReviewsPage() {
             <li key={review.id} className="rounded-lg border border-line bg-surface p-4 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{item.title}</span>
-                <Stars rating={review.rating} className="text-accent" />
+                <Stars rating={review.rating} />
               </div>
               {review.body && <p className="mt-2">{review.body}</p>}
               <ReviewReply reviewId={review.id} />

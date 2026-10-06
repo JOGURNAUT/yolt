@@ -192,8 +192,8 @@ function Stars({ label, value, onChange }: { label: string; value: number; onCha
         {[1, 2, 3, 4, 5].map((n) => (
           <label key={n} className="cursor-pointer text-2xl leading-none">
             <input type="radio" className="sr-only" name={label} checked={value === n} onChange={() => onChange(n)} />
-            <span aria-hidden="true" className={n <= value ? "text-accent" : "text-line"}>
-              ★
+            <span aria-hidden="true" className={n <= value ? "text-foreground" : "text-muted"}>
+              {n <= value ? "★" : "☆"}
             </span>
             <span className="sr-only">{n} stars</span>
           </label>

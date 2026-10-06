@@ -60,7 +60,7 @@ export default async function BagPage() {
                     <p className="flex justify-between"><span>Subtotal</span><span>{formatINR(g.subtotalPaise)}</span></p>
                     <p className="flex justify-between text-muted"><span>Shipping</span><span>{g.shippingPaise ? formatINR(g.shippingPaise) : "Free"}</span></p>
                     {g.freeShippingGapPaise !== null && (
-                      <p className="text-accent">
+                      <p className="text-info">
                         Add {formatINR(g.freeShippingGapPaise)} more from {g.seller.displayName} for free shipping.{" "}
                         <Link href={`/s/${g.seller.handle}`} className="underline">See their store</Link>
                       </p>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Archivo, DM_Mono, DM_Sans } from "next/font/google";
 import Link from "next/link";
 import { AccountMenu } from "@/components/account-menu";
 import { envFlags } from "@/lib/env";
@@ -12,7 +12,10 @@ import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
 import { formatIndianMobile } from "@yolt/shared";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+// Display: Archivo with its width axis, set wide (font-stretch 125%) in caps. Body: DM Sans. Timers and order IDs: DM Mono.
+const archivo = Archivo({ variable: "--font-archivo", subsets: ["latin"], axes: ["wdth"] });
+const dmSans = DM_Sans({ variable: "--font-dm-sans", subsets: ["latin"] });
+const dmMono = DM_Mono({ variable: "--font-dm-mono", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
   title: { default: "YOLT — thrift, without the DMs", template: "%s · YOLT" },
@@ -25,7 +28,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     ? await Promise.all([getAdminRole(db, user.userId).then((r) => r !== null), savedListingIds(db, user.userId), bagListingIds(db, user.userId)])
     : [false, [], []];
   return (
-    <html lang="en-IN" className={`${geistSans.variable} h-full antialiased`}>
+    <html lang="en-IN" className={`${archivo.variable} ${dmSans.variable} ${dmMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
         <ShopStateProvider signedIn={user !== null} initialSaved={saved} initialBag={bag}>
         <header className="sticky top-0 z-10 border-b border-line bg-background/95 backdrop-blur">

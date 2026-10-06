@@ -1,43 +1,171 @@
 @import "tailwindcss";
+@import "../styles/yolt.css";
 
-/* Placeholder tokens — to be replaced by the brand direction from docs/claude-design-prompt.md. */
+/*
+ * YOLT tokens, Direction A "Lilac sticker" (canvas board F3). The names are the design contract:
+ * components and pages use them through Tailwind (bg-surface, text-muted, border-line…) or var().
+ * Accent never carries text on background; it's a filled shape with ink text, or an underline.
+ */
 :root {
-  --background: #faf8f5;
-  --foreground: #1c1a17;
+  --background: #fafaf7;
   --surface: #ffffff;
-  --muted: #6b655d;
-  --line: #e2ddd5;
-  --placeholder: #ece7df;
-  --accent: #2f5d50;
-  --danger: #a33a2b;
+  --surface-2: #f0efea;
+  --foreground: #0d0d0c;
+  --muted: #5b5a55;
+  --line: #e2e1db;
+  --accent: #c8b6ff;
+  --accent-2: #ffb5d8;
+  --on-accent: #0d0d0c;
+  --success: #2d6a45;
+  --on-success: #ffffff;
+  --warning: #8a5a00;
+  --on-warning: #ffffff;
+  --danger: #b4231a;
+  --on-danger: #ffffff;
+  --info: #2e4d80;
+  --placeholder: var(--surface-2);
+
+  --shadow-raised: 0 1px 2px rgba(13, 13, 12, 0.06), 0 6px 16px rgba(13, 13, 12, 0.07);
+  --shadow-overlay: 0 16px 48px rgba(13, 13, 12, 0.22);
+  --shimmer: rgba(255, 255, 255, 0.35);
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  --fast: 120ms;
+  --base: 200ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* next/font sets the --font-* -face variables on <html> (app/layout.tsx). */
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --display-stretch: 125%;
+  --font-body: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+
+  /* Height of the mobile BottomNav, so sticky bars and toasts sit above it. */
+  --bnav-h: 0px;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #151412;
-    --foreground: #f0ece6;
-    --surface: #1f1d1a;
-    --muted: #a39c92;
-    --line: #37332e;
-    --placeholder: #2a2724;
-    --accent: #7fb8a4;
-    --danger: #e0806f;
+    --background: #0b0b0a;
+    --surface: #161615;
+    --surface-2: #1f1f1d;
+    --foreground: #f6f5f0;
+    --muted: #a6a49c;
+    --line: #2e2d2a;
+    --success: #7cc79a;
+    --on-success: #0b0b0a;
+    --warning: #f0c04c;
+    --on-warning: #0b0b0a;
+    --danger: #ff8f85;
+    --on-danger: #0b0b0a;
+    --info: #9db9ee;
+    --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.45);
+    --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.65);
+    --shimmer: rgba(255, 255, 255, 0.06);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --background: #0b0b0a;
+  --surface: #161615;
+  --surface-2: #1f1f1d;
+  --foreground: #f6f5f0;
+  --muted: #a6a49c;
+  --line: #2e2d2a;
+  --success: #7cc79a;
+  --on-success: #0b0b0a;
+  --warning: #f0c04c;
+  --on-warning: #0b0b0a;
+  --danger: #ff8f85;
+  --on-danger: #0b0b0a;
+  --info: #9db9ee;
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.5), 0 6px 16px rgba(0, 0, 0, 0.45);
+  --shadow-overlay: 0 16px 48px rgba(0, 0, 0, 0.65);
+  --shimmer: rgba(255, 255, 255, 0.06);
+  color-scheme: dark;
+}
+
+:root:has(.bnav) {
+  --bnav-h: calc(68px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  :root:has(.bnav) {
+    --bnav-h: 0px;
   }
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-placeholder: var(--surface-2);
+  --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-line: var(--line);
-  --color-placeholder: var(--placeholder);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-on-success: var(--on-success);
+  --color-warning: var(--warning);
+  --color-on-warning: var(--on-warning);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
+  --color-on-danger: var(--on-danger);
+  --color-info: var(--info);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+
+  --shadow-raised: var(--shadow-raised);
+  --shadow-overlay: var(--shadow-overlay);
+
+  --ease-yolt: var(--ease);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Headings use the display face in caps (h1/h2 on the type scale); h3 and below stay in the body face. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-stretch: var(--display-stretch);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.005em;
+  }
+
+  a {
+    text-decoration-color: var(--accent);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
 }
