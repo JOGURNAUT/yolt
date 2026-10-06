@@ -39,6 +39,8 @@ import { sellerRoutes } from "./routes/seller";
 import { bagRoutes, followRoutes, saveRoutes } from "./routes/shopping";
 import { dropRoutes } from "./routes/drops";
 import { trustRoutes } from "./routes/trust";
+import { homeRoutes, sellerApplicationRoutes } from "./routes/home";
+import { meRoutes } from "./routes/me";
 import {
   DevShippingProvider,
   estimatedWeightGrams,
@@ -501,6 +503,9 @@ export function createApp(deps: AppDeps) {
   app.route("/follows", followRoutes({ db }));
   app.route("/bag", bagRoutes({ db }));
   app.route("/drops", dropRoutes({ db }));
+  app.route("/home", homeRoutes({ db }));
+  app.route("/seller-applications", sellerApplicationRoutes({ db, secrets: deps.authSecrets }));
+  app.route("/me", meRoutes({ db, secureCookies }));
   app.route("/", trustRoutes({ db, media: deps.media }));
 
   // -------------------------------------------------------------------------

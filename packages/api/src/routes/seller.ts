@@ -25,6 +25,7 @@ import type { MediaStorage } from "../media/storage";
 import type { ShippingProvider } from "../shipping/provider";
 import { sellerOrderRoutes } from "./seller-orders";
 import { sellerTrustRoutes } from "./seller-trust";
+import { sellerStoreRoutes } from "./seller-store";
 import { sellerDropRoutes } from "./drops";
 
 type Env = { Variables: AuthVariables & { seller: typeof sellers.$inferSelect; userId: string } };
@@ -97,6 +98,7 @@ export function sellerRoutes(deps: { db: Db; media: MediaStorage; shipping: Ship
   app.route("/", sellerOrderRoutes({ db, shipping: deps.shipping }));
   app.route("/", sellerTrustRoutes({ db }));
   app.route("/", sellerDropRoutes({ db }));
+  app.route("/", sellerStoreRoutes({ db, media }));
 
   app.openapi(
     createRoute({ method: "get", path: "/me", summary: "The signed-in seller's store", responses: { 200: Any } }),
