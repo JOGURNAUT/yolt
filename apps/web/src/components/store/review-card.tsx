@@ -44,7 +44,7 @@ export function ReviewCard({ review: r, storeName }: { review: ReviewView; store
     </>
   );
   const boughtClass =
-    "flex items-center gap-2.5 rounded-xl bg-surface-2 p-2 !no-underline lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:flex-col lg:items-stretch lg:gap-2 lg:self-start lg:rounded-[14px] lg:p-2.5";
+    "flex items-center gap-2.5 rounded-xl bg-surface-2 p-2 !no-underline lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:flex-col lg:items-stretch lg:gap-2 lg:self-start lg:rounded-none lg:p-2.5";
 
   return (
     <article className="card flex flex-col gap-2.5 p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-x-5 lg:p-5">

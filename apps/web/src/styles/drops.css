@@ -6,7 +6,7 @@
   .drop-band .cd .cell { background: #FFFFFF; color: #0D0D0C; }
   .drop-band a:not(.btn) { color: #FFFFFF; }
   @media (min-width: 1024px) {
-    .drop-band { border-radius: 28px; position: sticky; top: 92px; }
+    .drop-band { border-radius: 0; position: sticky; top: 92px; }
   }
 
   /* A piece: a row with a small photo on phones, a tile on desktop. */
@@ -20,8 +20,8 @@
   @media (min-width: 1024px) {
     .dp { flex-direction: column; gap: 10px; padding: 0; background: transparent; box-shadow: none; }
     .dp.is-mine { box-shadow: none; }
-    .dp .photo { width: 100%; border-radius: 20px; }
-    .dp .photo .ph { border-radius: 20px; }
+    .dp .photo { width: 100%; border-radius: 0; }
+    .dp .photo .ph { border-radius: 0; }
     .dp.is-mine .photo { box-shadow: 0 0 0 3px #0D0D0C; }
   }
 

@@ -86,7 +86,7 @@
     gap: 14px;
   }
   .pg-track {
-    border-radius: 24px;
+    border-radius: 0;
   }
   .pg-thumbs {
     display: flex;

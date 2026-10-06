@@ -34,8 +34,10 @@
 
   --r-sm: 8px;
   --r-md: 12px;
-  --r-lg: 16px;
-  --r-xl: 24px;
+  /* Containers (cards, photos, tiles, tickets, sheets, the hero) are square: the street shelf look.
+     Controls (buttons, inputs, pills, stickers, badges) keep their rounding via --r-sm, --r-md and --r-pill. */
+  --r-lg: 0px;
+  --r-xl: 0px;
   --r-pill: 999px;
 
   --fast: 120ms;
@@ -131,6 +133,8 @@
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-xl: var(--r-xl);
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
 
   --shadow-raised: var(--shadow-raised);
   --shadow-overlay: var(--shadow-overlay);

@@ -11,7 +11,7 @@
   }
 
   /* ---------- Option card: a radio (address, reason) drawn as a card; the real input stays for keyboards and screen readers ---------- */
-  .opt { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line); cursor: pointer; text-align: left; font: inherit; color: inherit; width: 100%; box-sizing: border-box; min-height: 52px; }
+  .opt { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px; border-radius: 0; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--line); cursor: pointer; text-align: left; font: inherit; color: inherit; width: 100%; box-sizing: border-box; min-height: 52px; }
   .opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
   .opt .radio { margin-top: 1px; }
   .opt:has(input:checked) { box-shadow: inset 0 0 0 2px var(--foreground); }
@@ -20,7 +20,7 @@
   .opt:has(input:disabled) { opacity: 0.6; cursor: not-allowed; }
 
   /* ---------- HoldTimer: the checkout reservation, pinned under the header ---------- */
-  .hold { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--accent); color: #0d0d0c; }
+  .hold { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 0; background: var(--accent); color: #0d0d0c; }
   .hold.is-low { background: var(--warning); color: var(--on-warning); }
 
   /* ---------- Timeline (OrderTimeline): a vertical rail on phones, four columns from 1024 px ---------- */

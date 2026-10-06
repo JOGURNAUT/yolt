@@ -25,7 +25,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
   const next = safeNext((await searchParams).next);
   const user = await getCurrentUser();
   return (
-    <div className="band-dark mx-auto flex max-w-[480px] flex-col overflow-hidden rounded-[24px]">
+    <div className="band-dark mx-auto flex max-w-[480px] flex-col overflow-hidden rounded-none">
       <div aria-hidden="true" className="relative h-[360px]">
         {TILES.map((t) => (
           <div key={t.label} className={`absolute ${t.cls}`}>

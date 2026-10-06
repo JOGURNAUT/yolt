@@ -116,6 +116,9 @@ const hitColumns = {
   // Correlated subquery with explicit table names (Drizzle leaves columns unqualified without a join).
   coverUrl: sql<string | null>`(
     SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id ORDER BY lp.position LIMIT 1)`,
+  // The back photo, for the card's hover. Only a photo the seller marked BACK counts: a detail or a flaw close-up is not a "back".
+  backUrl: sql<string | null>`(
+    SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id AND lp.kind = 'BACK' ORDER BY lp.position LIMIT 1)`,
   total: sql<number>`count(*) over ()`.mapWith(Number),
 };
 
@@ -132,6 +135,8 @@ export type SearchHit = {
   sellerHandle: string;
   dropStartsAt: Date | null;
   coverUrl: string | null;
+  /** The photo shown when a card is hovered: the BACK photo, null when the piece has none. */
+  backUrl: string | null;
 };
 
 /** A card row as selected by hitColumns; drafts are excluded, so the nullable fields are set. */
@@ -159,6 +164,7 @@ function toHit(row: HitRow): SearchHit {
     sellerHandle: row.sellerHandle,
     dropStartsAt: row.dropStartsAt,
     coverUrl: row.coverUrl,
+    backUrl: row.backUrl,
   };
 }
 

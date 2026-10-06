@@ -49,7 +49,7 @@
   .chip-row::-webkit-scrollbar { display: none; }
   @media (min-width: 1024px) { .chip-row { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; } }
 
-  .cat-tile { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 0 12px 0 8px; border-radius: 14px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--foreground); text-decoration: none !important; }
+  .cat-tile { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 0 12px 0 8px; border-radius: 0; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); color: var(--foreground); text-decoration: none !important; }
   .cat-tile:hover { box-shadow: inset 0 0 0 1.5px var(--foreground); }
   .cat-tile .art { width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
   .cat-tile .art svg { width: 34px; height: 34px; fill: none; stroke: #0D0D0C; stroke-opacity: .55; stroke-width: 4; stroke-linejoin: round; }

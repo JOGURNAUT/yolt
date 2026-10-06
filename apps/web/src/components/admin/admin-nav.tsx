@@ -52,7 +52,7 @@ export function AdminNav({ role, counts }: { role: string; counts: AdminNavCount
             </Link>
           ))}
         </nav>
-        <p className="t-small muted rounded-[14px] bg-surface-2 p-3">Signed in as staff · every action needs a reason</p>
+        <p className="t-small muted rounded-none bg-surface-2 p-3">Signed in as staff · every action needs a reason</p>
       </aside>
 
       <div className="flex flex-col gap-2 lg:hidden">

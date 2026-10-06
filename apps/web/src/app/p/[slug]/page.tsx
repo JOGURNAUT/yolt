@@ -147,7 +147,7 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
               </div>
             )}
             {soon && (
-              <div role="status" className="flex flex-col gap-2.5 rounded-[14px] p-3.5 shadow-[inset_0_0_0_1.5px_var(--foreground)]">
+              <div role="status" className="flex flex-col gap-2.5 rounded-none p-3.5 shadow-[inset_0_0_0_1.5px_var(--foreground)]">
                 <p className="t-small font-bold">
                   Coming soon{drop ? ` in ${drop.title}, ${formatIST(drop.startsAt)}` : ""}
                 </p>

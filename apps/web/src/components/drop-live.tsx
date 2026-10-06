@@ -338,7 +338,7 @@ export function DropLive({
               </h2>
               <RulesList rules={rules} tone="light" />
             </section>
-            <div className="flex items-start gap-2.5 rounded-[14px] bg-surface-2 p-3.5">
+            <div className="flex items-start gap-2.5 rounded-none bg-surface-2 p-3.5">
               <ShieldCheck aria-hidden className="ic shrink-0" strokeWidth={ICON_STROKE} />
               <span className="t-small">No size returns: check the measurements. Full refund if it isn&apos;t as described, arrives damaged, or never arrives.</span>
             </div>

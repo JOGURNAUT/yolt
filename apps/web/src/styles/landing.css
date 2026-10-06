@@ -4,7 +4,7 @@
   .ticker:active .track { animation-play-state: paused; }
 
   /* Grails cards: bigger corners and title (board Main, "Grails"). */
-  .pc.is-large .media, .pc.is-large .ph { border-radius: 20px; }
+  .pc.is-large .media, .pc.is-large .ph { border-radius: 0; }
   .pc.is-large .title { font-size: 16px; line-height: 22px; }
   .pc.is-large .tagpos { left: 14px; top: 16px; }
   .pc.is-large .stk { right: 14px; bottom: 16px; }

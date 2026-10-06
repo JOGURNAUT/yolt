@@ -216,9 +216,11 @@
 
   /* ---------- Ticker ---------- */
   .ticker { height: 28px; overflow: hidden; background: #0D0D0C; color: #FFFFFF; display: flex; align-items: center; }
-  .ticker .track { display: flex; gap: 28px; white-space: nowrap; animation: yolt-marquee 28s linear infinite; padding-left: 16px; }
+  /* Space sits after each item, not between them, so the track repeats exactly every half and the loop never jumps. */
+  .ticker .track { display: flex; white-space: nowrap; animation: yolt-marquee 34s linear infinite; }
   .ticker:hover .track, .ticker:focus-within .track, .ticker.is-paused .track { animation-play-state: paused; }
-  .ticker .item { display: inline-flex; align-items: center; gap: 8px; font: 700 11px/1 var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
+  .ticker .item { display: inline-flex; align-items: center; gap: 10px; padding-right: 72px; font: 700 11px/1 var(--font-body); letter-spacing: .06em; text-transform: uppercase; }
+  @media (min-width: 1024px) { .ticker .item { padding-right: 112px; } }
   .ticker .item svg { color: var(--accent); }
 
   /* ---------- Nav ---------- */

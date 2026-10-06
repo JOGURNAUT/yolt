@@ -8,7 +8,7 @@ import { HangTag } from "./ui/hang-tag";
 import { listingBadge, StatusBadge } from "./ui/status-badge";
 import { Sticker } from "./ui/sticker";
 
-/** A card's data. The back photo is optional: search results don't carry one, so they just don't crossfade. */
+/** A card's data. `backUrl` is the piece's BACK photo (every card source carries it); a piece without one just doesn't crossfade. */
 export type CardItem = Omit<ListingCard, "backUrl" | "soldAt"> & { backUrl?: string | null; soldAt?: Date | null };
 
 /**
