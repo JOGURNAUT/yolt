@@ -22,7 +22,20 @@ type Item = Omit<typeof s.listings.$inferInsert, "sellerId" | "slug" | "title"> 
 
 const inStock: Item[] = [
   {
-    // First, so it is the newest piece and leads the store page. Photos: `pnpm demo:photos` (images/cargo-pants-*).
+    // Priced and described the way a thrift page writes it: a flat price with free shipping, a measured range, a 10/10 grade.
+    title: "Retro souvenir jacket, navy satin with an embroidered bird",
+    category: "jackets",
+    tagSize: "Free size, fits L/XL",
+    // The seller measures in inches: chest 46 to 50 (a range, so the middle), length 27.
+    measurements: { basis: "AROUND", chestCm: 122, lengthCm: 69 },
+    condition: "LIKE_NEW",
+    noFlawsConfirmed: true,
+    description:
+      "Retro jacket in pristine condition: navy satin body with cream sleeves, a pink-trimmed collar and a large embroidered bird among flowers across the front, with more flowers on the sleeves. Boxy fit, free size, fits L to XL. Chest 46 to 50 in, length 27 in. Condition 10/10.",
+    pricePaise: 199900,
+  },
+  {
+    // Photos: `pnpm demo:photos` (images/cargo-pants-*).
     title: "Black zip-off cargo pants, strap detail",
     category: "trousers",
     tagSize: "W30",
