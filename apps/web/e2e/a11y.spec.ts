@@ -138,6 +138,9 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.getByLabel("State").selectOption("Maharashtra");
       await deliver.click();
     }
+    // A saved address (from the other theme's run) goes straight to "Continue to payment".
+    const cont = page.getByRole("button", { name: "Continue to payment" });
+    if (await cont.isVisible()) await cont.click();
     await expect(page.getByRole("button", { name: /^Pay ₹/ })).toBeVisible();
     await expectNoViolations(page, "checkout: review");
     await page.getByRole("button", { name: /^Pay ₹/ }).click();
