@@ -1,11 +1,39 @@
 import Link from "next/link";
 import { formatIST } from "@/lib/format";
-import type { DropTicketData } from "@/lib/server/queries";
+import type { DropTicketData, EndedDropData } from "@/lib/server/queries";
 import { cx } from "@/components/ui/cx";
 import { Stamp } from "@/components/ui/stamp";
 import { RemindButton } from "./drop-clock";
 
 const istTime = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
+
+const dayIST = new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+
+/** A drop that has ended (board Drops, "Recently ended"): muted, and the whole ticket opens the drop to see what sold. */
+export function EndedDropTicket({ drop, className }: { drop: EndedDropData; className?: string }) {
+  const result = drop.pieces > 0 && drop.sold === drop.pieces ? "all sold" : `${drop.sold} sold`;
+  return (
+    <article aria-label={`Ended drop: ${drop.title}`} className={cx("ticket is-ended relative min-h-[126px] lg:min-h-[130px]", className)}>
+      <div className="flex grow flex-col gap-1.5 p-4 lg:p-5">
+        <span className="t-caption opacity-80">{drop.sellerName}</span>
+        <h3 className="t-h2">{drop.title}</h3>
+        <span className="t-mono !text-xs">Ended {dayIST.format(drop.startsAt)}</span>
+        <span className="t-caption opacity-80 !font-medium">
+          {drop.pieces} {drop.pieces === 1 ? "piece" : "pieces"} · {result}
+        </span>
+      </div>
+      <div className="stub">
+        <span className="notch" style={{ left: -10, top: -24 }} />
+        <span className="notch" style={{ left: -10, bottom: -24 }} />
+      </div>
+      <div className="flex w-[124px] shrink-0 items-center justify-center p-3 pr-[15px] lg:w-[156px]">
+        <Link href={`/d/${drop.id}`} className="btn btn-ghost min-h-11 text-sm after:absolute after:inset-0 after:content-['']">
+          See what sold
+        </Link>
+      </div>
+    </article>
+  );
+}
 
 /**
  * DropTicket (board C4): a ticket stub with a perforated edge. Upcoming drops offer Remind me and

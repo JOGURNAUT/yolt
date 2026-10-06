@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { getDropView, hasDropReminder } from "@yolt/core";
 import { DropLive } from "@/components/drop-live";
+import { ButtonLink } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatIST } from "@/lib/format";
 import { db } from "@/lib/server/db";
+import { CLAIM_HOLD_MINUTES, getCancelledDrop, getDropHolds } from "@/lib/server/queries";
 import { getCurrentUser } from "@/lib/server/session";
+
+const istTime = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
+const validId = (id: string) => /^[0-9a-f-]{36}$/i.test(id);
 
 export async function generateMetadata({ params }: PageProps<"/d/[id]">): Promise<Metadata> {
   const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return {};
+  if (!validId(id)) return {};
   const v = await getDropView(db, id);
   return v ? { title: v.drop.title, description: `${v.seller.displayName} · ${formatIST(v.drop.startsAt)}` } : {};
 }
@@ -18,48 +23,46 @@ export async function generateMetadata({ params }: PageProps<"/d/[id]">): Promis
 export default async function DropPage({ params }: PageProps<"/d/[id]">) {
   await connection();
   const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+  if (!validId(id)) notFound();
   const view = await getDropView(db, id);
-  if (!view) notFound();
+  if (!view) {
+    const cancelled = await getCancelledDrop(id);
+    if (!cancelled) notFound();
+    return (
+      <div className="mx-auto flex max-w-xl flex-col gap-4 py-6">
+        <EmptyState tag="Cancelled" title="This drop was cancelled" action={<ButtonLink href="/drops">See other drops</ButtonLink>}>
+          {cancelled.storeName} cancelled this drop. Nothing was charged and nothing is held.
+        </EmptyState>
+        <ButtonLink href={`/s/${cancelled.handle}`} variant="secondary" block>
+          See everything at {cancelled.storeName}
+        </ButtonLink>
+      </div>
+    );
+  }
   const user = await getCurrentUser();
-  const reminderOn = user ? await hasDropReminder(db, { userId: user.userId, dropId: id }) : false;
+  const [reminderOn, holds] = await Promise.all([
+    user ? hasDropReminder(db, { userId: user.userId, dropId: id }) : false,
+    user ? getDropHolds(user.userId, id) : [],
+  ]);
   const { drop, seller, items } = view;
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <p className="text-sm text-muted">
-          Drop by <Link href={`/s/${seller.handle}`} className="underline">{seller.displayName}</Link>
-        </p>
-        <h1 className="text-2xl font-bold">{drop.title}</h1>
-        <p className="text-sm">
-          {formatIST(drop.startsAt)} · {items.length} {items.length === 1 ? "piece" : "pieces"}
-          {view.reminders > 0 && <span className="text-muted"> · {view.reminders} waiting</span>}
-        </p>
-      </header>
-
-      <section aria-label="Rules" className="rounded-lg bg-surface p-4 text-sm">
-        <p className="font-medium">How it works</p>
-        <ul className="mt-1 list-disc space-y-1 pl-5 text-muted">
-          <li>Everything opens at exactly {formatIST(drop.startsAt)}, by YOLT&apos;s clock.</li>
-          <li>First to claim a piece gets 5 minutes to pay. If they don&apos;t, it comes back for others.</li>
-          <li>
-            You can hold {drop.maxHoldsPerBuyer} piece{drop.maxHoldsPerBuyer === 1 ? "" : "s"} from this drop at a time.
-          </li>
-          <li>Sign in before it opens so you&apos;re ready to claim.</li>
-        </ul>
-      </section>
-
-      <DropLive
-        dropId={drop.id}
-        startsAt={drop.startsAt.toISOString()}
-        serverNow={new Date().toISOString()}
-        initialStatus={drop.status}
-        items={items}
-        maxHoldsPerBuyer={drop.maxHoldsPerBuyer}
-        signedIn={user !== null}
-        reminderOn={reminderOn}
-      />
-    </div>
+    <DropLive
+      dropId={drop.id}
+      title={drop.title}
+      coverUrl={drop.coverUrl}
+      seller={seller}
+      startsLabel={formatIST(drop.startsAt)}
+      openTimeLabel={`${istTime.format(drop.startsAt)} IST`}
+      startsAt={drop.startsAt.toISOString()}
+      serverNow={new Date().toISOString()}
+      initialStatus={drop.status}
+      items={items}
+      maxHoldsPerBuyer={drop.maxHoldsPerBuyer}
+      holdMinutes={CLAIM_HOLD_MINUTES}
+      holds={holds.map((h) => ({ listingId: h.listingId, orderId: h.orderId, expiresAt: h.expiresAt.toISOString() }))}
+      signedIn={user !== null}
+      reminderOn={reminderOn}
+    />
   );
 }

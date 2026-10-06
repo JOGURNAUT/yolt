@@ -1,8 +1,9 @@
 import "server-only";
 import { and, asc, avg, count, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { connection } from "next/server";
-import { CHECKOUT_HOLD_SECONDS, getHomeData, getInYourSizes, getPreferences, hasDropReminder } from "@yolt/core";
-import { asComplete, drops, follows, listingPhotos, listings, orderItems, reviews, sellers, users } from "@yolt/db";
+import { CHECKOUT_HOLD_SECONDS, getHomeData, getInYourSizes, getPreferences, hasDropReminder, searchListings } from "@yolt/core";
+import type { SearchParams } from "@yolt/shared";
+import { addresses, asComplete, drops, follows, holds, listingPhotos, listings, orderItems, orders, reviews, savedItems, sellers, users } from "@yolt/db";
 import { db } from "./db";
 
 /** The three pills on store, search and category grids. */
@@ -383,3 +384,146 @@ export async function getReminderSet(userId: string | null, dropIds: string[]) {
 
 /** How long a claimed piece is held for payment, in minutes (said on live drop slides). */
 export const CLAIM_HOLD_MINUTES = CHECKOUT_HOLD_SECONDS / 60;
+
+// ---------------------------------------------------------------------------
+// Drops list and drop page
+// ---------------------------------------------------------------------------
+
+export type EndedDropData = { id: string; title: string; startsAt: Date; sellerName: string; pieces: number; sold: number };
+
+/** Live, upcoming and recently ended drops (the last 14 days), with the signed-in buyer's reminders. */
+export async function getDropsPage(userId: string | null) {
+  await connection();
+  const [{ drops: open, serverNow }, ended] = await Promise.all([
+    getDropsStrip(50),
+    db
+      .select({
+        id: drops.id,
+        title: drops.title,
+        startsAt: drops.startsAt,
+        sellerName: sellers.displayName,
+        pieces: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.drop_id = ${drops}.id)`,
+        sold: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.drop_id = ${drops}.id AND l.status IN ('SOLD', 'SOLD_ELSEWHERE'))`,
+      })
+      .from(drops)
+      .innerJoin(sellers, eq(sellers.id, drops.sellerId))
+      .where(and(eq(drops.status, "ENDED"), eq(sellers.status, "APPROVED"), sql`${drops.startsAt} > now() - interval '14 days'`))
+      .orderBy(desc(drops.startsAt))
+      .limit(6),
+  ]);
+  const reminders = await getReminderSet(userId, open.map((d) => d.id));
+  return {
+    serverNow,
+    live: open.filter((d) => d.live),
+    upcoming: open.filter((d) => !d.live),
+    ended: ended satisfies EndedDropData[],
+    reminders,
+  };
+}
+
+/** A cancelled drop's name and store, so its link says so instead of "not found". Drafts stay hidden. */
+export async function getCancelledDrop(dropId: string) {
+  const [row] = await db
+    .select({ title: drops.title, storeName: sellers.displayName, handle: sellers.handle })
+    .from(drops)
+    .innerJoin(sellers, eq(sellers.id, drops.sellerId))
+    .where(and(eq(drops.id, dropId), eq(drops.status, "CANCELLED"), eq(sellers.status, "APPROVED")));
+  return row ?? null;
+}
+
+/** The buyer's pieces held right now in this drop, with the order that pays for them. */
+export async function getDropHolds(userId: string, dropId: string) {
+  return db
+    .select({ listingId: holds.listingId, orderId: holds.orderId, expiresAt: holds.expiresAt, pricePaise: listings.pricePaise })
+    .from(holds)
+    .innerJoin(listings, eq(listings.id, holds.listingId))
+    .where(and(eq(holds.buyerId, userId), eq(holds.status, "ACTIVE"), eq(listings.dropId, dropId), sql`${holds.expiresAt} > now()`))
+    .orderBy(asc(holds.expiresAt));
+}
+
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
+export type SearchStoreRow = {
+  id: string;
+  handle: string;
+  displayName: string;
+  city: string | null;
+  bio: string | null;
+  rating: number | null;
+  reviewCount: number;
+  inStock: number;
+};
+
+const storeRowColumns = {
+  id: sellers.id,
+  handle: sellers.handle,
+  displayName: sellers.displayName,
+  city: sellers.pickupCity,
+  bio: sellers.bio,
+  rating: sql<number | null>`(SELECT avg(r.rating)::float FROM ${reviews} r WHERE r.seller_id = ${sellers}.id)`,
+  reviewCount: sql<number>`(SELECT count(*)::int FROM ${reviews} r WHERE r.seller_id = ${sellers}.id)`,
+  inStock: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.seller_id = ${sellers}.id AND l.status IN ('AVAILABLE', 'RESERVED', 'PAYMENT_PENDING'))`,
+};
+
+/** Stores for the Stores tab: the handles the search matched, or every approved store. */
+export async function getSearchStoreRows(handles: string[] | null): Promise<SearchStoreRow[]> {
+  if (handles && handles.length === 0) return [];
+  return db
+    .select(storeRowColumns)
+    .from(sellers)
+    .where(and(eq(sellers.status, "APPROVED"), handles ? inArray(sellers.handle, handles) : undefined))
+    .orderBy(desc(storeRowColumns.inStock), asc(sellers.handle))
+    .limit(24);
+}
+
+/**
+ * For zero results: what each filter would give back if it were removed, and a few close matches
+ * (pieces that miss just one filter). One search per filter, so it's only called when nothing matched.
+ */
+export async function getRelaxedSearches(without: SearchParams[]) {
+  const results = await Promise.all(without.map((p) => searchListings(db, p)));
+  const gains = results.map((r) => r.total);
+  const seen = new Set<string>();
+  const close = results
+    .flatMap((r) => r.hits.slice(0, 3))
+    .filter((h) => !seen.has(h.id) && seen.add(h.id))
+    .slice(0, 4);
+  return { gains, close };
+}
+
+// ---------------------------------------------------------------------------
+// Saved and account
+// ---------------------------------------------------------------------------
+
+export type FollowedStoreRow = SearchStoreRow & { drop: { id: string; title: string; startsAt: Date } | null };
+
+/** Stores the buyer follows, newest follow first, with each one's next drop. */
+export async function getFollowedStoreRows(userId: string): Promise<FollowedStoreRow[]> {
+  const rows = await db
+    .select(storeRowColumns)
+    .from(follows)
+    .innerJoin(sellers, eq(sellers.id, follows.sellerId))
+    .where(and(eq(follows.userId, userId), eq(sellers.status, "APPROVED")))
+    .orderBy(desc(follows.createdAt));
+  const upcoming = await Promise.all(rows.map((s) => getUpcomingDrop(s.id)));
+  return rows.map((s, i) => {
+    const d = upcoming[i];
+    return { ...s, drop: d ? { id: d.id, title: d.title, startsAt: d.startsAt } : null };
+  });
+}
+
+/** The counts on the profile rows: orders on the way, saved pieces and stores, saved addresses. */
+export async function getAccountCounts(userId: string) {
+  const [[orderRow], [savedRow], [followRow], [addressRow]] = await Promise.all([
+    db
+      .select({ n: count() })
+      .from(orders)
+      .where(and(eq(orders.buyerId, userId), inArray(orders.status, ["CONFIRMED", "PACKED", "SHIPPED"]))),
+    db.select({ n: count() }).from(savedItems).where(eq(savedItems.userId, userId)),
+    db.select({ n: count() }).from(follows).where(eq(follows.userId, userId)),
+    db.select({ n: count() }).from(addresses).where(eq(addresses.userId, userId)),
+  ]);
+  return { onTheWay: orderRow?.n ?? 0, saved: savedRow?.n ?? 0, following: followRow?.n ?? 0, addresses: addressRow?.n ?? 0 };
+}
