@@ -51,13 +51,20 @@ export function GuestSaved() {
   return (
     <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
       {cards.map((c) => (
-        <Link key={c.id} href={`/p/${c.slug}`} className="block">
-          <div className={`overflow-hidden rounded-lg ${soldOut(c.status) ? "opacity-60" : ""}`}>
-            <GarmentImage src={c.coverUrl} alt={c.title} category={c.category} />
-          </div>
-          <p className="mt-2 line-clamp-1 text-sm font-medium">{c.title}</p>
-          <p className="text-sm font-semibold">{soldOut(c.status) ? "Sold out" : formatINR(c.pricePaise)}</p>
-        </Link>
+        <div key={c.id}>
+          <Link href={`/p/${c.slug}`} className="block">
+            <div className={`overflow-hidden rounded-lg ${soldOut(c.status) ? "opacity-60" : ""}`}>
+              <GarmentImage src={c.coverUrl} alt={c.title} category={c.category} />
+            </div>
+            <p className="mt-2 line-clamp-1 text-sm font-medium">{c.title}</p>
+            <p className="text-sm font-semibold">{soldOut(c.status) ? "Sold out" : formatINR(c.pricePaise)}</p>
+          </Link>
+          {soldOut(c.status) && (
+            <Link href={`/search?cat=${c.category}`} className="btn btn-sm btn-ghost !h-11 !px-0">
+              Find similar
+            </Link>
+          )}
+        </div>
       ))}
     </div>
   );
