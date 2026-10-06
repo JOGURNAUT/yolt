@@ -14,9 +14,9 @@ test("cards, photos and tiles are square; buttons, pills and stickers are round"
   expect(await radius(page.locator(".tile"))).toBe("0px");
   expect(await radius(page.locator(".card"))).toBe("0px");
   expect(await radius(page.locator(".ticket"))).toBe("0px");
+  expect(await radius(page.locator(".sticker"))).not.toBe("0px"); // the hero and the shelf carry stickers
 
   await page.goto("/s/secondloop");
   expect(await radius(page.locator(".pill"))).not.toBe("0px");
-  expect(await radius(page.locator(".sticker"))).not.toBe("0px");
   expect(await radius(page.getByRole("button", { name: "Follow", exact: true }))).not.toBe("0px");
 });
