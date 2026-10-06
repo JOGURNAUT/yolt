@@ -128,7 +128,7 @@ export function Explore({
       )}
 
       {stores.length > 0 && (
-        <section aria-labelledby="st-h" className="flex flex-col gap-3">
+        <section id="stores" aria-labelledby="st-h" className="flex scroll-mt-24 flex-col gap-3">
           <h2 id="st-h" className="t-h2">
             Stores
           </h2>

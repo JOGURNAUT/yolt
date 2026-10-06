@@ -301,3 +301,25 @@
 @keyframes yolt-seg { from { width: 0; } to { width: 100%; } }
 @keyframes yolt-seg2 { from { width: 0; } to { width: 100%; } }
 @keyframes yolt-fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Theme toggle: the header icon shows the theme you would switch to ---------- */
+@layer components {
+  .theme-sun { display: none; }
+  :root[data-theme="dark"] .theme-sun { display: block; }
+  :root[data-theme="dark"] .theme-moon { display: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-sun { display: block; }
+    :root:not([data-theme="light"]) .theme-moon { display: none; }
+  }
+  /* the footer band is always dark, whatever the page theme */
+  .band-dark .seg { background: rgba(255, 255, 255, 0.14); }
+  .band-dark .seg button { height: 44px; color: #D9D8D2; }
+  .band-dark .seg button.is-on { background: #FFFFFF; color: #0D0D0C; }
+}
+
+@layer components {
+  /* Keyboard users can jump past the header; it only shows while focused. */
+  .skip-link { position: absolute; left: 12px; top: -64px; z-index: 100; display: flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: var(--r-md); background: var(--foreground); color: var(--background); font: 700 14px/1 var(--font-body); text-decoration: none; transition: top var(--fast) var(--ease); }
+  .skip-link:focus { top: 12px; }
+  main:focus { outline: none; }
+}

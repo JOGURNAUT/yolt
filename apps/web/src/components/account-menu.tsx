@@ -14,12 +14,19 @@ export function AccountMenu({ phone, isSeller, isAdmin }: { phone: string | null
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn === pathname;
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const panelId = useId();
 
   useEffect(() => {
     if (!open) return;
     const close = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)) setOpenOn(null);
+      if (e instanceof KeyboardEvent) {
+        if (e.key !== "Escape") return;
+        buttonRef.current?.focus(); // hand focus back to the button that opened the menu
+        setOpenOn(null);
+      } else if (!ref.current?.contains(e.target as Node)) {
+        setOpenOn(null);
+      }
     };
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", close);
@@ -47,6 +54,7 @@ export function AccountMenu({ phone, isSeller, isAdmin }: { phone: string | null
   return (
     <div ref={ref} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label="Account"
         aria-expanded={open}
@@ -58,14 +66,17 @@ export function AccountMenu({ phone, isSeller, isAdmin }: { phone: string | null
       </button>
       <div id={panelId} hidden={!open} className="card overlay absolute right-0 top-full z-40 mt-1 w-60 p-1.5">
         <p className="t-small muted px-3 pb-1 pt-2">{phone}</p>
+        <Link href="/account" className={item}>
+          Profile
+        </Link>
         <Link href="/orders" className={item}>
           Orders
         </Link>
         <Link href="/saved" className={item}>
           Saved
         </Link>
-        <Link href={isSeller ? "/seller/orders" : "/sell"} className={item}>
-          {isSeller ? "Your store" : "Sell"}
+        <Link href={isSeller ? "/seller" : "/sell"} className={item}>
+          {isSeller ? "Seller workspace" : "Sell on YOLT"}
         </Link>
         {isAdmin && (
           <Link href="/admin" className={item}>

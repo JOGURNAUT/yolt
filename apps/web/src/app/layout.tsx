@@ -9,6 +9,7 @@ import { ShopStateProvider } from "@/components/shop-state";
 import { db } from "@/lib/server/db";
 import { getCurrentSeller, getCurrentUser } from "@/lib/server/session";
 import { formatIndianMobile } from "@yolt/shared";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // Display: Archivo with its width axis, set wide (font-stretch 125%) in caps. Body: DM Sans. Timers and order IDs: DM Mono.
@@ -27,8 +28,15 @@ export default async function RootLayout({ children, modal }: LayoutProps<"/">) 
     ? await Promise.all([getAdminRole(db, user.userId).then((r) => r !== null), savedListingIds(db, user.userId), bagListingIds(db, user.userId)])
     : [false, [], []];
   return (
-    <html lang="en-IN" className={`${archivo.variable} ${dmSans.variable} ${dmMono.variable} h-full antialiased`}>
+    <html lang="en-IN" className={`${archivo.variable} ${dmSans.variable} ${dmMono.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Applies a saved light/dark choice before first paint, so there is no flash of the other theme. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col pb-[var(--bnav-h)] font-sans">
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
         <ShopStateProvider signedIn={user !== null} initialSaved={saved} initialBag={bag}>
           <Header
             phone={user?.phone ? formatIndianMobile(user.phone) : null}
@@ -36,7 +44,7 @@ export default async function RootLayout({ children, modal }: LayoutProps<"/">) 
             isAdmin={isAdmin}
             devLogin={envFlags().devLogin}
           />
-          <main className="mx-auto w-full max-w-[1248px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-6">{children}</main>
+          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1248px] flex-1 px-4 pb-16 pt-4 lg:px-6 lg:pt-6">{children}</main>
           <Footer />
           <BottomNav />
           {modal}

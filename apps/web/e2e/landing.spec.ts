@@ -74,8 +74,9 @@ test.describe("phone, 390 x 844", () => {
 
   test("Trending says what it is: just dropped until pieces have enough saves, then most saved", async ({ page }) => {
     await page.goto("/");
+    // Role queries skip the hidden copy the loading skeleton streams in first; getByText would see both.
     await expect(page.getByRole("heading", { name: "Just dropped" })).toBeVisible();
-    await expect(page.getByText("Newest pieces first")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Just dropped" }).getByText("Newest pieces first")).toBeVisible();
     await expect(page.getByText("Trending", { exact: true })).toHaveCount(0);
 
     // Three buyers saving each of four pieces tips it into trending mode.
@@ -90,7 +91,7 @@ test.describe("phone, 390 x 844", () => {
     });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Trending now" })).toBeVisible();
-    await expect(page.getByText("Most saved this week")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Trending now" }).getByText("Most saved this week")).toBeVisible();
     await expect(page.getByText("Trending", { exact: true }).first()).toBeVisible();
     await withDb((sql) => sql`DELETE FROM saved_items`);
   });
