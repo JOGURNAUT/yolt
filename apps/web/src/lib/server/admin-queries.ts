@@ -1,6 +1,7 @@
 import "server-only";
-import { desc, eq, sql } from "drizzle-orm";
-import { auditEvents, claims, orders, refunds, sellerApplications, users } from "@yolt/db";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { LIVE_LISTING_STATUSES } from "@yolt/core";
+import { auditEvents, claims, listingPhotos, listings, orders, refunds, sellerApplications, sellers, users } from "@yolt/db";
 import { db } from "./db";
 
 /**
@@ -39,4 +40,48 @@ export async function getAuditLog(limit = 200) {
     .leftJoin(users, eq(users.id, auditEvents.actorId))
     .orderBy(desc(auditEvents.createdAt))
     .limit(limit);
+}
+
+export type CurationPiece = { id: string; title: string; pricePaise: number | null; tagSize: string | null; coverUrl: string | null; sellerName: string };
+
+/**
+ * What staff can pick from for the homepage: approved stores and live pieces (newest 400, enough
+ * to find anything in a pilot catalogue). The API re-checks liveness on every save.
+ */
+export async function getCurationCandidates() {
+  const [stores, pieces] = await Promise.all([
+    db.select({ id: sellers.id, name: sellers.displayName, handle: sellers.handle }).from(sellers).where(eq(sellers.status, "APPROVED")).orderBy(sellers.displayName),
+    db
+      .select({
+        id: listings.id,
+        title: listings.title,
+        pricePaise: listings.pricePaise,
+        tagSize: listings.tagSize,
+        sellerName: sellers.displayName,
+        coverUrl: sql<string | null>`(SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id ORDER BY lp.position LIMIT 1)`,
+      })
+      .from(listings)
+      .innerJoin(sellers, eq(sellers.id, listings.sellerId))
+      .where(and(inArray(listings.status, [...LIVE_LISTING_STATUSES]), eq(sellers.status, "APPROVED")))
+      .orderBy(desc(listings.publishedAt))
+      .limit(400),
+  ]);
+  return { stores, pieces: pieces.map((p): CurationPiece => ({ ...p, title: p.title ?? "Untitled" })) };
+}
+
+/** Title, price and photo for pieces already in a slot, whether or not they are still live. */
+export async function getPiecesByIds(ids: string[]) {
+  if (ids.length === 0) return [];
+  return db
+    .select({
+      id: listings.id,
+      title: listings.title,
+      status: listings.status,
+      pricePaise: listings.pricePaise,
+      sellerName: sellers.displayName,
+      coverUrl: sql<string | null>`(SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id ORDER BY lp.position LIMIT 1)`,
+    })
+    .from(listings)
+    .innerJoin(sellers, eq(sellers.id, listings.sellerId))
+    .where(inArray(listings.id, ids));
 }
