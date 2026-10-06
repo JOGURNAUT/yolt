@@ -43,9 +43,9 @@ const cardColumns = {
   // query has no join, which would silently compare the photo's own id instead of the listing's.
   coverUrl: sql<string | null>`(
     SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id ORDER BY lp.position LIMIT 1)`,
-  // The second photo, for the card's hover crossfade.
+  // The back photo, for the card's hover. Only a photo marked BACK counts: a detail or a flaw close-up is not a back.
   backUrl: sql<string | null>`(
-    SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id ORDER BY lp.position OFFSET 1 LIMIT 1)`,
+    SELECT lp.url FROM ${listingPhotos} lp WHERE lp.listing_id = ${listings}.id AND lp.kind = 'BACK' ORDER BY lp.position LIMIT 1)`,
 };
 
 /** Cards are only built from non-draft listings, which the database guarantees are complete. */
