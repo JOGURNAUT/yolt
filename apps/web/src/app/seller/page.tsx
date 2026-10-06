@@ -237,7 +237,7 @@ export default async function SellerHomePage() {
                 {draftRows.map(({ draft: d, missing }) => (
                   <li key={d.id} className="border-t border-line">
                     <Link href={`/seller/listings/${d.id}`} className="flex min-h-[72px] items-center gap-3.5 py-3 !no-underline" style={{ color: "inherit" }}>
-                      <GarmentImage src={d.coverUrl} alt={d.title ?? "Untitled draft"} category="draft" className="!w-11 !rounded-lg" />
+                      <GarmentImage src={d.coverUrl} alt={d.title ?? "Untitled draft"} category="draft" className="is-sm !w-11 !rounded-lg" />
                       <span className="flex min-w-0 grow flex-col gap-0.5">
                         <span className="t-small line-clamp-1 font-bold">{d.title ?? "Untitled draft"}</span>
                         <span className="t-small muted">{[d.tagSize, d.pricePaise !== null ? formatINR(d.pricePaise) : null].filter(Boolean).join(" · ") || "Not filled in yet"}</span>

@@ -9,6 +9,9 @@
   .sec.is-emphasis { box-shadow: inset 0 0 0 2px var(--foreground); }
   .sec.is-danger { box-shadow: inset 0 0 0 2px var(--danger); }
 
+  /* Small thumbnails have no room for the category label of a photo-less piece. */
+  .ph.is-sm .shot .muted { display: none; }
+
   /* Sidebar links. */
   .snav-link { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: var(--r-md); color: var(--foreground); font: 500 14px/1 var(--font-body); text-decoration: none; }
   .snav-link:hover { background: var(--surface-2); }

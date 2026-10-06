@@ -130,7 +130,7 @@ export function DropBuilder({
   const row = (r: Row, action: React.ReactNode) => (
     <li key={r.id} className="flex items-center gap-3 p-3">
       <div className="w-11 shrink-0">
-        <GarmentImage src={r.coverUrl ?? null} alt={r.title} category="piece" className="!rounded-lg" />
+        <GarmentImage src={r.coverUrl ?? null} alt={r.title} category="piece" className="is-sm !rounded-lg" />
       </div>
       <span className="flex min-w-0 grow flex-col gap-1">
         <span className="t-small line-clamp-2 font-bold">{r.title}</span>

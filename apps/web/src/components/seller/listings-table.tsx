@@ -141,7 +141,7 @@ export function ListingsTable({ rows, selectable }: { rows: ListingRowData[]; se
                   </label>
                 )}
                 <div className="w-[52px] shrink-0">
-                  <GarmentImage src={l.coverUrl} alt={title} category={l.category ?? "draft"} className="!rounded-[10px]" />
+                  <GarmentImage src={l.coverUrl} alt={title} category={l.category ?? "draft"} className="is-sm !rounded-[10px]" />
                 </div>
                 <div className="flex min-w-0 flex-1 basis-40 flex-col gap-1">
                   <Link href={editable ? `/seller/listings/${l.id}` : l.status === "AVAILABLE" ? `/p/${l.slug}` : `/seller/listings/${l.id}`} className="t-small line-clamp-2 font-bold !no-underline hover:!underline" style={{ color: "inherit" }}>
@@ -159,7 +159,7 @@ export function ListingsTable({ rows, selectable }: { rows: ListingRowData[]; se
                   </span>
                 </div>
                 <span className="t-small muted hidden w-[100px] shrink-0 lg:block">{l.updated}</span>
-                <div className="flex w-full flex-wrap items-center justify-end gap-1 sm:w-auto">
+                <div className="flex w-full flex-wrap items-center justify-end gap-x-0 gap-y-1 sm:w-auto sm:gap-x-1">
                   {l.status === "AVAILABLE" && (
                     <ButtonLink href={`/p/${l.slug}`} variant="ghost" size="sm" className="!h-11" aria-label={`View ${title}`}>
                       View
