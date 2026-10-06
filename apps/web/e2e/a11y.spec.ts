@@ -57,15 +57,15 @@ const pages: Spec[] = [
   { name: "home (guest)", path: () => "/" },
   { name: "home (signed in)", path: () => "/", as: "buyer" },
   { name: "store: in stock", path: () => "/s/secondloop" },
-  { name: "store: sold out", path: () => "/s/secondloop?stock=sold" },
-  { name: "store: coming soon", path: () => "/s/secondloop?stock=soon" },
+  { name: "store: sold out", path: () => "/s/secondloop?status=sold-out" },
+  { name: "store: coming soon", path: () => "/s/secondloop?status=coming-soon" },
   { name: "product: available", path: () => `/p/${slugs.avail}` },
   { name: "product: reserved", path: () => `/p/${slugs.reserved}` },
   { name: "product: sold out", path: () => `/p/${slugs.sold}` },
   { name: "product: coming soon", path: () => `/p/${slugs.soon}` },
   { name: "product: removed", path: () => `/p/${slugs.withdrawn}` },
   { name: "search: no query", path: () => "/search" },
-  { name: "search: results", path: () => "/search?q=jeans" },
+  { name: "search: results", path: () => "/search?sort=newest" },
   { name: "search: zero results", path: () => "/search?q=zzzqqq" },
   { name: "search: filtered", path: () => "/search?category=clothing&sort=price-asc" },
   { name: "drops", path: () => "/drops" },
@@ -121,7 +121,9 @@ for (const colorScheme of ["light", "dark"] as const) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await devSignIn(page, "Kabir (demo buyer)");
-    await page.goto(`/p/${slugs.avail}`);
+    // One piece per theme: a paid piece is sold for the rest of the run.
+    const slug = await withDb(async (sql) => (await sql<{ slug: string }[]>`SELECT slug FROM listings WHERE title ILIKE ${colorScheme === "light" ? "Wool cable%" : "Striped rugby%"}`)[0]!.slug);
+    await page.goto(`/p/${slug}`);
     await page.getByRole("button", { name: /^Buy now/ }).click();
     await page.waitForURL(/\/checkout\//);
     const orderId = new URL(page.url()).pathname.split("/").pop()!;
