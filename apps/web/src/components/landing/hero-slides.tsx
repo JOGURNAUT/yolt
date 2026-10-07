@@ -18,7 +18,6 @@ const FRAME = "relative flex h-full flex-col overflow-hidden px-[18px] pb-[18px]
 const BTN = "h-11 px-4 text-sm lg:h-12 lg:px-5 lg:text-[15px]";
 const BTN_ON_DARK = `btn ${BTN} bg-white !text-[#0D0D0C] shadow-[3px_3px_0_0_var(--accent)]`;
 const BTN_PRIMARY = `btn btn-primary ${BTN}`;
-const TITLE = "t-display !text-[26px] !leading-[26px] lg:!text-[44px] lg:!leading-[44px]";
 
 /** Slide 1, always first: the brand line over a collage of the newest pieces. */
 export function BrandSlide({ pieces }: { pieces: SlidePiece[] }) {

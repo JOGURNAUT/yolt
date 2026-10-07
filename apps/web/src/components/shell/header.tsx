@@ -11,7 +11,7 @@ import { NavLinks, type NavLink } from "./nav-links";
 // "Stores" goes to the Explore page's stores list, which exists for guests and signed-in users alike.
 export const NAV_LINKS: readonly NavLink[] = [
   { href: "/search", label: "Explore", match: ["/search", "/s"] },
-  { href: "/drops", label: "Drops", match: ["/drops", "/d"] },
+  { href: "/drops", label: "Drops", match: ["/drops", "/d"], emphasis: true },
   { href: "/search#stores", label: "Stores" },
   { href: "/sell", label: "Sell on YOLT", match: ["/sell"] },
 ];

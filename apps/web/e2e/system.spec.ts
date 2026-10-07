@@ -173,3 +173,14 @@ test("install card: not on arrival, after the order is confirmed, dismissible an
   await expect(installedPage.getByRole("region", { name: "Add YOLT to your home screen" })).toHaveCount(0);
   await installed.close();
 });
+
+test("the footer carries the promises and the help links, and How it works opens", async ({ page }) => {
+  await page.goto("/");
+  const footer = page.getByRole("contentinfo");
+  await expect(footer.getByText("Every flaw photographed")).toBeVisible();
+  await expect(footer.getByRole("navigation", { name: "Shop" }).getByRole("link", { name: "Jeans" })).toHaveAttribute("href", "/search?cat=jeans");
+  await footer.getByRole("navigation", { name: "Help" }).getByRole("link", { name: "How it works" }).click();
+  await expect(page).toHaveURL(/\/how-it-works$/);
+  await expect(page.getByRole("heading", { name: "Covered if it's wrong" })).toBeVisible();
+  await noHorizontalScroll(page);
+});
