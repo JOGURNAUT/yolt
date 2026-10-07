@@ -20,7 +20,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { asc, eq, inArray } from "drizzle-orm";
-import { createDb, listingPhotos, listings, sellers } from "@yolt/db";
+import { createDb, drops, listingPhotos, listings, sellers } from "@yolt/db";
 import { PHOTO_KIND_LABELS, type PhotoKind } from "@yolt/shared";
 import { InvalidImageError, processPhoto } from "./media/process";
 import { mediaStorageFromEnv } from "./media/storage";
@@ -87,10 +87,14 @@ function parseName(file: string) {
 
 const { db, close } = createDb(url, { max: 1 });
 try {
-  const files = (await readdir(dir).catch(() => [] as string[]))
+  const allFiles = (await readdir(dir).catch(() => [] as string[]))
     .filter((f) => /\.(jpe?g|png|webp)$/i.test(f))
     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  if (files.length === 0) {
+  // `<drop name>-cover.png` is a drop's poster, not a piece's photo.
+  const stem = (f: string) => f.slice(0, f.length - extname(f).length);
+  const coverFiles = allFiles.filter((f) => /-cover$/i.test(stem(f)));
+  const files = allFiles.filter((f) => !coverFiles.includes(f));
+  if (allFiles.length === 0) {
     console.log(`No photos found in ${dir}\nPut .jpg, .png or .webp files there (see images/README.md), then run this again.`);
     process.exit(0);
   }
@@ -104,7 +108,7 @@ try {
     .orderBy(asc(listings.createdAt));
   // A draft can have no title yet; it just can't be matched by name.
   const pieces: Piece[] = rows.map((r) => ({ id: r.id, title: r.title ?? "(untitled draft)", words: new Set([...words(r.title ?? ""), ...words(r.category ?? "")]) }));
-  console.log(`${files.length} photo(s) in ${dir}, ${pieces.length} pieces at ${stores.map((st) => st.name).join(", ")}.\n`);
+  console.log(`${files.length} photo(s) and ${coverFiles.length} poster(s) in ${dir}, ${pieces.length} pieces at ${stores.map((st) => st.name).join(", ")}.\n`);
 
   const plan = new Map<string, Shot[]>();
   const unmatched: string[] = [];
@@ -146,6 +150,17 @@ try {
     console.log(`  ${piece.title}`);
     for (const s of shots) console.log(`      ${PHOTO_KIND_LABELS[s.kind].padEnd(16)} ${s.file}`);
   }
+  // Drop posters: every word of the file name (minus "cover") has to be in exactly one drop's title.
+  const dropRows = await db.select({ id: drops.id, title: drops.title }).from(drops).where(inArray(drops.sellerId, stores.map((st) => st.id)));
+  const coverPlan: { dropId: string; title: string; file: string }[] = [];
+  for (const file of coverFiles) {
+    const rest = words(stem(file)).filter((w) => w !== "cover");
+    const fits = rest.length ? dropRows.filter((d) => rest.every((w) => words(d.title).includes(w))) : [];
+    if (fits.length === 1) coverPlan.push({ dropId: fits[0]!.id, title: fits[0]!.title, file });
+    else unmatched.push(`${file} (${fits.length > 1 ? "fits more than one drop" : `no drop has all of: ${rest.join(", ") || "(empty name)"}`})`);
+  }
+  for (const c of coverPlan) console.log(`  Drop poster: ${c.title}\n      ${c.file}`);
+
   const without = pieces.filter((p) => !plan.has(p.id));
   if (without.length) console.log(`\n${without.length} piece(s) keep their current photos: ${without.map((p) => p.title).join("; ")}`);
   if (unmatched.length) console.log(`\nNot used:\n${unmatched.map((u) => `  ${u}`).join("\n")}`);
@@ -180,7 +195,18 @@ try {
     await Promise.all(old.filter((o) => o.key).map((o) => media.delete(o.key!).catch(() => {})));
     done++;
   }
-  console.log(`\nDone: ${done} piece(s) now have your photos. Reload the site.`);
+  for (const c of coverPlan) {
+    try {
+      const p = await processPhoto(new Uint8Array(await readFile(join(dir, c.file))));
+      const key = `drops/${c.dropId}/${randomBytes(12).toString("hex")}.webp`;
+      await media.put(key, p.data, p.contentType);
+      await db.update(drops).set({ coverUrl: media.publicUrl(key) }).where(eq(drops.id, c.dropId));
+    } catch (err) {
+      if (!(err instanceof InvalidImageError)) throw err;
+      console.log(`\nSkipped the poster for "${c.title}": ${err.message}`);
+    }
+  }
+  console.log(`\nDone: ${done} piece(s) and ${coverPlan.length} drop poster(s) updated. Reload the site.`);
 } finally {
   await close();
 }

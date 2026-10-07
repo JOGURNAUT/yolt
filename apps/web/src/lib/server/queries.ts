@@ -231,10 +231,13 @@ export type DropTicketData = {
   /** LIVE, or SCHEDULED with the start time already passed (the opening is moments away). */
   live: boolean;
   sellerName: string;
+  sellerHandle: string;
+  /** The drop's poster, when its seller set one. */
+  coverUrl: string | null;
   pieces: number;
   available: number;
   maxHoldsPerBuyer: number;
-  thumbs: { coverUrl: string | null; title: string; category: string }[];
+  thumbs: { coverUrl: string | null; title: string; category: string; pricePaise: number | null }[];
 };
 
 /** The next live or upcoming drops, soonest first, with a few piece photos each. */
@@ -248,7 +251,9 @@ export async function getDropsStrip(limit = 3): Promise<{ drops: DropTicketData[
       startsAt: drops.startsAt,
       status: drops.status,
       maxHoldsPerBuyer: drops.maxHoldsPerBuyer,
+      coverUrl: drops.coverUrl,
       sellerName: sellers.displayName,
+      sellerHandle: sellers.handle,
       pieces: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.drop_id = ${drops}.id)`,
       available: sql<number>`(SELECT count(*)::int FROM ${listings} l WHERE l.drop_id = ${drops}.id AND l.status = 'AVAILABLE')`,
     })
@@ -260,7 +265,7 @@ export async function getDropsStrip(limit = 3): Promise<{ drops: DropTicketData[
   if (rows.length === 0) return { drops: [], serverNow };
 
   const pieces = await db
-    .select({ dropId: listings.dropId, title: listings.title, category: listings.category, coverUrl: cardColumns.coverUrl })
+    .select({ dropId: listings.dropId, title: listings.title, category: listings.category, pricePaise: listings.pricePaise, coverUrl: cardColumns.coverUrl })
     .from(listings)
     .where(inArray(listings.dropId, rows.map((r) => r.id)))
     .orderBy(asc(listings.createdAt));
@@ -272,7 +277,7 @@ export async function getDropsStrip(limit = 3): Promise<{ drops: DropTicketData[
       thumbs: pieces
         .filter((p) => p.dropId === d.id)
         .slice(0, 3)
-        .map((p) => ({ coverUrl: p.coverUrl, title: p.title ?? "Piece in this drop", category: p.category ?? "" })),
+        .map((p) => ({ coverUrl: p.coverUrl, title: p.title ?? "Piece in this drop", category: p.category ?? "", pricePaise: p.pricePaise })),
     })),
   };
 }
