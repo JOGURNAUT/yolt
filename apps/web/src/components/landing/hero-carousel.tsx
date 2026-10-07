@@ -162,7 +162,7 @@ export function HeroCarousel({ slides, className }: { slides: HeroSlideDef[]; cl
             aria-label={toggleLabel}
             onClick={toggle}
             className={cx(
-              "hero-ctl absolute right-1.5 top-0.5 z-[3] flex h-11 w-11 items-center justify-center rounded-full lg:hidden",
+              "hero-ctl absolute right-1.5 top-0.5 z-[3] flex h-11 w-11 items-center justify-center rounded-none lg:hidden",
               ink ? "text-[#0D0D0C]" : "text-white",
               !autoplay && "ring-2 ring-accent",
             )}
@@ -171,7 +171,7 @@ export function HeroCarousel({ slides, className }: { slides: HeroSlideDef[]; cl
           </button>
 
           {/* Desktop: prev, dots, next and pause in a pill; a thin progress bar along the bottom. */}
-          <div className="absolute bottom-3.5 right-3.5 z-[3] hidden items-center gap-1.5 rounded-full bg-white px-1.5 py-1 text-[#0D0D0C] shadow-raised lg:flex">
+          <div className="absolute bottom-3.5 right-3.5 z-[3] hidden items-center gap-1.5 rounded-none bg-white px-1.5 py-1 text-[#0D0D0C] shadow-raised lg:flex">
             <button type="button" aria-label="Previous slide" onClick={() => go(idx - 1)} className="iconbtn is-plain hero-ctl !h-11 !w-11 text-[#0D0D0C]">
               <ChevronLeft aria-hidden className="ic" strokeWidth={ICON_STROKE} />
             </button>
