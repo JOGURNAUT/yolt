@@ -345,7 +345,7 @@ for (const [i, l] of sold.entries()) {
 
 // Homepage curation (demo): Second Loop as the featured store, and a Grails list of its priciest live pieces.
 // Grails are the pieces that have real photos: picked by title, in this order.
-const grailTitles = ["Vintage asymmetric denim jacket", "Evisu", "KERF FORM1", "Retro souvenir jacket", "Black zip-off cargo pants", "Y2K ripped jorts"];
+const grailTitles = ["Vintage asymmetric denim jacket", "KERF FORM1", "Evisu", "Retro souvenir jacket", "Black zip-off cargo pants", "Y2K ripped jorts"];
 const grailPool = [...live, ...cyberLive];
 const grails = grailTitles.flatMap((t) => grailPool.filter((l) => l.title?.startsWith(t)));
 await db.insert(s.homepageSlots).values([
