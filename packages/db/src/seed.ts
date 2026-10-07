@@ -82,11 +82,23 @@ const comingSoon: Item[] = [
 ];
 
 /**
- * A second store, from the Instagram posts of @cybrbride: a vintage denim jacket the caption marks SOLD, and handmade boots
- * that are not. Real posts used only as local demo data; nothing here claims she is verified, reviewed or followed.
+ * A second store, from the Instagram posts of @cybrbride: a black denim jacket the caption marks SOLD, and an asymmetric denim jacket,
+ * handmade boots and a lot of belts that are not. Real posts used only as local demo data; nothing here claims she is verified, reviewed or followed.
  */
 const cybrbridePieces: { sold: Item[]; inStock: Item[] } = {
   sold: [
+    {
+      // From the post's photos only: the tag is not legible, so no brand is declared, and the post gives no measurements.
+      title: "Vintage black washed denim jacket, domed buttons",
+      category: "jackets",
+      measurements: {},
+      condition: "LIKE_NEW",
+      description:
+        "Fitted washed-black denim jacket with a wide pointed collar, a contrast faded panel down the front, patch pockets and domed fabric buttons at the cuffs and lapel. Hook closure at the front.",
+      pricePaise: 289900,
+    },
+  ],
+  inStock: [
     {
       // Measured the way a thrift page does it: in inches, with ranges (shoulder 15, chest up to 34, waist 27 to 28, sleeves 24, length 19 to 20).
       title: "Vintage asymmetric denim jacket, crystal and chain shoulder",
@@ -99,8 +111,15 @@ const cybrbridePieces: { sold: Item[]; inStock: Item[] } = {
         "Rare vintage asymmetric denim jacket in a washed, faded blue-black, with an ornate crystal and chain embellishment across the shoulder. Button front with domed metal buttons, striped lining. Size XS to S. Condition 10/10, zero defects. Shoulder 15 in, chest up to 34 in, waist 27 to 28 in, sleeves 24 in, length 19 to 20 in.",
       pricePaise: 349900,
     },
-  ],
-  inStock: [
+    {
+      // A lot photographed together; the demo lists it as one piece. Sizes, brands and flaws are not given in the post.
+      title: "Vintage studded leather belts, lot of 10",
+      category: "accessories",
+      measurements: {},
+      condition: "GOOD",
+      description: "Ten studded leather belts in black, brown and tan, with brass, silver and oval buckles. Photographed together.",
+      pricePaise: 199900,
+    },
     {
       // 1 of 1, handmade; the maker priced it on request, so this price is a placeholder for the demo.
       title: "KERF FORM1 handmade horned boots, 1 of 1",
@@ -226,7 +245,7 @@ const [cybrbride] = await db
     dispatchDays: 3,
   })
   .returning();
-await insert(cybrbridePieces.inStock, { status: "AVAILABLE" }, 1, cybrbride!.id);
+const cyberLive = await insert(cybrbridePieces.inStock, { status: "AVAILABLE" }, 1, cybrbride!.id);
 await insert(cybrbridePieces.sold, { status: "SOLD" }, 20, cybrbride!.id);
 
 // A third store with a drop of its own: four pieces, scheduled for Saturday 6 PM IST. Its cover comes from `pnpm demo:photos`
@@ -311,7 +330,8 @@ for (const [i, l] of sold.entries()) {
 }
 
 // Homepage curation (demo): Second Loop as the featured store, and a Grails list of its priciest live pieces.
-const grails = [...live].sort((a, b) => (b.pricePaise ?? 0) - (a.pricePaise ?? 0)).slice(0, 4);
+const denimGrail = cyberLive.find((l) => l.title?.startsWith("Vintage asymmetric denim jacket"));
+const grails = [...(denimGrail ? [denimGrail] : []), ...[...live].sort((a, b) => (b.pricePaise ?? 0) - (a.pricePaise ?? 0)).slice(0, 3)];
 await db.insert(s.homepageSlots).values([
   { kind: "FEATURED_STORE", sellerId: seller!.id, createdBy: curator!.id },
   { kind: "GRAILS", listingIds: grails.map((l) => l.id), createdBy: curator!.id },
