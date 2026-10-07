@@ -72,6 +72,8 @@ test.describe("phone, 390 x 844", () => {
     await page.goto("/");
     await expect(hero(page)).toBeVisible();
     expect(await hero(page).evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe("0px");
+    // Even the controls inside the carousel are edged: the pause button here, the buttons and countdown cells on the slides.
+    expect(await hero(page).getByRole("button", { name: /slideshow/ }).first().evaluate((el) => getComputedStyle(el).borderTopLeftRadius)).toBe("0px");
     // The brand slide's photo cards (placeholders when a piece has no photo) are square too.
     const photos = hero(page).locator(".ph");
     for (let i = 0; i < Math.min(await photos.count(), 3); i++) {

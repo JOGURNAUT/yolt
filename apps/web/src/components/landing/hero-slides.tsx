@@ -56,8 +56,8 @@ export function DropSlide({ drop, serverNow, signedIn, reminderOn, holdMinutes }
     <div className={cx(FRAME, "bg-[#0D0D0C] text-white")}>
       {/* the ticket-stub motif: a perforation with two notches */}
       <div aria-hidden="true" className="absolute inset-y-0 left-[70%] border-l-2 border-dashed border-white/45" />
-      <span aria-hidden="true" className="absolute -top-[11px] left-[calc(70%-11px)] h-[22px] w-[22px] rounded-full bg-background" />
-      <span aria-hidden="true" className="absolute -bottom-[11px] left-[calc(70%-11px)] h-[22px] w-[22px] rounded-full bg-background" />
+      <span aria-hidden="true" className="absolute -top-[9px] left-[calc(70%-9px)] h-[18px] w-[18px] rounded-none bg-background" />
+      <span aria-hidden="true" className="absolute -bottom-[9px] left-[calc(70%-9px)] h-[18px] w-[18px] rounded-none bg-background" />
       <div className="flex min-h-0 flex-1">
         <div className="stagger flex w-[calc(70%-32px)] flex-col justify-between gap-2.5">
           <div className="flex flex-col items-start gap-2">

@@ -33,4 +33,6 @@
 /* The ticker is the page's first row inside the container but spans the whole viewport. */
 /* Reaches the edges by undoing the page gutter, not by measuring the viewport, so it stays right at any browser or CSS zoom and next to a scrollbar. */
 .bleed-x { margin-inline: calc(var(--gut, 16px) * -1); }
+/* Inside the carousel even the controls are edged: the buttons, the countdown cells and the arrow buttons. Unlayered, so it wins over their component rules. */
+.hero-sq .btn, .hero-sq .cd .cell, .hero-sq .iconbtn { border-radius: 0; }
 body { overflow-x: clip; }
