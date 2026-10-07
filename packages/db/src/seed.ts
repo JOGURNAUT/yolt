@@ -344,8 +344,10 @@ for (const [i, l] of sold.entries()) {
 }
 
 // Homepage curation (demo): Second Loop as the featured store, and a Grails list of its priciest live pieces.
-const denimGrail = cyberLive.find((l) => l.title?.startsWith("Vintage asymmetric denim jacket"));
-const grails = [...(denimGrail ? [denimGrail] : []), ...[...live].sort((a, b) => (b.pricePaise ?? 0) - (a.pricePaise ?? 0)).slice(0, 3)];
+// Grails are the pieces that have real photos: picked by title, in this order.
+const grailTitles = ["Vintage asymmetric denim jacket", "Evisu", "KERF FORM1", "Retro souvenir jacket", "Black zip-off cargo pants", "Y2K ripped jorts"];
+const grailPool = [...live, ...cyberLive];
+const grails = grailTitles.flatMap((t) => grailPool.filter((l) => l.title?.startsWith(t)));
 await db.insert(s.homepageSlots).values([
   { kind: "FEATURED_STORE", sellerId: seller!.id, createdBy: curator!.id },
   { kind: "GRAILS", listingIds: grails.map((l) => l.id), createdBy: curator!.id },
