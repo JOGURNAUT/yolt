@@ -117,6 +117,26 @@ const cybrbridePieces: { sold: Item[]; inStock: Item[] } = {
   ],
 };
 
+/**
+ * A third store, from the @thriftllc.in Instagram post "Vintage biker collection": a drop on the coming Saturday at 6 PM IST.
+ * The post gives no sizes, prices or flaws, so none are invented: sizes and measurements stay empty and flaws "not specified",
+ * and the prices are demo placeholders (commenters on the post were asking for them). Not marked verified.
+ */
+const thriftllcPieces: Item[] = [
+  { title: "Dainese yellow and black leather racing jacket", category: "jackets", brandDeclared: "Dainese", measurements: {}, condition: "GOOD", pricePaise: 1499900 },
+  { title: "Dainese white and grey leather racing jacket", category: "jackets", brandDeclared: "Dainese", measurements: {}, condition: "GOOD", pricePaise: 1699900 },
+  { title: "FXR purple camo snow jacket", category: "jackets", brandDeclared: "FXR", measurements: {}, condition: "GOOD", pricePaise: 649900 },
+  { title: "White leather racing jacket, Blade Trinity print", category: "jackets", measurements: {}, condition: "GOOD", pricePaise: 1199900 },
+];
+
+/** The coming Saturday at 6:00 PM IST (12:30 UTC); a Saturday that is today counts as next week's. */
+function nextSaturday6pmIST() {
+  const d = new Date(now);
+  d.setUTCHours(12, 30, 0, 0);
+  const ahead = (6 - d.getUTCDay() + 7) % 7 || 7;
+  return new Date(d.getTime() + ahead * day);
+}
+
 /** 7:00 PM IST (13:30 UTC), seven days from today. */
 function nextWeekAt7pmIST() {
   const d = new Date(now + 7 * day);
@@ -132,7 +152,7 @@ await db.execute(sql`
     order_items, holds, orders, saved_items, follows, listing_photos, listings, drops,
     addresses, sellers, users RESTART IDENTITY CASCADE`);
 
-const [owner, ananya, kabir, curator, cyber] = await db
+const [owner, ananya, kabir, curator, cyber, thriftllcOwner] = await db
   .insert(s.users)
   .values([
     { name: "Second Loop (demo seller)", phone: "+910000000001" },
@@ -140,6 +160,7 @@ const [owner, ananya, kabir, curator, cyber] = await db
     { name: "Kabir (demo buyer)", phone: "+910000000003" },
     { name: "YOLT staff (demo curator)", phone: "+910000000004" },
     { name: "cybrbride (demo seller)", phone: "+910000000005" },
+    { name: "thriftllc.in (demo seller)", phone: "+910000000006" },
   ])
   .returning();
 
@@ -207,6 +228,31 @@ const [cybrbride] = await db
   .returning();
 await insert(cybrbridePieces.inStock, { status: "AVAILABLE" }, 1, cybrbride!.id);
 await insert(cybrbridePieces.sold, { status: "SOLD" }, 20, cybrbride!.id);
+
+// A third store with a drop of its own: four pieces, scheduled for Saturday 6 PM IST. Its cover comes from `pnpm demo:photos`
+// (images/biker-collection-cover.*); not marked verified.
+const [thriftllc] = await db
+  .insert(s.sellers)
+  .values({
+    userId: thriftllcOwner!.id,
+    track: "STORE",
+    status: "APPROVED",
+    kycStatus: "PENDING",
+    handle: "thriftllc",
+    displayName: "thriftllc.in",
+    // Demo text, not theirs.
+    bio: "Vintage biker jackets and racing pants.",
+    instagramHandle: "thriftllc.in",
+    shippingFeePaise: 9900,
+    freeShippingAbovePaise: 499900,
+    dispatchDays: 2,
+  })
+  .returning();
+const [bikerDrop] = await db
+  .insert(s.drops)
+  .values({ sellerId: thriftllc!.id, title: "Vintage biker collection", startsAt: nextSaturday6pmIST(), status: "SCHEDULED", maxHoldsPerBuyer: 2 })
+  .returning();
+await insert(thriftllcPieces, { status: "SCHEDULED", dropId: bikerDrop!.id, publishedAt: null }, 0, thriftllc!.id);
 await db.execute(sql`UPDATE listings SET sold_at = published_at + interval '1 day' WHERE status = 'SOLD'`);
 
 // Past delivered orders for the sold items, so the reviews are verified purchases.
