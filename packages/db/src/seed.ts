@@ -100,6 +100,20 @@ const cybrbridePieces: { sold: Item[]; inStock: Item[] } = {
   ],
   inStock: [
     {
+      // The post's measurements in inches: waist 34 to 36, thigh 24, rise 10, length 23, leg opening 9. Thigh, rise and leg opening
+      // have no field for shorts yet, so they sit in the description. The post's price includes shipping; this one is a placeholder.
+      title: "Y2K ripped jorts, Diamond Stash",
+      category: "shorts",
+      brandDeclared: "Diamond Stash",
+      tagSize: "34",
+      measurements: { basis: "AROUND", waistCm: 86, lengthCm: 58 },
+      condition: "LIKE_NEW",
+      noFlawsConfirmed: true,
+      description:
+        "Y2K ripped jorts in a heavy brown-and-blue acid wash, with shredded patches across both thighs and a flag patch on the back waistband. Heavy-duty denim, 94% cotton and 6% polyester per the tag. Single piece.\n\nWaist 34 to 36 in, thigh 24 in, rise 10 in, length 23 in, leg opening 9 in.",
+      pricePaise: 129900,
+    },
+    {
       // Measured the way a thrift page does it: in inches, with ranges (shoulder 15, chest up to 34, waist 27 to 28, sleeves 24, length 19 to 20).
       title: "Vintage asymmetric denim jacket, crystal and chain shoulder",
       category: "jackets",
