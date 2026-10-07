@@ -49,34 +49,47 @@ export function BrandSlide({ pieces }: { pieces: SlidePiece[] }) {
   );
 }
 
-/** Slide 2: the next live or upcoming drop, with a countdown on the server's clock. */
+/**
+ * Slide 2: the next live or upcoming drop. The store's name leads, the poster (or, without one, the
+ * first pieces' photos with their prices) runs edge to edge on the right, and the countdown and the
+ * reminder sit under the title. The ticket-stub perforation splits the words from the photos.
+ */
 export function DropSlide({ drop, serverNow, signedIn, reminderOn, holdMinutes }: { drop: DropTicketData; serverNow: string; signedIn: boolean; reminderOn: boolean; holdMinutes: number }) {
-  const when = `${formatIST(drop.startsAt)} · ${drop.pieces} ${drop.pieces === 1 ? "piece" : "pieces"}`;
+  const when = formatIST(drop.startsAt);
+  const initials = drop.sellerName
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
   return (
-    <div className={cx(FRAME, "bg-[#0D0D0C] text-white")}>
-      {/* the ticket-stub motif: a perforation with two notches */}
-      <div aria-hidden="true" className="absolute inset-y-0 left-[70%] border-l-2 border-dashed border-white/45" />
-      <span aria-hidden="true" className="absolute -top-[11px] left-[calc(70%-11px)] h-[22px] w-[22px] rounded-full bg-background" />
-      <span aria-hidden="true" className="absolute -bottom-[11px] left-[calc(70%-11px)] h-[22px] w-[22px] rounded-full bg-background" />
-      <div className="flex min-h-0 flex-1">
-        <div className="stagger flex w-[calc(70%-32px)] flex-col justify-between gap-2.5">
-          <div className="flex flex-col items-start gap-2">
-            {drop.live ? (
-              <Stamp dot wobble>
-                Live now
-              </Stamp>
-            ) : (
-              <Sticker tone="paper">Upcoming drop</Sticker>
-            )}
-            <p className={cx(TITLE, "text-white")}>{drop.title}</p>
-            <p className="t-mono !text-xs text-[#D9D8D2]">{when}</p>
-          </div>
+    <div className="relative flex h-full overflow-hidden bg-[#0D0D0C] text-white">
+      <div className="stagger relative z-[1] flex w-[66%] flex-col justify-between gap-2.5 px-[18px] pb-[18px] pt-10 lg:w-[52%] lg:px-7 lg:pb-16 lg:pt-[22px]">
+        <div className="flex flex-col items-start gap-2 lg:gap-2.5">
+          {drop.live ? (
+            <Stamp dot wobble>
+              Live now
+            </Stamp>
+          ) : (
+            <Sticker tone="paper">Upcoming drop</Sticker>
+          )}
+          <Link href={`/s/${drop.sellerHandle}`} className="flex items-center gap-2 !text-white !no-underline hover:!underline">
+            <span aria-hidden="true" className="flex size-7 shrink-0 items-center justify-center bg-white text-[11px] font-bold text-[#0D0D0C]">
+              {initials}
+            </span>
+            <span className="t-caption !text-[12px] uppercase !tracking-[0.12em] lg:!text-[13px]">{drop.sellerName}</span>
+          </Link>
+          <p className={"t-display text-white !text-[20px] !leading-[20px] lg:!text-[44px] lg:!leading-[44px]"}>{drop.title}</p>
+          <p className="flex flex-wrap items-center gap-1.5">
+            <span className="t-mono border border-white/50 px-1.5 py-0.5 !text-[10px] lg:px-2 lg:py-1 lg:!text-xs">{when}</span>
+            <span className="t-mono border border-white/50 px-1.5 py-0.5 !text-[10px] lg:px-2 lg:py-1 lg:!text-xs">
+              {drop.pieces} {drop.pieces === 1 ? "piece" : "pieces"}
+            </span>
+          </p>
+        </div>
+        <div className="flex flex-col items-start gap-2 lg:gap-2.5">
           <div className="flex flex-col items-start gap-2.5 lg:flex-row lg:items-center">
-            {drop.live ? (
-              <p className="t-small text-[#D9D8D2]">First to claim gets {holdMinutes} minutes to pay.</p>
-            ) : (
-              <DropCountdown startsAt={drop.startsAt.toISOString()} serverNow={serverNow} className="[&_.cell]:!bg-white [&_.cell]:!text-[#0D0D0C]" />
-            )}
+            {!drop.live && <DropCountdown startsAt={drop.startsAt.toISOString()} serverNow={serverNow} className="[&_.cell]:!bg-white [&_.cell]:!text-[#0D0D0C]" />}
             <span>
               {drop.live ? (
                 <Link href={`/d/${drop.id}`} className={BTN_ON_DARK}>
@@ -87,12 +100,35 @@ export function DropSlide({ drop, serverNow, signedIn, reminderOn, holdMinutes }
               )}
             </span>
           </div>
+          <p className="t-small hidden !text-[12px] text-[#D9D8D2] lg:block">
+            First to claim gets {holdMinutes} minutes to pay · max {drop.maxHoldsPerBuyer} per person
+          </p>
         </div>
-        <div aria-hidden="true" className="ml-auto flex w-[26%] flex-col items-center justify-center gap-2 lg:flex-row">
-          {drop.thumbs.map((t, i) => (
-            <GarmentImage key={i} src={t.coverUrl} alt={t.title} category={t.category} className="w-[58px] shrink-0 !rounded-none lg:w-[30%]" />
-          ))}
-        </div>
+      </div>
+
+      {/* the ticket-stub motif: a perforation with two square notches, between the words and the photos */}
+      <div aria-hidden="true" className="absolute inset-y-0 left-[66%] z-[2] border-l-2 border-dashed border-white/45 lg:left-[52%]" />
+      <span aria-hidden="true" className="absolute -top-[9px] left-[calc(66%-9px)] z-[2] h-[18px] w-[18px] bg-background lg:left-[calc(52%-9px)]" />
+      <span aria-hidden="true" className="absolute -bottom-[9px] left-[calc(66%-9px)] z-[2] h-[18px] w-[18px] bg-background lg:left-[calc(52%-9px)]" />
+
+      <div aria-hidden="true" className="absolute inset-y-0 right-0 w-[34%] lg:w-[48%]">
+        {drop.coverUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- switch to next/image once the media loader exists
+          <img src={drop.coverUrl} alt="" className="size-full object-cover" />
+        ) : (
+          <div className="grid size-full grid-rows-3 gap-px bg-white/20 lg:grid-cols-3 lg:grid-rows-1">
+            {drop.thumbs.map((t, i) => (
+              <div key={i} className="relative min-h-0 overflow-hidden">
+                <GarmentImage src={t.coverUrl} alt={t.title} category={t.category} className="!aspect-auto !h-full !w-full !rounded-none" />
+                {t.pricePaise !== null && (
+                  <span className="absolute bottom-2 left-1.5 hidden lg:block">
+                    <HangTag>{formatINR(t.pricePaise)}</HangTag>
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

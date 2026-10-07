@@ -6,7 +6,11 @@ import { devSignIn, expect, test } from "./fixtures";
 test.beforeAll(async () => {
   reseed();
   // The seeded drop is a few days out; pin it so the drop slide and ticker are predictable.
-  await withDb((sql) => sql`UPDATE drops SET starts_at = now() + interval '3 days', status = 'SCHEDULED' WHERE title = 'Winter Vintage Drop'`);
+  await withDb(async (sql) => {
+    await sql`UPDATE drops SET starts_at = now() + interval '3 days', status = 'SCHEDULED' WHERE title = 'Winter Vintage Drop'`;
+    // The second store's drop is always later, so the hero's drop slide is the Winter one.
+    await sql`UPDATE drops SET starts_at = now() + interval '5 days' WHERE title = 'Vintage biker collection'`;
+  });
 });
 
 const hero = (page: Page) => page.getByRole("region", { name: "Featured" });
@@ -54,6 +58,8 @@ test.describe("phone, 390 x 844", () => {
     // Slide 2 is the drop: a ticking countdown on the server's clock and Remind me.
     await expect(hero(page).getByRole("timer", { name: /^Opens in 2 days/ })).toBeVisible();
     await expect(hero(page).getByRole("button", { name: "Remind me" })).toBeVisible();
+    // The store behind the drop is named and links to its page.
+    await expect(hero(page).getByRole("link", { name: "Second Loop" })).toHaveAttribute("href", "/s/secondloop");
 
     await hero(page).focus();
     await page.keyboard.press("ArrowRight");
